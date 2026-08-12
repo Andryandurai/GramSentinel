@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-ink-50 text-ink-800 font-sans;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-lg border border-ink-200 shadow-sm;
+  }
+  .card-header {
+    @apply px-5 py-3 border-b border-ink-200 flex items-center justify-between;
+  }
+  .card-title {
+    @apply text-sm font-semibold text-ink-800 tracking-tight;
+  }
+  .label {
+    @apply block text-xs font-medium text-ink-600 mb-1;
+  }
+  .input {
+    @apply w-full rounded-md border border-ink-200 px-3 py-2 text-sm
+           focus:outline-none focus:ring-2 focus:ring-care-500/30 focus:border-care-500
+           disabled:bg-ink-50 disabled:text-ink-400;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2
+           text-sm font-medium transition-colors disabled:opacity-50
+           disabled:cursor-not-allowed;
+  }
+  .btn-care {
+    @apply btn bg-care-600 text-white hover:bg-care-700;
+  }
+  .btn-sentinel {
+    @apply btn bg-sentinel-600 text-white hover:bg-sentinel-700;
+  }
+  .btn-ghost {
+    @apply btn border border-ink-200 bg-white text-ink-800 hover:bg-ink-50;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5
+           text-xs font-semibold;
+  }
+  .stat {
+    @apply card px-4 py-3;
+  }
+  .stat-value {
+    @apply text-2xl font-semibold tabular-nums leading-tight;
+  }
+  .stat-label {
+    @apply text-xs text-ink-600 mt-0.5;
+  }
+  .table-head {
+    @apply text-left text-xs font-semibold uppercase tracking-wide text-ink-600
+           border-b border-ink-200 px-4 py-2;
+  }
+  .table-cell {
+    @apply px-4 py-3 text-sm border-b border-ink-100 align-top;
+  }
+}
