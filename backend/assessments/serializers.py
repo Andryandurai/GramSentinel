@@ -5,6 +5,20 @@ from core.constants import MEDICAL_DISCLAIMER
 from .models import FollowUp, PatientAssessment
 
 
+#: How many day-wise entries one assessment may carry. The portal offers three;
+#: the cap only exists so a malformed payload cannot grow without bound.
+MAX_TIMELINE_ENTRIES = 14
+
+
+class SymptomDayEntrySerializer(serializers.Serializer):
+    """One optional day of the symptom history: 'Day 2 — fever increased'."""
+
+    day = serializers.IntegerField(min_value=1, max_value=365)
+    detail = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=1000
+    )
+
+
 class AssessmentInputSerializer(serializers.Serializer):
     """What the worker portal submits — for both preview and final submit."""
 
@@ -15,7 +29,16 @@ class AssessmentInputSerializer(serializers.Serializer):
     raw_symptom_text = serializers.CharField(
         required=False, allow_blank=True, default=""
     )
+    # --- optional "Other" symptom ---------------------------------------
+    other_symptom_selected = serializers.BooleanField(required=False, default=False)
+    other_symptom_text = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=1000
+    )
     duration_days = serializers.IntegerField(min_value=0, max_value=365, default=0)
+    # --- optional day-wise symptom history ------------------------------
+    symptom_timeline = SymptomDayEntrySerializer(
+        many=True, required=False, default=list
+    )
     temperature_c = serializers.FloatField(
         required=False, allow_null=True, min_value=30.0, max_value=45.0
     )
@@ -40,8 +63,45 @@ class AssessmentInputSerializer(serializers.Serializer):
     notes = serializers.CharField(required=False, allow_blank=True, default="")
     encounter_date = serializers.DateField(required=False, allow_null=True)
 
+    def validate_symptom_timeline(self, value):
+        """Keep only the days the worker actually filled in.
+
+        Every day is optional: a worker who remembers Day 1 and Day 3 but not
+        Day 2 submits exactly that. Blank days are dropped rather than stored
+        as empty strings, so nothing shows an empty 'Day 2 —' later on.
+        """
+
+        cleaned: dict[int, str] = {}
+        for entry in value or []:
+            detail = (entry.get("detail") or "").strip()
+            if not detail:
+                continue
+            cleaned[int(entry["day"])] = detail
+        return [
+            {"day": day, "detail": cleaned[day]}
+            for day in sorted(cleaned)[:MAX_TIMELINE_ENTRIES]
+        ]
+
     def validate(self, attrs):
-        if not attrs.get("symptoms") and not attrs.get("raw_symptom_text", "").strip():
+        other_text = (attrs.get("other_symptom_text") or "").strip()
+        attrs["other_symptom_text"] = other_text
+
+        # 'Other' is optional, but selecting it and leaving the box empty
+        # records nothing at all — so that is refused rather than saved blank.
+        if attrs.get("other_symptom_selected") and not other_text:
+            raise serializers.ValidationError(
+                {
+                    "other_symptom_text": (
+                        "Describe the symptom, or clear the 'Other' option."
+                    )
+                }
+            )
+
+        if (
+            not attrs.get("symptoms")
+            and not attrs.get("raw_symptom_text", "").strip()
+            and not other_text
+        ):
             raise serializers.ValidationError(
                 {
                     "symptoms": (
@@ -73,7 +133,9 @@ class PatientAssessmentSerializer(serializers.ModelSerializer):
             "village_name",
             "worker_name",
             "symptoms",
+            "other_symptom_text",
             "duration_days",
+            "symptom_timeline",
             "temperature_c",
             "pulse_bpm",
             "respiratory_rate",

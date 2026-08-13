@@ -81,4 +81,7 @@ class SymptomAnalysisAgent(BaseAgent):
             "signal_category": category_for_symptoms(symptoms),
             "vitals": encounter.get("vitals", {}),
             "age_months": encounter.get("age_months"),
+            # Carried forward untouched so it stays visible in the trace. It is
+            # not part of any group, weight or band above.
+            "supplementary_context": payload.get("supplementary_context", {}),
         }

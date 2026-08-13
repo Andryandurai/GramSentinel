@@ -53,6 +53,7 @@ export function TriageSupportPanel({ support }: { support: Support }) {
   const level = LEVEL_PRESENTATION[support.triage_level]
   const escalated = support.escalation_forced
   const hasFlags = support.red_flags.length > 0
+  const supplementary = support.supplementary_context
 
   return (
     <div className="space-y-5">
@@ -137,6 +138,35 @@ export function TriageSupportPanel({ support }: { support: Support }) {
           </p>
         )}
       </div>
+
+      {/* Optional free-text detail, shown so the worker can see it was kept —
+          and told plainly that it did not drive the level above. */}
+      {supplementary?.has_supplementary_detail && (
+        <div className="rounded-md border border-ink-200 bg-white px-3 py-2">
+          <div className="text-xs font-medium text-ink-600">
+            Additional detail recorded
+          </div>
+          {supplementary.other_symptom_text && (
+            <p className="mt-1.5 text-sm text-ink-800">
+              <span className="text-xs font-medium text-ink-500">Other: </span>
+              {supplementary.other_symptom_text}
+            </p>
+          )}
+          {supplementary.symptom_timeline.length > 0 && (
+            <ul className="mt-1.5 space-y-0.5">
+              {supplementary.symptom_timeline.map((entry) => (
+                <li key={entry.day} className="text-sm text-ink-800">
+                  <span className="text-xs font-medium text-ink-500">
+                    Day {entry.day} —{' '}
+                  </span>
+                  {entry.detail}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-2 text-xs text-ink-500">{supplementary.note}</p>
+        </div>
+      )}
 
       {/* Recording gaps, when the worker left something out */}
       {support.completeness.notes.length > 0 && (

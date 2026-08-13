@@ -96,7 +96,41 @@ export default function PatientDetail() {
                       {symptom.replace(/_/g, ' ')}
                     </span>
                   ))}
+                  {assessment.other_symptom_text && (
+                    <span className="pill bg-ink-100 text-ink-600 font-normal">
+                      other
+                    </span>
+                  )}
                 </div>
+
+                {/* Only rendered when the worker recorded them. Assessments
+                    from before these fields existed simply have neither. */}
+                {assessment.other_symptom_text && (
+                  <p className="mt-3 text-sm text-ink-800">
+                    <span className="text-xs font-medium text-ink-500">
+                      Other:{' '}
+                    </span>
+                    {assessment.other_symptom_text}
+                  </p>
+                )}
+
+                {assessment.symptom_timeline?.length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-xs font-medium text-ink-500">
+                      Day-wise details
+                    </div>
+                    <ul className="mt-1 space-y-0.5">
+                      {assessment.symptom_timeline.map((entry) => (
+                        <li key={entry.day} className="text-sm text-ink-800">
+                          <span className="text-xs font-medium text-ink-500">
+                            Day {entry.day} —{' '}
+                          </span>
+                          {entry.detail}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {assessment.aggregated_at && (
                   <p className="mt-3 text-xs text-care-700 border-t border-ink-100 pt-2">

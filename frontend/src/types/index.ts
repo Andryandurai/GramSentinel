@@ -63,6 +63,25 @@ export interface AgentTraceEntry {
   output: Record<string, unknown>
 }
 
+/** One optional day of recorded symptom history. */
+export interface SymptomDay {
+  day: number
+  detail: string
+}
+
+/**
+ * The optional free-text detail a worker added. Carried through the agent
+ * chain for display and storage only — it is never scored, and never reaches
+ * the deterministic safety checks.
+ */
+export interface SupplementaryContext {
+  other_symptom_text: string
+  symptom_timeline: SymptomDay[]
+  has_supplementary_detail: boolean
+  interpreted_by_triage: boolean
+  note: string
+}
+
 export interface TriageSupport {
   triage_level: TriageLevel
   model_triage_level: TriageLevel
@@ -80,6 +99,8 @@ export interface TriageSupport {
   normalised_symptoms: string[]
   syndrome_groups: Record<string, string[]>
   completeness: { notes: string[]; is_complete: boolean; missing_vitals: string[] }
+  /** Absent on responses produced before this field existed. */
+  supplementary_context?: SupplementaryContext
   signal_category: string
   llm_used: boolean
   agent_trace: AgentTraceEntry[]
@@ -110,7 +131,11 @@ export interface Assessment {
   village_name: string
   worker_name: string
   symptoms: string[]
+  /** Empty when the worker did not record an "Other" symptom. */
+  other_symptom_text: string
   duration_days: number
+  /** Empty when day-wise details were not recorded. Old records have none. */
+  symptom_timeline: SymptomDay[]
   temperature_c: number | null
   primary_category: string
   triage_level: TriageLevel
@@ -135,6 +160,17 @@ export interface FollowUp {
   notes: string
 }
 
+/** One selectable reporting week, numbered across the data the worker can see. */
+export interface DashboardWeek {
+  value: string
+  number: number
+  label: string
+  start: string
+  end: string
+  range_label: string
+  is_current_week: boolean
+}
+
 export interface WorkerDashboard {
   worker: string
   village: { code: string; name: string; cluster: string } | null
@@ -143,6 +179,22 @@ export interface WorkerDashboard {
     assessment_count: number
     urgent_count: number
     concerning_count: number
+  }
+  weeks: DashboardWeek[]
+  selected_week: string
+  period: {
+    is_all_weeks: boolean
+    label: string
+    range_label: string
+    start: string | null
+    end: string | null
+    assessment_count: number
+    urgent_count: number
+    concerning_count: number
+    followup_count: number
+    has_activity: boolean
+    empty_message: string
+    notice: string
   }
   pending_followups: FollowUp[]
   pending_followup_count: number

@@ -112,6 +112,11 @@ class RuralCareOrchestrator:
             "normalised_symptoms": symptom.output.get("normalised_symptoms", []),
             "syndrome_groups": symptom.output.get("syndrome_groups", {}),
             "completeness": listener.output.get("completeness", {}),
+            # Optional free-text detail the worker added. Passed back for
+            # display and storage only — no agent below the listener scores it.
+            "supplementary_context": listener.output.get(
+                "supplementary_context", {}
+            ),
             "triage_level": safety.output.get("final_triage_level"),
             "model_triage_level": safety.output.get("model_triage_level"),
             "triage_score": triage.output.get("triage_score"),

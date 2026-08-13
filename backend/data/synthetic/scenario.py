@@ -172,6 +172,35 @@ PRIOR_WEEK_ENCOUNTER_COUNTS: dict[str, dict[str, int]] = {
     "MLR": {"OTHER": 1},
 }
 
+#: Two earlier quiet weeks of encounters, so the worker dashboard's week filter
+#: has more than one week to filter. `weeks_ago` counts back from the current
+#: Monday and `day_offset` places the encounter inside that week, which keeps
+#: every row in a definite week whatever day the demo is run.
+#:
+#: The per-village category counts here match PRIOR_WEEK_ENCOUNTER_COUNTS
+#: exactly, and deliberately so: the aggregated RuralCare baseline is a rolling
+#: average of the preceding weeks, so equal weeks leave every baseline — and
+#: therefore the demonstration outcome — exactly as it was.
+SEED_HISTORY_ENCOUNTERS: list[dict[str, Any]] = [
+    # --- Kovilur: 2 fever-related, 1 respiratory, 1 diarrhoeal each week ---
+    {"patient": "KVL-P-001", "symptoms": ["fever", "body_pain"], "duration_days": 2, "temperature_c": 38.0, "weeks_ago": 2, "day_offset": 1},
+    {"patient": "KVL-P-003", "symptoms": ["fever", "headache"], "duration_days": 3, "temperature_c": 38.2, "weeks_ago": 2, "day_offset": 3},
+    {"patient": "KVL-P-005", "symptoms": ["cough", "sore_throat"], "duration_days": 3, "weeks_ago": 2, "day_offset": 2},
+    {"patient": "KVL-P-008", "symptoms": ["diarrhoea"], "duration_days": 1, "weeks_ago": 2, "day_offset": 4},
+    {"patient": "KVL-P-002", "symptoms": ["fever", "chills"], "duration_days": 2, "temperature_c": 38.1, "weeks_ago": 1, "day_offset": 1},
+    {"patient": "KVL-P-006", "symptoms": ["fever", "fatigue"], "duration_days": 2, "temperature_c": 37.9, "weeks_ago": 1, "day_offset": 3},
+    {"patient": "KVL-P-007", "symptoms": ["cough"], "duration_days": 4, "weeks_ago": 1, "day_offset": 2},
+    {"patient": "KVL-P-004", "symptoms": ["diarrhoea", "abdominal_pain"], "duration_days": 2, "weeks_ago": 1, "day_offset": 5},
+    # --- Ariyanur: 1 fever-related, 1 respiratory each week ----------------
+    {"patient": "ARY-P-001", "symptoms": ["fever"], "duration_days": 2, "temperature_c": 38.0, "weeks_ago": 2, "day_offset": 2},
+    {"patient": "ARY-P-002", "symptoms": ["cough", "sore_throat"], "duration_days": 3, "weeks_ago": 2, "day_offset": 4},
+    {"patient": "ARY-P-002", "symptoms": ["fever", "body_pain"], "duration_days": 2, "temperature_c": 38.3, "weeks_ago": 1, "day_offset": 2},
+    {"patient": "ARY-P-001", "symptoms": ["cough"], "duration_days": 2, "weeks_ago": 1, "day_offset": 4},
+    # --- Melur: one quiet non-specific encounter each week -----------------
+    {"patient": "MLR-P-001", "symptoms": ["headache"], "duration_days": 1, "weeks_ago": 2, "day_offset": 3},
+    {"patient": "MLR-P-001", "symptoms": ["fatigue"], "duration_days": 2, "weeks_ago": 1, "day_offset": 3},
+]
+
 #: Village A / B / C map onto the three existing villages, so all previously
 #: seeded data, alerts and history stay valid. The mapping itself lives in
 #: core.constants so the API and the seed cannot drift apart.

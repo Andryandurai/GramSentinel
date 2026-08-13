@@ -21,6 +21,36 @@ VITAL_FIELDS = (
     "spo2",
 )
 
+#: Shown to the worker wherever the optional free-text detail is displayed.
+SUPPLEMENTARY_NOTE = (
+    "Recorded with the assessment as supplementary context. Triage support and "
+    "the deterministic safety checks are based on the recorded symptoms, "
+    "duration and vital signs — free text is not interpreted as a symptom."
+)
+
+
+def _clean_timeline(raw: Any) -> list[dict[str, Any]]:
+    """Normalise the optional day-wise entries; drop anything empty.
+
+    Deliberately forgiving: an entry that is malformed is skipped rather than
+    failing the encounter, because this field is optional extra detail and must
+    never be able to stop a worker recording a patient.
+    """
+
+    cleaned: list[dict[str, Any]] = []
+    for entry in raw or []:
+        if not isinstance(entry, dict):
+            continue
+        detail = str(entry.get("detail") or "").strip()
+        if not detail:
+            continue
+        try:
+            day = int(entry.get("day"))
+        except (TypeError, ValueError):
+            continue
+        cleaned.append({"day": day, "detail": detail})
+    return sorted(cleaned, key=lambda e: e["day"])
+
 
 class PatientListenerAgent(BaseAgent):
     name = "PatientListenerAgent"
@@ -32,6 +62,7 @@ class PatientListenerAgent(BaseAgent):
     def summarise_output(self, output: dict[str, Any]) -> str:
         encounter = output.get("encounter", {})
         completeness = output.get("completeness", {})
+        supplementary = output.get("supplementary_context", {})
         count = len(encounter.get("symptoms", []))
         vitals = [v for v in encounter.get("vitals", {}).values() if v is not None]
 
@@ -42,6 +73,19 @@ class PatientListenerAgent(BaseAgent):
         unrecognised = encounter.get("unrecognised_entries") or []
         if unrecognised:
             parts.append(f"Kept as free text: {', '.join(unrecognised)}.")
+
+        extras = []
+        if supplementary.get("other_symptom_text"):
+            extras.append("a described 'other' symptom")
+        days = supplementary.get("symptom_timeline") or []
+        if days:
+            extras.append(f"{len(days)} day(s) of symptom history")
+        if extras:
+            parts.append(
+                f"Also kept {' and '.join(extras)} as supplementary context, "
+                "not interpreted as symptom codes."
+            )
+
         missing = completeness.get("missing_vitals") or []
         if missing:
             parts.append(f"{len(missing)} vital sign(s) not recorded.")
@@ -52,6 +96,8 @@ class PatientListenerAgent(BaseAgent):
         return {
             "symptom_count": len(payload.get("symptoms") or []),
             "has_free_text": bool(payload.get("raw_symptom_text")),
+            "has_other_symptom_text": bool(payload.get("other_symptom_text")),
+            "day_wise_entries": len(_clean_timeline(payload.get("symptom_timeline"))),
             "vitals_supplied": [f for f in VITAL_FIELDS if payload.get(f) is not None],
         }
 
@@ -59,6 +105,15 @@ class PatientListenerAgent(BaseAgent):
         symptoms, unrecognised = extract_symptoms(
             payload.get("symptoms") or [], payload.get("raw_symptom_text", "")
         )
+
+        # The optional 'Other' description and day-wise history are carried
+        # alongside the encounter, never folded into the symptom codes. The
+        # triage scorer and the red-flag rule set therefore see exactly what
+        # they saw before this field existed, which is what keeps the
+        # deterministic behaviour deterministic.
+        other_symptom_text = str(payload.get("other_symptom_text") or "").strip()
+        timeline = _clean_timeline(payload.get("symptom_timeline"))
+        has_supplementary = bool(other_symptom_text or timeline)
 
         vitals = {f: payload.get(f) for f in VITAL_FIELDS}
         missing_vitals = [f for f, v in vitals.items() if v is None]
@@ -70,8 +125,13 @@ class PatientListenerAgent(BaseAgent):
             duration_days = 0
 
         completeness_notes = []
-        if not symptoms:
+        if not symptoms and not has_supplementary:
             completeness_notes.append("No recognised symptom recorded.")
+        elif not symptoms:
+            completeness_notes.append(
+                "No symptom from the standard list was selected; only the "
+                "described detail was recorded."
+            )
         if unrecognised:
             completeness_notes.append(
                 f"Unrecognised entries kept as free text: {', '.join(unrecognised)}."
@@ -91,6 +151,13 @@ class PatientListenerAgent(BaseAgent):
                 "vitals": vitals,
                 "age_months": payload.get("age_months"),
                 "history": payload.get("history") or [],
+            },
+            "supplementary_context": {
+                "other_symptom_text": other_symptom_text,
+                "symptom_timeline": timeline,
+                "has_supplementary_detail": has_supplementary,
+                "interpreted_by_triage": False,
+                "note": SUPPLEMENTARY_NOTE if has_supplementary else "",
             },
             "completeness": {
                 "recognised_symptoms": len(symptoms),

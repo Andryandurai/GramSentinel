@@ -29,7 +29,26 @@ class PatientAssessment(models.Model):
     # --- Worker-entered information -------------------------------------
     symptoms = models.JSONField(default=list, help_text="Normalised symptom codes.")
     raw_symptom_text = models.TextField(blank=True)
+    other_symptom_text = models.TextField(
+        blank=True,
+        default="",
+        help_text=(
+            "The worker's own words for a symptom the predefined list does not "
+            "cover. Optional; blank on assessments recorded without it. Stored "
+            "as supplementary context — it is not interpreted by the triage "
+            "rules or the deterministic safety checks."
+        ),
+    )
     duration_days = models.PositiveSmallIntegerField(default=0)
+    symptom_timeline = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            "Optional day-wise symptom history: [{'day': 1, 'detail': '...'}]. "
+            "Empty for assessments recorded without it. Supplementary context "
+            "only; duration_days above remains the recorded duration."
+        ),
+    )
     temperature_c = models.FloatField(null=True, blank=True)
     pulse_bpm = models.PositiveSmallIntegerField(null=True, blank=True)
     respiratory_rate = models.PositiveSmallIntegerField(null=True, blank=True)

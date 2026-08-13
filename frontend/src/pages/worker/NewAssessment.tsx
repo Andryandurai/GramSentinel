@@ -29,11 +29,20 @@ const SYMPTOM_OPTIONS = [
   'bleeding',
 ]
 
+/** How many optional day-wise boxes the form offers. */
+const TIMELINE_DAYS = [1, 2, 3]
+
 type Step = 'choose' | 'new-patient' | 'assessment'
 
 interface AssessmentForm {
   symptoms: string[]
+  /** Optional: the worker ticked "Other" and described the symptom. */
+  other_selected: boolean
+  other_text: string
   duration_days: string
+  /** Optional: day-wise history, off unless the worker turns it on. */
+  day_wise_enabled: boolean
+  day_details: Record<number, string>
   temperature_c: string
   pulse_bpm: string
   respiratory_rate: string
@@ -45,7 +54,11 @@ interface AssessmentForm {
 
 const EMPTY_ASSESSMENT: AssessmentForm = {
   symptoms: [],
+  other_selected: false,
+  other_text: '',
   duration_days: '',
+  day_wise_enabled: false,
+  day_details: {},
   temperature_c: '',
   pulse_bpm: '',
   respiratory_rate: '',
@@ -63,12 +76,24 @@ const EMPTY_PATIENT = {
   sex: 'U',
 }
 
+/** Only the days the worker actually filled in are sent. */
+function timelineOf(form: AssessmentForm) {
+  if (!form.day_wise_enabled) return []
+  return TIMELINE_DAYS.map((day) => ({
+    day,
+    detail: (form.day_details[day] ?? '').trim(),
+  })).filter((entry) => entry.detail !== '')
+}
+
 function toPayload(patientId: number, form: AssessmentForm) {
   const num = (value: string) => (value.trim() === '' ? null : Number(value))
   return {
     patient: patientId,
     symptoms: form.symptoms,
+    other_symptom_selected: form.other_selected,
+    other_symptom_text: form.other_selected ? form.other_text.trim() : '',
     duration_days: Number(form.duration_days || 0),
+    symptom_timeline: timelineOf(form),
     temperature_c: num(form.temperature_c),
     pulse_bpm: num(form.pulse_bpm),
     respiratory_rate: num(form.respiratory_rate),
@@ -119,6 +144,24 @@ export default function NewAssessment() {
       symptoms: prev.symptoms.includes(symptom)
         ? prev.symptoms.filter((s) => s !== symptom)
         : [...prev.symptoms, symptom],
+    }))
+  }
+
+  /** "Other" behaves like the symptom buttons: changing it invalidates a run. */
+  function toggleOther() {
+    setSupport(null)
+    setForm((prev) => ({
+      ...prev,
+      other_selected: !prev.other_selected,
+      // Deselecting clears the description so nothing unseen is submitted.
+      other_text: prev.other_selected ? '' : prev.other_text,
+    }))
+  }
+
+  function setDayDetail(day: number, value: string) {
+    setForm((prev) => ({
+      ...prev,
+      day_details: { ...prev.day_details, [day]: value },
     }))
   }
 
@@ -200,7 +243,12 @@ export default function NewAssessment() {
 
   if (patients.loading) return <Loading label="Loading…" />
 
-  const canRun = patient !== null && form.symptoms.length > 0
+  // "Other" without a description records nothing, so it is refused here as
+  // well as on the server.
+  const otherMissingText = form.other_selected && form.other_text.trim() === ''
+  const hasSomethingRecorded =
+    form.symptoms.length > 0 || (form.other_selected && !otherMissingText)
+  const canRun = patient !== null && hasSomethingRecorded && !otherMissingText
 
   return (
     <div className="space-y-6">
@@ -481,7 +529,48 @@ export default function NewAssessment() {
                           </button>
                         )
                       })}
+
+                      {/* Optional, for anything the list above cannot say. */}
+                      <button
+                        type="button"
+                        onClick={toggleOther}
+                        aria-pressed={form.other_selected}
+                        className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                          form.other_selected
+                            ? 'bg-care-600 border-care-600 text-white'
+                            : 'bg-white border-dashed border-ink-300 text-ink-600 hover:border-care-500'
+                        }`}
+                      >
+                        other
+                      </button>
                     </div>
+
+                    {form.other_selected && (
+                      <div className="mt-3">
+                        <label className="label" htmlFor="other_symptom">
+                          Please describe the symptom *
+                        </label>
+                        <textarea
+                          id="other_symptom"
+                          rows={2}
+                          className="input"
+                          placeholder="For example: persistent skin irritation and swelling around the left arm."
+                          value={form.other_text}
+                          onChange={(e) => set('other_text', e.target.value)}
+                        />
+                        {otherMissingText ? (
+                          <p className="mt-1 text-xs text-red-600">
+                            Describe the symptom, or clear the “other” option.
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-xs text-ink-400">
+                            Kept with the assessment as supplementary context.
+                            Triage support still comes from the recorded
+                            symptoms, duration and vital signs.
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -497,6 +586,57 @@ export default function NewAssessment() {
                       value={form.duration_days}
                       onChange={(e) => set('duration_days', e.target.value)}
                     />
+
+                    {/* Optional extra detail layer — off by default, and it
+                        never replaces the duration recorded above. */}
+                    <div className="mt-3 rounded-md border border-ink-200 bg-ink-50/60 px-3 py-2.5">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-ink-300 text-care-600 focus:ring-care-500/30"
+                          checked={form.day_wise_enabled}
+                          onChange={(e) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              day_wise_enabled: e.target.checked,
+                            }))
+                          }
+                        />
+                        <span className="text-xs font-medium text-ink-600">
+                          Optional: add symptom history by day
+                        </span>
+                      </label>
+
+                      {form.day_wise_enabled && (
+                        <div className="mt-3 space-y-2.5">
+                          {TIMELINE_DAYS.map((day) => (
+                            <div key={day}>
+                              <label className="label" htmlFor={`day-${day}`}>
+                                Day {day}
+                              </label>
+                              <textarea
+                                id={`day-${day}`}
+                                rows={2}
+                                className="input bg-white"
+                                placeholder={
+                                  day === 1
+                                    ? 'For example: fever and mild headache.'
+                                    : 'Leave blank if the patient does not remember.'
+                                }
+                                value={form.day_details[day] ?? ''}
+                                onChange={(e) =>
+                                  setDayDetail(day, e.target.value)
+                                }
+                              />
+                            </div>
+                          ))}
+                          <p className="text-xs text-ink-400">
+                            Every day is optional — fill in only what the
+                            patient recalls.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <fieldset>

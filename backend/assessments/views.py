@@ -33,6 +33,12 @@ from .serializers import (
     FollowUpSerializer,
     PatientAssessmentSerializer,
 )
+from .weeks import (
+    ALL_WEEKS,
+    build_week_options,
+    format_range,
+    resolve_selection,
+)
 
 
 def _resolve_patient(request, patient_id: int) -> Patient:
@@ -48,6 +54,10 @@ def _run_agents(patient: Patient, data: dict) -> dict:
         {
             "symptoms": data.get("symptoms", []),
             "raw_symptom_text": data.get("raw_symptom_text", ""),
+            # Optional extra detail. The listener keeps these as supplementary
+            # context; nothing downstream turns them into symptom codes.
+            "other_symptom_text": data.get("other_symptom_text", ""),
+            "symptom_timeline": data.get("symptom_timeline", []),
             "duration_days": data.get("duration_days", 0),
             "temperature_c": data.get("temperature_c"),
             "pulse_bpm": data.get("pulse_bpm"),
@@ -84,6 +94,7 @@ def _support_payload(result: dict) -> dict:
         "normalised_symptoms": result["normalised_symptoms"],
         "syndrome_groups": result["syndrome_groups"],
         "completeness": result["completeness"],
+        "supplementary_context": result.get("supplementary_context", {}),
         "signal_category": result["signal_category"],
         "llm_used": result["used_llm"],
         "agent_trace": result["agent_trace"],
@@ -150,7 +161,9 @@ class AssessmentListCreateView(generics.ListCreateAPIView):
             village=patient.village,
             symptoms=result["normalised_symptoms"],
             raw_symptom_text=data.get("raw_symptom_text", ""),
+            other_symptom_text=data.get("other_symptom_text", ""),
             duration_days=data.get("duration_days", 0),
+            symptom_timeline=data.get("symptom_timeline", []),
             temperature_c=data.get("temperature_c"),
             pulse_bpm=data.get("pulse_bpm"),
             respiratory_rate=data.get("respiratory_rate"),
@@ -275,6 +288,15 @@ class FollowUpDetailView(generics.RetrieveUpdateAPIView):
 
 
 class WorkerDashboardView(APIView):
+    """The worker's own dashboard, optionally narrowed to one reporting week.
+
+    `?week=` accepts a stored week label ("2026-W33"), the displayed week
+    number ("2"), or "all" (the default, and what the dashboard has always
+    shown). The village scope is applied **first**, so the week options and
+    every filtered figure below are derived from data this worker was already
+    permitted to see — narrowing a time period can never widen access.
+    """
+
     permission_classes = (IsWorker,)
 
     def get(self, request):
@@ -287,10 +309,37 @@ class WorkerDashboardView(APIView):
             assessments = assessments.filter(village=village)
             followups = followups.filter(patient__village=village)
 
+        week_options = build_week_options(
+            [
+                *assessments.values_list("encounter_date", flat=True),
+                *followups.values_list("due_date", flat=True),
+            ]
+        )
+        selected, start, end, _option, notice = resolve_selection(
+            request.query_params.get("week"), week_options
+        )
+        is_all_weeks = selected == ALL_WEEKS
+
+        # The week filter narrows the already-scoped querysets. Everything
+        # below this point derives from these two, so a card cannot silently
+        # keep showing another period's numbers.
+        period_assessments = assessments
+        period_followups = followups
+        if not is_all_weeks:
+            period_assessments = assessments.filter(
+                encounter_date__gte=start, encounter_date__lte=end
+            )
+            period_followups = followups.filter(
+                due_date__gte=start, due_date__lte=end
+            )
+
         today_assessments = assessments.filter(encounter_date=today)
-        recent = assessments.select_related("patient", "village").order_by(
+        recent = period_assessments.select_related("patient", "village").order_by(
             "-created_at"
         )[:8]
+
+        period_count = period_assessments.count()
+        period_followup_count = period_followups.count()
 
         return Response(
             {
@@ -304,6 +353,7 @@ class WorkerDashboardView(APIView):
                     if village
                     else None
                 ),
+                # Unchanged: "today" is a fixed day, not a filtered period.
                 "today": {
                     "date": today,
                     "assessment_count": today_assessments.count(),
@@ -314,11 +364,47 @@ class WorkerDashboardView(APIView):
                         triage_level="CONCERNING"
                     ).count(),
                 },
+                "weeks": [
+                    {
+                        **option,
+                        "is_current_week": option["start"]
+                        <= today
+                        <= option["end"],
+                    }
+                    for option in week_options
+                ],
+                "selected_week": selected,
+                "period": {
+                    "is_all_weeks": is_all_weeks,
+                    "label": self._period_label(selected, week_options),
+                    "range_label": self._range_label(
+                        is_all_weeks, start, end, week_options
+                    ),
+                    "start": start,
+                    "end": end,
+                    "assessment_count": period_count,
+                    "urgent_count": period_assessments.filter(
+                        triage_level="URGENT"
+                    ).count(),
+                    "concerning_count": period_assessments.filter(
+                        triage_level="CONCERNING"
+                    ).count(),
+                    "followup_count": period_followup_count,
+                    "has_activity": bool(period_count or period_followup_count),
+                    "empty_message": (
+                        ""
+                        if (period_count or period_followup_count or is_all_weeks)
+                        else "No activity recorded for this week."
+                    ),
+                    "notice": notice,
+                },
                 "pending_followups": FollowUpSerializer(
-                    followups.select_related("patient").order_by("due_date")[:8],
+                    period_followups.select_related("patient").order_by("due_date")[
+                        :8
+                    ],
                     many=True,
                 ).data,
-                "pending_followup_count": followups.count(),
+                "pending_followup_count": period_followup_count,
                 "recent_assessments": PatientAssessmentSerializer(
                     recent, many=True
                 ).data,
@@ -326,3 +412,21 @@ class WorkerDashboardView(APIView):
                 "data_notice": DATA_NOTICE,
             }
         )
+
+    @staticmethod
+    def _period_label(selected: str, options: list[dict]) -> str:
+        if selected == ALL_WEEKS:
+            return "All weeks"
+        for option in options:
+            if option["value"] == selected:
+                return option["label"]
+        # A valid week outside this worker's own data range.
+        return selected
+
+    @staticmethod
+    def _range_label(is_all_weeks, start, end, options: list[dict]) -> str:
+        if not is_all_weeks and start and end:
+            return format_range(start, end)
+        if options:
+            return format_range(options[0]["start"], options[-1]["end"])
+        return ""

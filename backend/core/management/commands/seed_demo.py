@@ -658,54 +658,88 @@ class Command(BaseCommand):
         for row in S.SEED_ENCOUNTERS:
             patient = patients[row["patient"]]
             encounter_date = today - dt.timedelta(days=row["days_ago"])
-
-            if PatientAssessment.objects.filter(
-                patient=patient, encounter_date=encounter_date, is_draft=False
-            ).exists():
-                continue
-
-            result = orchestrator.run(
-                {
-                    "symptoms": row["symptoms"],
-                    "duration_days": row["duration_days"],
-                    "temperature_c": row.get("temperature_c"),
-                    "age_months": patient.age_in_months,
-                    "village_code": patient.village.code,
-                    "cluster": patient.village.cluster,
-                }
+            created += self._create_encounter(
+                orchestrator, worker_by_village, patient, encounter_date, row
             )
-            if not result.get("ok"):
-                self.stderr.write(f"    agent chain failed for {patient.patient_code}")
-                continue
 
-            PatientAssessment.objects.create(
-                patient=patient,
-                worker=worker_by_village.get(patient.village.code),
-                village=patient.village,
-                symptoms=result["normalised_symptoms"],
-                duration_days=row["duration_days"],
-                temperature_c=row.get("temperature_c"),
-                primary_category=result["signal_category"],
-                triage_level=result["triage_level"],
-                triage_score=result["triage_score"],
-                reasoning_summary=result["reasoning_summary"],
-                referral_recommendation=result["referral_recommendation"],
-                followup_interval_days=result["followup_interval_days"],
-                red_flags=result["red_flags"],
-                escalation_forced=result["escalation_forced"],
-                safety_status=result["safety_status"],
-                agent_trace=result["agent_trace"],
-                llm_used=result["used_llm"],
-                is_draft=False,
-                encounter_date=encounter_date,
+        # Two earlier weeks, so the dashboard's week filter has real history to
+        # filter rather than a single week.
+        history = 0
+        for row in S.SEED_HISTORY_ENCOUNTERS:
+            patient = patients[row["patient"]]
+            encounter_date = S.week_start_for(
+                today, row["weeks_ago"]
+            ) + dt.timedelta(days=row["day_offset"])
+            history += self._create_encounter(
+                orchestrator, worker_by_village, patient, encounter_date, row
             )
-            created += 1
 
-        self.stdout.write(f"  encounters .......... {created} (through the agent chain)")
+        self.stdout.write(
+            f"  encounters .......... {created} (through the agent chain)"
+        )
+        self.stdout.write(
+            f"  earlier weeks ....... {history} (two prior weeks of encounters)"
+        )
+
+    def _create_encounter(
+        self,
+        orchestrator,
+        worker_by_village,
+        patient,
+        encounter_date: dt.date,
+        row: dict,
+    ) -> int:
+        """One synthetic encounter through the real agent chain. Idempotent."""
+
+        if PatientAssessment.objects.filter(
+            patient=patient, encounter_date=encounter_date, is_draft=False
+        ).exists():
+            return 0
+
+        result = orchestrator.run(
+            {
+                "symptoms": row["symptoms"],
+                "duration_days": row["duration_days"],
+                "temperature_c": row.get("temperature_c"),
+                "age_months": patient.age_in_months,
+                "village_code": patient.village.code,
+                "cluster": patient.village.cluster,
+            }
+        )
+        if not result.get("ok"):
+            self.stderr.write(f"    agent chain failed for {patient.patient_code}")
+            return 0
+
+        PatientAssessment.objects.create(
+            patient=patient,
+            worker=worker_by_village.get(patient.village.code),
+            village=patient.village,
+            symptoms=result["normalised_symptoms"],
+            duration_days=row["duration_days"],
+            temperature_c=row.get("temperature_c"),
+            primary_category=result["signal_category"],
+            triage_level=result["triage_level"],
+            triage_score=result["triage_score"],
+            reasoning_summary=result["reasoning_summary"],
+            referral_recommendation=result["referral_recommendation"],
+            followup_interval_days=result["followup_interval_days"],
+            red_flags=result["red_flags"],
+            escalation_forced=result["escalation_forced"],
+            safety_status=result["safety_status"],
+            agent_trace=result["agent_trace"],
+            llm_used=result["used_llm"],
+            is_draft=False,
+            encounter_date=encounter_date,
+        )
+        return 1
 
     def _aggregate(self, villages, today: dt.date):
         total = 0
         for village in villages.values():
+            # Oldest first, so each week's rolling baseline is built from the
+            # weeks before it, exactly as it would be in normal operation.
+            for weeks_ago in (2, 1):
+                aggregate_village_week(village, S.week_start_for(today, weeks_ago))
             total += len(aggregate_village_week(village, today))
         self.stdout.write(
             f"  aggregated signals .. {total} (anonymised counts across the boundary)"
