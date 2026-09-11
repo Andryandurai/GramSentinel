@@ -66,6 +66,15 @@ quick pre-flight/post-flight list.
       `DATABASE_URL` from the "Add from Database" picker, `PYTHON_VERSION`,
       `CORS_ALLOWED_ORIGINS`)
 - [ ] Backend health check path set to `/api/health/`
+- [ ] Render backend uses Python 3.11.9 (repo-root `.python-version`
+      present **and** `PYTHON_VERSION=3.11.9` env var set — both, not
+      either; see `RENDER_DEPLOYMENT.md` section 3a)
+- [ ] Render build log confirms Python 3.11.9 (the build command's
+      leading `python --version` line, checked in the log itself)
+- [ ] Pandas installs successfully (build log shows a `pandas-2.2.2-...
+      .whl` download/install line, not a Cython/C++ compilation step)
+- [ ] Backend build completes successfully (`collectstatic` and
+      `migrate` both finish without error)
 - [ ] Backend deployed; build log shows `collectstatic` and `migrate`
       both completing without error
 - [ ] Frontend Static Site created (Root Directory `frontend`)

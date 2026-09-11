@@ -67,9 +67,53 @@ configuration.
   (already present, module name is `config`).
 - `frontend/package.json` with a `build` script producing `frontend/dist`
   (already present).
-- `backend/.python-version` (`3.11.9`) and `frontend/.nvmrc` (`20`) — added
-  as part of this hardening pass so Render's native runtimes pin the same
-  versions verified locally.
+- `.python-version` at the **repository root** (`3.11.9`) and
+  `frontend/.nvmrc` (`20`) — added as part of this hardening pass so
+  Render's native runtimes pin the same versions verified locally.
+
+---
+
+## 3a. Python version — required reading before your first deploy
+
+**The backend must build with Python 3.11.9. It has, in practice, silently
+built with a much newer version instead (observed: 3.14.3) when this
+wasn't pinned strongly enough, which breaks the build** — `pandas==2.2.2`
+(and `numpy`, `scikit-learn`) ship prebuilt wheels for the Python versions
+current when they were released, not for a Python release that came out
+long after them. With no matching wheel, `pip` falls back to compiling
+pandas from source, which fails inside its Cython/C++ layer with an error
+like `standard attributes in middle of decl-specifiers`.
+
+**Do not fix this by upgrading pandas/numpy/scikit-learn.** The versions
+pinned in `requirements.txt` are correct and already verified against
+3.11.9 (see section 4a). The fix is making Render actually use 3.11.9.
+
+The version is declared in **two independent places, in agreement**, on
+purpose:
+
+1. **`.python-version` at the repository root** — `3.11.9`. This must be
+   at the repo root, **not** `backend/.python-version`, even though the
+   backend service's Root Directory is `backend`. A version pinned under
+   Root Directory was observed to be ignored — Render's interpreter
+   provisioning appears to run before Root Directory is applied to the
+   build filesystem, so it only ever sees files at the true repository
+   root.
+2. **The `PYTHON_VERSION` environment variable**, set to `3.11.9` on the
+   backend service (in `render.yaml` and in the manual env var list
+   below). This is a second, independent mechanism — belt-and-suspenders,
+   not a conflicting declaration, since both name the identical version.
+
+The backend build command also runs `python --version` as its first step
+specifically so this is never ambiguous again — check the top of the
+build log first if a future build ever fails during dependency
+installation; it will state the interpreter in use before anything else
+happens.
+
+**Do not deploy this backend on Python 3.14 (or any version newer than
+3.11.x)** unless you have first verified that `pandas`, `numpy` and
+`scikit-learn` each publish a compatible prebuilt wheel for it — installing
+from source in Render's build environment is not something to rely on for
+these packages.
 
 ---
 
@@ -81,7 +125,7 @@ configuration.
 |---|---|
 | Runtime | Python |
 | Root Directory | `backend` |
-| Build Command | `pip install --upgrade pip && pip install -r ../requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate` |
+| Build Command | `python --version && pip install --upgrade pip && pip install -r ../requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate` |
 | Start Command | `daphne -b 0.0.0.0 -p $PORT config.asgi:application` |
 | Health Check Path | `/api/health/` |
 
@@ -159,7 +203,7 @@ be an unrelated change.
 | `DJANGO_SECRET_KEY` | Render-generated | Use Render's "Generate Value" — never reuse the local dev placeholder |
 | `DEBUG` | `False` | |
 | `DATABASE_URL` | From the Postgres service | Use Render's "Add from Database" picker |
-| `PYTHON_VERSION` | `3.11.9` | Matches `backend/.python-version` |
+| `PYTHON_VERSION` | `3.11.9` | **Set this explicitly — do not skip it.** Matches the repo-root `.python-version` file; see section 3a for why both exist and why skipping this one specifically has caused real build failures |
 | `CORS_ALLOWED_ORIGINS` | `https://<frontend-service>.onrender.com` | The frontend Static Site's exact URL |
 | `VITE_API_BASE_URL` (frontend service) | `https://<backend-service>.onrender.com/api` | Build-time only — see note below |
 
@@ -407,10 +451,13 @@ ROOT DIRECTORY:
 backend
 
 RUNTIME:
-Python 3
+Python 3.11.9 — pinned via the repo-root .python-version file AND the
+PYTHON_VERSION env var below. Do not skip PYTHON_VERSION when creating
+the service: a Root-Directory-scoped .python-version alone has been
+observed not to take effect (see section 3a).
 
 BUILD COMMAND:
-pip install --upgrade pip && pip install -r ../requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+python --version && pip install --upgrade pip && pip install -r ../requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
 
 START COMMAND:
 daphne -b 0.0.0.0 -p $PORT config.asgi:application
@@ -469,7 +516,7 @@ Action: Rewrite
 4. Select the `main` branch.
 5. Root Directory: `backend`.
 6. Build Command:
-   `pip install --upgrade pip && pip install -r ../requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate`
+   `python --version && pip install --upgrade pip && pip install -r ../requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate`
 7. Start Command:
    `daphne -b 0.0.0.0 -p $PORT config.asgi:application`
 8. Add the backend environment variables listed above. For
@@ -523,6 +570,7 @@ Action: Rewrite
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
+| Build fails during `pip install`, deep inside a `pandas`/Cython/C++ error such as `standard attributes in middle of decl-specifiers`, `metadata-generation-failed` | Render used a Python version newer than what `pandas==2.2.2` has a prebuilt wheel for (observed: Render defaulted to 3.14.3) — pip fell back to compiling pandas from source and that failed | Check the top of the build log: the `python --version` line must read `Python 3.11.9`. If it doesn't, confirm (a) `.python-version` exists at the **repository root** (not `backend/.python-version`) and (b) `PYTHON_VERSION=3.11.9` is set as an explicit env var on the backend service — both must be present; do not upgrade pandas/numpy/scikit-learn to "fix" this |
 | Build fails: `ModuleNotFoundError` | A dependency is missing from `requirements.txt`, or the build command's `pip install` path is wrong | Confirm Root Directory is `backend` and the build command reads `../requirements.txt` (one level up) |
 | `DisallowedHost` error on every request | `RENDER_EXTERNAL_HOSTNAME` wasn't picked up (unlikely — Render sets it automatically) or you're using a custom domain | Add the exact hostname to `ALLOWED_HOSTS` explicitly as an env var |
 | Browser console: CORS error, request blocked | `CORS_ALLOWED_ORIGINS` on the backend doesn't exactly match the frontend's URL (scheme + host, no trailing slash) | Set it to the exact `https://...onrender.com` origin, redeploy the backend |

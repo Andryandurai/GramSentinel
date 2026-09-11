@@ -14,6 +14,17 @@
 # plus one Postgres database. See RENDER_DEPLOYMENT.md section 1 for why a
 # single combined service was not used (Django's /admin/ and the React
 # SPA's own /admin/dashboard route collide if one process serves both).
+#
+# PYTHON VERSION — 3.11.9, declared TWICE on purpose, in agreement:
+#   1. `.python-version` at the REPOSITORY ROOT (not backend/ — the backend
+#      service's rootDir). A version pinned under rootDir was observed to be
+#      ignored by Render's interpreter provisioning, which appears to run
+#      before rootDir is applied and only reads the repo root.
+#   2. The `PYTHON_VERSION` env var below, as an independent mechanism.
+# This is deliberate redundancy, not a conflicting declaration — both name
+# the exact same version. Without one of these, Render currently defaults to
+# a much newer Python for which pandas==2.2.2 has no prebuilt wheel, so pip
+# falls back to a source build that fails inside Cython/C++ compilation.
 
 databases:
   - name: gramsentinel-db
@@ -28,7 +39,12 @@ services:
     env: python
     rootDir: backend
     plan: free
+    # `python --version` runs first purely so the build log states the
+    # interpreter plainly — if a future Render change ignores the pins
+    # above again, that line makes it obvious in seconds rather than
+    # requiring another round of log archaeology through a Cython traceback.
     buildCommand: >-
+      python --version &&
       pip install --upgrade pip &&
       pip install -r ../requirements.txt &&
       python manage.py collectstatic --noinput &&
