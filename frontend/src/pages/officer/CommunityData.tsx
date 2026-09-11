@@ -74,11 +74,20 @@ function TrendCell({ row }: { row: CommunityDataCategory }) {
   )
 }
 
+const ALL = 'ALL'
+
 export default function CommunityDataPage() {
   const [days, setDays] = useState(14)
+  const [severity, setSeverity] = useState(ALL)
+  const [category, setCategory] = useState(ALL)
   const { data, loading, error, reload } = useAsync<OfficerCommunityData>(
-    () => api.get(`/officer/community-data/?period=${days}`),
-    [days],
+    () =>
+      api.get(
+        `/officer/community-data/?period=${days}` +
+          `&severity=${encodeURIComponent(severity)}` +
+          `&category=${encodeURIComponent(category)}`,
+      ),
+    [days, severity, category],
   )
 
   const periodSelector = (
@@ -253,10 +262,79 @@ export default function CommunityDataPage() {
             </p>
           </Card>
 
-          {/* Chart */}
-          <Card title="Reported cases over time">
-            {data.series.points.length === 0 ? (
-              <Empty>Not enough reporting history to draw a trend yet.</Empty>
+          {/* Chart — the two filters below narrow exactly this card. */}
+          <Card
+            title={data.series.title || 'Reported cases over time'}
+            action={
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="label mb-0.5" htmlFor="severity-filter">
+                    Severity
+                  </label>
+                  <select
+                    id="severity-filter"
+                    className="input w-auto min-w-[9rem] py-1 text-xs"
+                    value={severity}
+                    onChange={(event) => setSeverity(event.target.value)}
+                  >
+                    {(data.filters?.severity.options ?? []).map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label mb-0.5" htmlFor="signal-filter">
+                    Health signal
+                  </label>
+                  <select
+                    id="signal-filter"
+                    className="input w-auto min-w-[13rem] py-1 text-xs"
+                    value={category}
+                    onChange={(event) => setCategory(event.target.value)}
+                  >
+                    {(data.filters?.category.options ?? []).map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                        {option.value !== ALL && !option.has_data
+                          ? ' — no reports'
+                          : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {(severity !== ALL || category !== ALL) && (
+                  <button
+                    className="btn-ghost py-1 text-xs"
+                    onClick={() => {
+                      setSeverity(ALL)
+                      setCategory(ALL)
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            }
+          >
+            {data.filters?.notice && (
+              <p className="mb-3 rounded-md border border-ink-200 bg-ink-50 px-3 py-2 text-xs text-ink-600">
+                {data.filters.notice}
+              </p>
+            )}
+
+            {data.series.is_empty || data.series.points.length === 0 ? (
+              <>
+                <Empty>
+                  {data.series.empty_message ||
+                    'Insufficient data for this selection.'}
+                </Empty>
+                <p className="-mt-3 text-center text-xs text-ink-400">
+                  {data.series.empty_hint ||
+                    'Try a wider selection or a longer period.'}
+                </p>
+              </>
             ) : (
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -304,6 +382,38 @@ export default function CommunityDataPage() {
                 </ResponsiveContainer>
               </div>
             )}
+
+            <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-ink-200 pt-3">
+              {!data.series.is_empty && (
+                <>
+                  <span
+                    className={`pill ${
+                      (
+                        TREND_STYLES[data.series.trend?.direction] ??
+                        TREND_STYLES.INSUFFICIENT_DATA
+                      ).chip
+                    }`}
+                  >
+                    {
+                      (
+                        TREND_STYLES[data.series.trend?.direction] ??
+                        TREND_STYLES.INSUFFICIENT_DATA
+                      ).arrow
+                    }{' '}
+                    {data.series.trend?.direction_label ?? 'Insufficient data'}
+                  </span>
+                  <span className="text-xs text-ink-600">
+                    {data.series.trend_note}
+                  </span>
+                  <span className="ml-auto text-xs text-ink-400">
+                    {data.series.total_reported} reported across{' '}
+                    {data.series.weeks_covered} week
+                    {data.series.weeks_covered === 1 ? '' : 's'}
+                  </span>
+                </>
+              )}
+            </div>
+            <p className="mt-2 text-xs text-ink-400">{data.filters?.note}</p>
           </Card>
 
           {/* Workers' own words */}

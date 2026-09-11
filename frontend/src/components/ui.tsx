@@ -1,6 +1,11 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
-import type { SafetyVerdict, Severity, TriageLevel } from '@/types'
+import type {
+  FollowUpState,
+  SafetyVerdict,
+  Severity,
+  TriageLevel,
+} from '@/types'
 
 export function Card({
   title,
@@ -76,6 +81,96 @@ export function SafetyPill({ verdict }: { verdict: SafetyVerdict }) {
   }
   return (
     <span className={`pill ${styles[verdict]}`}>SAFETY&nbsp;{verdict}</span>
+  )
+}
+
+/**
+ * Follow-up urgency. Overdue and due-today read clearly without shouting —
+ * this sits in a clinical worklist, not a notification centre.
+ */
+export function FollowUpPill({
+  status,
+  label,
+}: {
+  status: FollowUpState
+  label?: string
+}) {
+  const styles: Record<FollowUpState, string> = {
+    OVERDUE: 'bg-red-100 text-red-700',
+    DUE_TODAY: 'bg-amber-100 text-amber-800',
+    UPCOMING: 'bg-ink-100 text-ink-600',
+    COMPLETED: 'bg-care-100 text-care-700',
+    MISSED: 'bg-red-50 text-red-700',
+    UNSCHEDULED: 'bg-ink-100 text-ink-400',
+  }
+  const fallback: Record<FollowUpState, string> = {
+    OVERDUE: 'Overdue',
+    DUE_TODAY: 'Due today',
+    UPCOMING: 'Upcoming',
+    COMPLETED: 'Completed',
+    MISSED: 'Missed',
+    UNSCHEDULED: 'No date',
+  }
+  return (
+    <span className={`pill ${styles[status] ?? styles.UPCOMING}`}>
+      {label || fallback[status] || 'Upcoming'}
+    </span>
+  )
+}
+
+/**
+ * A profile photograph, or the person's initials when none has been uploaded.
+ * Never renders a broken image: a photo that fails to load falls back to the
+ * same initials.
+ */
+export function Avatar({
+  src,
+  initials,
+  name,
+  size = 'md',
+}: {
+  src?: string | null
+  initials?: string
+  name?: string
+  size?: 'sm' | 'md' | 'lg'
+}) {
+  const [failed, setFailed] = useState(false)
+  const sizes = {
+    sm: 'h-9 w-9 text-xs',
+    md: 'h-12 w-12 text-sm',
+    lg: 'h-24 w-24 text-xl',
+  }
+  const letters =
+    (initials || '').trim() ||
+    (name || '')
+      .split(/\s+/)
+      .map((part) => part[0])
+      .filter((c) => c && /[a-z]/i.test(c))
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() ||
+    '—'
+
+  const shell = `${sizes[size]} shrink-0 rounded-full overflow-hidden border border-ink-200 bg-ink-100`
+
+  if (src && !failed) {
+    return (
+      <img
+        src={src}
+        alt={name ? `${name} — profile photograph` : 'Profile photograph'}
+        className={`${shell} object-cover`}
+        onError={() => setFailed(true)}
+      />
+    )
+  }
+
+  return (
+    <span
+      className={`${shell} grid place-items-center font-semibold text-ink-600`}
+      aria-hidden="true"
+    >
+      {letters}
+    </span>
   )
 }
 

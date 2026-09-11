@@ -150,14 +150,78 @@ export interface Assessment {
   created_at: string
 }
 
+export type FollowUpState =
+  | 'OVERDUE'
+  | 'DUE_TODAY'
+  | 'UPCOMING'
+  | 'COMPLETED'
+  | 'MISSED'
+  | 'UNSCHEDULED'
+
 export interface FollowUp {
   id: number
   patient: number
   patient_code: string
   patient_name: string
+  assessment: number | null
   due_date: string
   status: 'PENDING' | 'COMPLETED' | 'MISSED'
+  /** Derived from the stored due date — what the card sorts and labels by. */
+  followup_status: FollowUpState
+  followup_status_label: string
+  days_until_due: number | null
+  due_description: string
   notes: string
+  created_at?: string
+}
+
+export interface FollowUpPatientOption {
+  id: number
+  patient_code: string
+  patient_name: string
+  pending_count: number
+  next_due_date: string | null
+  next_status: FollowUpState
+}
+
+export interface FollowUpSummary {
+  counts: {
+    total: number
+    shown: number
+    overdue: number
+    due_today: number
+    upcoming: number
+    undated: number
+  }
+  patients: FollowUpPatientOption[]
+  overdue_outside_period: number
+  overdue_outside_message: string
+  empty_message: string
+  truncated: boolean
+  truncated_message: string
+}
+
+/** One row of the Community Symptom Summary — reported symptoms, not cases. */
+export interface SymptomSummaryRow {
+  key: string
+  label: string
+  count: number
+  report_category: string | null
+  hint: string
+}
+
+export interface SymptomSummary {
+  rows: SymptomSummaryRow[]
+  total_people_assessed: number
+  assessment_count: number
+  described_other_count: number
+  is_empty: boolean
+  empty_message: string
+  note: string
+  report_prefill: Array<{ category: string; case_count: number; label: string }>
+  period_label: string
+  is_all_weeks: boolean
+  village_name: string
 }
 
 /** One selectable reporting week, numbered across the data the worker can see. */
@@ -198,9 +262,74 @@ export interface WorkerDashboard {
   }
   pending_followups: FollowUp[]
   pending_followup_count: number
+  followup_summary: FollowUpSummary
+  symptom_summary: SymptomSummary
   recent_assessments: Assessment[]
   disclaimer: string
   data_notice: string
+}
+
+/** A worker's or officer's professional profile. */
+export interface StaffProfile {
+  id: number
+  username: string
+  role: Role
+  role_label: string
+  display_name: string
+  full_name: string
+  email: string
+  phone_number: string
+  staff_id: string
+  qualification: string
+  experience_years: number | null
+  district: string
+  village: number | null
+  village_name: string | null
+  village_code: string | null
+  village_cluster: string | null
+  village_label: string
+  facility: number | null
+  facility_name: string | null
+  photo_url: string
+  has_photo: boolean
+  initials: string
+  profile_updated_at: string | null
+}
+
+export interface MyProfileResponse {
+  profile: StaffProfile
+  photo_limits: {
+    max_bytes: number
+    max_size_label: string
+    accepted_label: string
+    accepted_types: string[]
+  }
+  note: string
+  editable_fields: string[]
+  saved?: boolean
+  message?: string
+}
+
+export interface StaffDirectory {
+  scope: {
+    is_district_wide: boolean
+    village_code: string | null
+    village_name: string | null
+    notice: string
+  }
+  villages: Array<{ code: string; name: string; label: string; cluster: string }>
+  profiles: StaffProfile[]
+  groups: Array<{
+    village_code: string
+    village_name: string
+    village_label: string
+    workers: StaffProfile[]
+    officers: StaffProfile[]
+  }>
+  counts: { workers: number; officers: number; total: number }
+  is_empty: boolean
+  empty_message: string
+  note: string
 }
 
 export interface AlertSummary {
@@ -468,10 +597,11 @@ export interface AdminOverview {
     outcome: Outcome | null
     created_at: string
   }>
+  /** Each person carries their professional profile alongside the assignment. */
   team: Array<
     VillageRef & {
-      workers: Array<{ username: string; name: string }>
-      officers: Array<{ username: string; name: string }>
+      workers: Array<{ username: string; name: string } & Partial<StaffProfile>>
+      officers: Array<{ username: string; name: string } & Partial<StaffProfile>>
     }
   >
   recent_activity: Array<{
@@ -527,7 +657,45 @@ export interface OfficerCommunityData {
     has_previous_period_data: boolean
   }
   categories: CommunityDataCategory[]
-  series: { keys: string[]; points: Array<Record<string, string | number>> }
+  series: {
+    keys: string[]
+    points: Array<Record<string, string | number>>
+    /** Reflects the selected filters, e.g. "Reported high-severity …". */
+    title: string
+    total_reported: number
+    weeks_covered: number
+    trend: {
+      current: number
+      previous: number | null
+      change_pct: number | null
+      direction: TrendDirection
+      direction_label: string
+      symbol: string
+      is_new_activity: boolean
+    }
+    trend_note: string
+    is_empty: boolean
+    empty_message: string
+    empty_hint: string
+    applied: { severity: string; category: string }
+  }
+  filters: {
+    severity: {
+      selected: string
+      options: Array<{ value: string; label: string; alerts: number }>
+    }
+    category: {
+      selected: string
+      options: Array<{
+        value: string
+        label: string
+        reported: number
+        has_data: boolean
+      }>
+    }
+    notice: string
+    note: string
+  }
   recent_observations: Array<{
     category: string
     label: string

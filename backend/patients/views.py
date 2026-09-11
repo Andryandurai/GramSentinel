@@ -1,10 +1,12 @@
 from django.db.models import Count
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from assessments import followups as followup_rules
 from assessments.models import FollowUp
-from assessments.serializers import PatientAssessmentSerializer
+from assessments.serializers import FollowUpSerializer, PatientAssessmentSerializer
 from core.constants import MEDICAL_DISCLAIMER
 from users.permissions import IsPatient, IsWorker
 
@@ -83,10 +85,33 @@ class PatientDetailView(generics.RetrieveAPIView):
             .select_related("patient", "village")
             .order_by("-encounter_date", "-created_at")
         )
+
+        # Follow-ups for this patient, most urgent first. The record is already
+        # village-scoped by get_queryset, so this adds no new access — it puts
+        # the follow-up detail on the page the worker already opens from the
+        # dashboard, rather than duplicating it somewhere else.
+        today = timezone.localdate()
+        followups = sorted(
+            patient.followups.select_related("patient").all(),
+            key=lambda f: followup_rules.sort_key(f, today),
+        )
+        pending = [f for f in followups if f.status == FollowUp.Status.PENDING]
+
         return Response(
             {
                 "patient": PatientSerializer(patient).data,
                 "assessments": PatientAssessmentSerializer(assessments, many=True).data,
+                "followups": FollowUpSerializer(
+                    followups, many=True, context={"today": today}
+                ).data,
+                "followup_summary": {
+                    "pending_count": len(pending),
+                    "next_due_date": pending[0].due_date if pending else None,
+                    "last_assessment_date": (
+                        assessments[0].encounter_date if assessments else None
+                    ),
+                    "empty_message": "No follow-ups recorded for this patient.",
+                },
             }
         )
 

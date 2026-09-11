@@ -36,6 +36,14 @@ SECRET_KEY = os.getenv(
 DEBUG = env_bool("DEBUG", True)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0,testserver")
 
+# Render assigns every web service a hostname and exposes it to the running
+# process via this variable — trust it automatically so a Render deployment
+# does not need ALLOWED_HOSTS / CSRF_TRUSTED_ORIGINS set by hand for the
+# happy path. Custom domains still go through the explicit env vars below.
+RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME", "")
+if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
 INSTALLED_APPS = [
     # Daphne must precede staticfiles so runserver uses the ASGI server.
     "daphne",
@@ -99,13 +107,32 @@ CHANNEL_LAYERS = {
     "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
 }
 
-# SQLite for the hackathon prototype; DATABASE_URL points at PostgreSQL later.
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# SQLite by default (zero setup for local dev and CI), using the same
+# BASE_DIR-anchored absolute path as before — deliberately independent of
+# CWD or how the value is spelled. Setting DATABASE_URL to a postgres:// URL
+# — which Render's PostgreSQL add-on provides automatically once attached —
+# switches to that database with no other change required. Only postgres
+# schemes are honoured here: dj_database_url's sqlite:// parsing resolves
+# relative paths against the process CWD rather than BASE_DIR, which is a
+# footgun this project has no reason to take on since SQLite is local-dev-only.
+import dj_database_url  # noqa: E402
+
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+if DATABASE_URL.startswith(("postgres://", "postgresql://")):
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=int(os.getenv("DB_CONN_MAX_AGE", "60")),
+            ssl_require=env_bool("DATABASE_SSL_REQUIRE", False),
+        )
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 AUTH_USER_MODEL = "users.User"
 
@@ -152,6 +179,41 @@ CORS_ALLOWED_ORIGINS = env_list(
     "http://localhost:5173,http://127.0.0.1:5173",
 )
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF only matters for same-origin, cookie/session-based requests — i.e. the
+# Django admin login at /admin/, not the JWT-bearer API the React app uses.
+# The backend's own Render URL is trusted automatically for that reason.
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "")
+if RENDER_EXTERNAL_HOSTNAME:
+    _render_origin = f"https://{RENDER_EXTERNAL_HOSTNAME}"
+    if _render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_render_origin)
+
+# ---------------------------------------------------------------------------
+# Production security hardening
+# ---------------------------------------------------------------------------
+# Every setting below is gated on `not DEBUG`, so a local `python manage.py
+# runserver` (DEBUG=True by default) is completely unaffected. They only take
+# effect once DEBUG=False is set explicitly, which is how Render is
+# configured (see RENDER_DEPLOYMENT.md).
+
+# Render terminates TLS at its edge and forwards the original scheme in this
+# header; without telling Django to trust it, request.is_secure() is always
+# False behind the proxy and the settings below would never engage.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_REFERRER_POLICY = "same-origin"
+
+# Starts conservative (1 hour) so a misconfiguration is never more than an
+# hour of pain; raise via the env var once HTTPS is confirmed working end to
+# end (see RENDER_DEPLOYMENT.md). include-subdomains/preload are left off —
+# both are effectively one-way switches and this app owns no subdomains.
+SECURE_HSTS_SECONDS = 0 if DEBUG else int(os.getenv("SECURE_HSTS_SECONDS", "3600"))
 
 # ---------------------------------------------------------------------------
 # GramSentinel platform configuration

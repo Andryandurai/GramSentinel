@@ -114,6 +114,7 @@ export const WORKER_NAV: NavItem[] = [
   { to: '/worker/assessment/new', label: 'New assessment' },
   { to: '/worker/community-report', label: 'Community report' },
   { to: '/worker/local-signals', label: 'Local signals' },
+  { to: '/worker/profile', label: 'My profile' },
 ]
 
 export const OFFICER_NAV: NavItem[] = [
@@ -121,6 +122,8 @@ export const OFFICER_NAV: NavItem[] = [
   { to: '/officer/community-data', label: 'Community data' },
   { to: '/officer/community-reports', label: 'Community reports' },
   { to: '/officer/history', label: 'Alert history' },
+  { to: '/officer/team', label: 'Health team' },
+  { to: '/officer/profile', label: 'My profile' },
 ]
 
 export const PATIENT_NAV: NavItem[] = [

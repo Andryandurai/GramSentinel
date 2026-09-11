@@ -1,9 +1,11 @@
 import { type FormEvent, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 
 import { Card, Disclaimer, ErrorNote, Loading } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import { useAuth } from '@/store/auth'
+import type { SymptomSummary } from '@/types'
 
 interface CategoryOption {
   value: string
@@ -74,10 +76,19 @@ function currentWeek() {
 
 export default function CommunityReportPage() {
   const { user } = useAuth()
+  const location = useLocation()
   const week = currentWeek()
   const categories = useAsync<{ categories: CategoryOption[]; note: string }>(
     () => api.get('/report-categories/'),
   )
+
+  // Arriving from the dashboard's Community Symptom Summary. The counts are
+  // filled in for review — nothing is submitted until the worker submits it.
+  const handoff = (location.state ?? null) as {
+    prefill?: Array<{ category: string; case_count: number; label: string }>
+    summary?: SymptomSummary
+  } | null
+  const prefill = handoff?.prefill?.filter((row) => row.category) ?? []
 
   const [meta, setMeta] = useState({
     week_label: week.label,
@@ -86,11 +97,14 @@ export default function CommunityReportPage() {
     unusual_observation: false,
     notes: '',
   })
-  const [rows, setRows] = useState<EntryRow[]>([
-    newRow('FEVER'),
-    newRow('RESPIRATORY'),
-    newRow('DIARRHOEAL'),
-  ])
+  const [rows, setRows] = useState<EntryRow[]>(() =>
+    prefill.length
+      ? prefill.map((entry) => ({
+          ...newRow(entry.category),
+          case_count: String(entry.case_count),
+        }))
+      : [newRow('FEVER'), newRow('RESPIRATORY'), newRow('DIARRHOEAL')],
+  )
   const [result, setResult] = useState<ReportResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -179,6 +193,31 @@ export default function CommunityReportPage() {
           Counts by category only — never household identities.
         </p>
       </div>
+
+      {handoff?.summary && !handoff.summary.is_empty && (
+        <div className="rounded-lg border border-care-200 bg-care-50 px-4 py-3">
+          <div className="text-sm font-semibold text-care-800">
+            Prefilled from your community symptom summary
+          </div>
+          <p className="mt-1 text-sm text-care-900">
+            {handoff.summary.total_people_assessed} people assessed
+            {handoff.summary.is_all_weeks
+              ? ' across all weeks'
+              : ` · ${handoff.summary.period_label}`}
+            {' — '}
+            {handoff.summary.rows
+              .map((row) => `${row.label} ${row.count}`)
+              .join(' · ')}
+            .
+          </p>
+          <p className="mt-1 text-xs text-care-800">
+            Review and adjust every count before submitting. Nothing is sent to
+            your health officer until you submit this report. Symptom rows with
+            no matching community category — and anything else you observed —
+            need to be added here yourself.
+          </p>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="Reported health signals this week">

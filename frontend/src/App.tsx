@@ -11,12 +11,14 @@ import {
 } from '@/layouts/PortalLayout'
 import Login from '@/pages/Login'
 import AdminDashboard from '@/pages/admin/Dashboard'
+import MyProfilePage from '@/pages/profile/MyProfile'
 import AlertDetail from '@/pages/officer/AlertDetail'
 import AlertHistory from '@/pages/officer/AlertHistory'
 import CommunityDataPage from '@/pages/officer/CommunityData'
 import OfficerCommunityReports from '@/pages/officer/CommunityReports'
 import OfficerDashboardPage from '@/pages/officer/Dashboard'
 import EvidenceView from '@/pages/officer/EvidenceView'
+import OfficerTeamPage from '@/pages/officer/Team'
 import PatientDashboard from '@/pages/patient/Dashboard'
 import CommunityReportPage from '@/pages/worker/CommunityReport'
 import WorkerDashboardPage from '@/pages/worker/Dashboard'
@@ -97,6 +99,7 @@ export default function App() {
           element={<CommunityReportPage />}
         />
         <Route path="/worker/local-signals" element={<LocalSignalsPage />} />
+        <Route path="/worker/profile" element={<MyProfilePage />} />
       </Route>
 
       {/* GramSentinel — community layer */}
@@ -124,6 +127,8 @@ export default function App() {
           element={<OfficerCommunityReports />}
         />
         <Route path="/officer/history" element={<AlertHistory />} />
+        <Route path="/officer/team" element={<OfficerTeamPage />} />
+        <Route path="/officer/profile" element={<MyProfilePage />} />
       </Route>
 
       {/* Administrator — platform-level view across all villages. */}

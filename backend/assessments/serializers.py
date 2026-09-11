@@ -1,7 +1,9 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from core.constants import MEDICAL_DISCLAIMER
 
+from . import followups
 from .models import FollowUp, PatientAssessment
 
 
@@ -165,8 +167,18 @@ class PatientAssessmentSerializer(serializers.ModelSerializer):
 
 
 class FollowUpSerializer(serializers.ModelSerializer):
+    """One follow-up, plus the urgency the dashboard sorts and labels by.
+
+    The four derived fields are read-only and computed from what is already
+    stored (`due_date`, `status`), so creating a follow-up is unchanged.
+    """
+
     patient_code = serializers.CharField(source="patient.patient_code", read_only=True)
     patient_name = serializers.CharField(source="patient.display_name", read_only=True)
+    followup_status = serializers.SerializerMethodField()
+    followup_status_label = serializers.SerializerMethodField()
+    days_until_due = serializers.SerializerMethodField()
+    due_description = serializers.SerializerMethodField()
 
     class Meta:
         model = FollowUp
@@ -178,7 +190,40 @@ class FollowUpSerializer(serializers.ModelSerializer):
             "assessment",
             "due_date",
             "status",
+            "followup_status",
+            "followup_status_label",
+            "days_until_due",
+            "due_description",
             "notes",
             "created_at",
         )
-        read_only_fields = ("id", "created_at", "patient_code", "patient_name")
+        read_only_fields = (
+            "id",
+            "created_at",
+            "patient_code",
+            "patient_name",
+            "followup_status",
+            "followup_status_label",
+            "days_until_due",
+            "due_description",
+        )
+
+    def _today(self):
+        # Passed in by the dashboard so every row on one page is judged against
+        # the same day; falls back to the server's local date elsewhere.
+        return self.context.get("today") or timezone.localdate()
+
+    def get_followup_status(self, obj) -> str:
+        return followups.resolve_status(obj.due_date, obj.status, self._today())
+
+    def get_followup_status_label(self, obj) -> str:
+        return followups.STATUS_LABELS.get(self.get_followup_status(obj), "")
+
+    def get_days_until_due(self, obj) -> int | None:
+        return followups.days_until(obj.due_date, self._today())
+
+    def get_due_description(self, obj) -> str:
+        status = self.get_followup_status(obj)
+        if status in {followups.COMPLETED, followups.MISSED}:
+            return followups.STATUS_LABELS[status]
+        return followups.due_description(obj.due_date, self._today())

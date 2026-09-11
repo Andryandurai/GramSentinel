@@ -145,6 +145,57 @@ PATIENTS: list[dict[str, Any]] = [
     {"code": "ARY-P-001", "name": "Demo Patient 101", "age_years": 38, "sex": "F", "village": "ARY"},
     {"code": "ARY-P-002", "name": "Demo Patient 102", "age_years": 45, "sex": "M", "village": "ARY"},
     {"code": "MLR-P-001", "name": "Demo Patient 201", "age_years": 30, "sex": "F", "village": "MLR"},
+    # Registered patients under follow-up who have no encounter recorded in
+    # this demonstration window. Added so Villages B and C have several
+    # patients to choose between in the follow-up list, and so the "no previous
+    # assessment yet" case is visible rather than hypothetical. They contribute
+    # no encounters, so every aggregate, baseline and alert is unchanged.
+    {"code": "ARY-P-003", "name": "Demo Patient 103", "age_years": 52, "sex": "F", "village": "ARY"},
+    {"code": "ARY-P-004", "name": "Demo Patient 104", "age_years": 19, "sex": "M", "village": "ARY"},
+    {"code": "MLR-P-002", "name": "Demo Patient 202", "age_years": 64, "sex": "M", "village": "MLR"},
+    {"code": "MLR-P-003", "name": "Demo Patient 203", "age_years": 26, "sex": "F", "village": "MLR"},
+]
+
+#: Follow-ups, so the worker dashboard's Pending Follow-ups card has a real
+#: mixture to prioritise: overdue, due today, and upcoming at different
+#: distances, plus completed history on some patients.
+#:
+#: `days` is an offset from the day the seed is run, so the demonstration shows
+#: the same shape whenever it is run. Negative is in the past.
+SEED_FOLLOWUPS: list[dict[str, Any]] = [
+    # --- Village A — Kovilur -------------------------------------------
+    {"patient": "KVL-P-003", "days": -3, "status": "PENDING",
+     "notes": "Child with fever for four days. Recheck temperature and hydration."},
+    {"patient": "KVL-P-001", "days": 0, "status": "PENDING",
+     "notes": "Recheck fever and ask about mosquito exposure at home."},
+    {"patient": "KVL-P-004", "days": 2, "status": "PENDING",
+     "notes": "Review after fever settles; confirm fluids are being taken."},
+    {"patient": "KVL-P-007", "days": 5, "status": "PENDING",
+     "notes": "Older adult, fever for five days. Home visit planned."},
+    {"patient": "KVL-P-008", "days": -8, "status": "COMPLETED",
+     "notes": "Diarrhoea settled. Oral fluids advised; no further concern."},
+    # --- Village B — Ariyanur ------------------------------------------
+    {"patient": "ARY-P-002", "days": -1, "status": "PENDING",
+     "notes": "Cough persisting beyond a week. Review and consider PHC referral."},
+    {"patient": "ARY-P-001", "days": 1, "status": "PENDING",
+     "notes": "Recheck after fever; ask about skin complaints in the household."},
+    {"patient": "ARY-P-003", "days": 4, "status": "PENDING",
+     "notes": "Registered for review of itchy skin lesions reported near the tank."},
+    {"patient": "ARY-P-004", "days": 8, "status": "PENDING",
+     "notes": "Routine review scheduled after home visit."},
+    {"patient": "ARY-P-001", "days": -6, "status": "COMPLETED",
+     "notes": "Reviewed at home. Recovered; no referral needed."},
+    # --- Village C — Melur ---------------------------------------------
+    {"patient": "MLR-P-001", "days": -2, "status": "PENDING",
+     "notes": "Headache and tiredness reported. Review and record blood pressure."},
+    {"patient": "MLR-P-002", "days": 0, "status": "PENDING",
+     "notes": "Farm injury dressing change due today."},
+    {"patient": "MLR-P-003", "days": 3, "status": "PENDING",
+     "notes": "Antenatal follow-up. Confirm the PHC visit was attended."},
+    {"patient": "MLR-P-001", "days": 7, "status": "PENDING",
+     "notes": "Second review if symptoms continue."},
+    {"patient": "MLR-P-002", "days": -5, "status": "COMPLETED",
+     "notes": "Wound reviewed and clean. Advised to return if it worsens."},
 ]
 
 #: Encounters seeded for the current week so the aggregated individual signal
@@ -206,6 +257,13 @@ SEED_HISTORY_ENCOUNTERS: list[dict[str, Any]] = [
 #: core.constants so the API and the seed cannot drift apart.
 from core.constants import DEMO_VILLAGE_LABELS as VILLAGE_LABELS  # noqa: E402,F401
 
+#: Professional profile details seeded for the demonstration staff.
+#:
+#: Synthetic, like everything else here: invented names, invented staff
+#: numbers, invented contact numbers in the reserved 99999 range. Photographs
+#: are deliberately not seeded — a fabricated photograph of a person is not
+#: something a demonstration should carry, and the portal shows a neutral
+#: initials avatar until someone uploads their own.
 DEMO_USERS: list[dict[str, Any]] = [
     # --- Village A — Kovilur -------------------------------------------
     {
@@ -215,6 +273,11 @@ DEMO_USERS: list[dict[str, Any]] = [
         "full_name": "A. Meena (CHW, Kovilur)",
         "village": "KVL",
         "facility": "PHC-KVL",
+        "email": "meena.chw@example.invalid",
+        "phone_number": "+91 99999 10001",
+        "staff_id": "CHW-KVL-014",
+        "qualification": "ANM, Community Health Worker certification",
+        "experience_years": 7,
     },
     {
         "username": "officer.a",
@@ -223,6 +286,11 @@ DEMO_USERS: list[dict[str, Any]] = [
         "full_name": "Dr. K. Prasad (Health Officer, Kovilur)",
         "village": "KVL",
         "district": "Thiruvannamalai",
+        "email": "prasad.pho@example.invalid",
+        "phone_number": "+91 99999 20001",
+        "staff_id": "HO-KVL-002",
+        "qualification": "MBBS, MD (Community Medicine)",
+        "experience_years": 12,
     },
     # --- Village B — Ariyanur ------------------------------------------
     {
@@ -232,6 +300,11 @@ DEMO_USERS: list[dict[str, Any]] = [
         "full_name": "R. Suresh (PHC, Ariyanur)",
         "village": "ARY",
         "facility": "PHC-ARY",
+        "email": "suresh.phc@example.invalid",
+        "phone_number": "+91 99999 10002",
+        "staff_id": "PHC-ARY-021",
+        "qualification": "B.Sc Nursing, PHC staff nurse",
+        "experience_years": 5,
     },
     {
         "username": "officer.b",
@@ -240,6 +313,11 @@ DEMO_USERS: list[dict[str, Any]] = [
         "full_name": "Dr. S. Lakshmi (Health Officer, Ariyanur)",
         "village": "ARY",
         "district": "Thiruvannamalai",
+        "email": "lakshmi.pho@example.invalid",
+        "phone_number": "+91 99999 20002",
+        "staff_id": "HO-ARY-003",
+        "qualification": "MBBS, DPH",
+        "experience_years": 9,
     },
     # --- Village C — Melur ---------------------------------------------
     {
@@ -249,6 +327,11 @@ DEMO_USERS: list[dict[str, Any]] = [
         "full_name": "P. Anitha (CHW, Melur)",
         "village": "MLR",
         "facility": "PHC-MLR",
+        "email": "anitha.chw@example.invalid",
+        "phone_number": "+91 99999 10003",
+        "staff_id": "CHW-MLR-008",
+        "qualification": "ASHA facilitator, ANM training",
+        "experience_years": 4,
     },
     {
         "username": "officer.c",
@@ -257,6 +340,11 @@ DEMO_USERS: list[dict[str, Any]] = [
         "full_name": "Dr. M. Rajan (Health Officer, Melur)",
         "village": "MLR",
         "district": "Thiruvannamalai",
+        "email": "rajan.pho@example.invalid",
+        "phone_number": "+91 99999 20003",
+        "staff_id": "HO-MLR-005",
+        "qualification": "MBBS, MPH",
+        "experience_years": 15,
     },
     # --- Preserved original accounts ------------------------------------
     # `worker` and `officer` are kept exactly as they were so any existing
@@ -269,6 +357,11 @@ DEMO_USERS: list[dict[str, Any]] = [
         "full_name": "A. Meena (CHW, Kovilur)",
         "village": "KVL",
         "facility": "PHC-KVL",
+        "email": "meena.chw@example.invalid",
+        "phone_number": "+91 99999 10001",
+        "staff_id": "CHW-KVL-014",
+        "qualification": "ANM, Community Health Worker certification",
+        "experience_years": 7,
     },
     {
         "username": "officer",
@@ -276,6 +369,11 @@ DEMO_USERS: list[dict[str, Any]] = [
         "role": "HEALTH_OFFICER",
         "full_name": "Dr. K. Prasad (District Health Officer)",
         "district": "Thiruvannamalai",
+        "email": "prasad.dho@example.invalid",
+        "phone_number": "+91 99999 20000",
+        "staff_id": "DHO-TVM-001",
+        "qualification": "MBBS, MD (Community Medicine)",
+        "experience_years": 12,
     },
     {
         "username": "patient",

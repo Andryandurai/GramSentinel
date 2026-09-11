@@ -1,0 +1,87 @@
+# GramSentinel — Render Blueprint.
+#
+# NOT VERIFIED against a live Render deployment or Render's current Blueprint
+# schema (this repository was hardened offline, without Render API access).
+# Field names below follow Render's long-documented Blueprint spec
+# (https://render.com/docs/blueprint-spec) as of this writing. Cross-check
+# them against that page before relying on this file.
+#
+# The manual dashboard steps in RENDER_DEPLOYMENT.md do NOT depend on this
+# file or its schema and are the authoritative path — use this file only as
+# a convenience once you've confirmed the field names still match.
+#
+# Architecture: two services (frontend Static Site + backend Web Service)
+# plus one Postgres database. See RENDER_DEPLOYMENT.md section 1 for why a
+# single combined service was not used (Django's /admin/ and the React
+# SPA's own /admin/dashboard route collide if one process serves both).
+
+databases:
+  - name: gramsentinel-db
+    databaseName: gramsentinel
+    user: gramsentinel
+    plan: free
+
+services:
+  # --- Backend: Django + DRF -------------------------------------------
+  - type: web
+    name: gramsentinel-backend
+    env: python
+    rootDir: backend
+    plan: free
+    buildCommand: >-
+      pip install --upgrade pip &&
+      pip install -r ../requirements.txt &&
+      python manage.py collectstatic --noinput &&
+      python manage.py migrate
+    # Daphne (ASGI), not gunicorn (WSGI): this project's officer-alert
+    # WebSocket push (backend/alerts/consumers.py) only works over ASGI.
+    # It is best-effort/optional by design — REST polling covers the same
+    # feature — but Daphne is already a dependency, so serving over ASGI
+    # costs nothing and keeps that enhancement working in production too.
+    startCommand: daphne -b 0.0.0.0 -p $PORT config.asgi:application
+    healthCheckPath: /api/health/
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gramsentinel-db
+          property: connectionString
+      # Set to the frontend Static Site's actual Render URL once known —
+      # see RENDER_DEPLOYMENT.md's ordering note (both service URLs are
+      # knowable before either finishes its first build).
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://gramsentinel-frontend.onrender.com
+      - key: SECURE_HSTS_SECONDS
+        value: "3600"
+      - key: GRAMSENTINEL_LOG_LEVEL
+        value: INFO
+      # Optional — the platform is fully functional with this left unset.
+      - key: LLM_ENABLED
+        value: "False"
+      - key: LLM_API_KEY
+        sync: false
+
+  # --- Frontend: React + Vite, static build -----------------------------
+  - type: web
+    name: gramsentinel-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # Set to the backend Web Service's actual Render URL + /api.
+      - key: VITE_API_BASE_URL
+        value: https://gramsentinel-backend.onrender.com/api
+    routes:
+      # Client-side routing (React Router): unmatched paths (e.g. a
+      # refresh on /officer/dashboard) must resolve to index.html, not 404.
+      - type: rewrite
+        source: /*
+        destination: /index.html

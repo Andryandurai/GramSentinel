@@ -36,6 +36,7 @@ from core.models import Village
 from patients.models import Patient
 from users.models import User
 from users.permissions import IsPlatformAdmin
+from users.serializers import StaffProfileSerializer
 
 ALL = "all"
 RECENT_ACTIVITY_LIMIT = 25
@@ -372,21 +373,38 @@ class AdminOverviewView(APIView):
     # ------------------------------------------------------------------
     @staticmethod
     def _team(villages, selected: Village | None) -> list[dict]:
-        """Assigned worker(s) and officer(s) per village in scope."""
+        """Assigned worker(s) and officer(s) per village in scope.
+
+        Each entry now carries that person's professional profile — the same
+        fields they maintain themselves — so the administrator can see who is
+        assigned where without a second user-management surface. `username` and
+        `name` are preserved exactly, so anything already reading this list is
+        unaffected.
+        """
 
         wanted = [selected] if selected else villages
         rows = []
         for village in wanted:
-            staff = User.objects.filter(village=village, is_active=True)
+            staff = User.objects.filter(
+                village=village, is_active=True
+            ).select_related("village", "facility")
             rows.append(
                 {
                     **_village_payload(village),
                     "workers": [
-                        {"username": u.username, "name": u.display_name}
+                        {
+                            "username": u.username,
+                            "name": u.display_name,
+                            **StaffProfileSerializer(u).data,
+                        }
                         for u in staff.filter(role=User.Role.CHW_PHC_WORKER)
                     ],
                     "officers": [
-                        {"username": u.username, "name": u.display_name}
+                        {
+                            "username": u.username,
+                            "name": u.display_name,
+                            **StaffProfileSerializer(u).data,
+                        }
                         for u in staff.filter(role=User.Role.HEALTH_OFFICER)
                     ],
                 }

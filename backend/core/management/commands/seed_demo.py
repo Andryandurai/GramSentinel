@@ -96,6 +96,7 @@ class Command(BaseCommand):
         self._seed_chw_reports(villages, today)
         self._seed_historical_alerts(villages, today)
         self._seed_encounters(patients, today)
+        self._seed_followups(patients, today)
         self._aggregate(villages, today)
         self._run_pipelines(villages, today)
 
@@ -198,6 +199,14 @@ class Command(BaseCommand):
             user.facility = facilities.get(row.get("facility", ""))
             user.is_staff = row.get("is_staff", False)
             user.is_superuser = row.get("is_superuser", False)
+            # Professional profile details. Synthetic, and only filled in where
+            # the scenario supplies them — a photograph is never seeded, so the
+            # portal shows an initials avatar until one is uploaded.
+            user.email = row.get("email", "")
+            user.phone_number = row.get("phone_number", "")
+            user.staff_id = row.get("staff_id", "")
+            user.qualification = row.get("qualification", "")
+            user.experience_years = row.get("experience_years")
             user.set_password(row["password"])
             user.save()
         self.stdout.write(f"  demo users .......... {len(S.DEMO_USERS)}")
@@ -732,6 +741,58 @@ class Command(BaseCommand):
             encounter_date=encounter_date,
         )
         return 1
+
+    def _seed_followups(self, patients, today: dt.date):
+        """Pending and completed follow-ups across the three villages.
+
+        Dates are offsets from the day the seed runs, so the dashboard always
+        shows the same mixture — something overdue, something due today, and
+        several upcoming — whenever the demonstration is given.
+
+        Each pending follow-up is attached to that patient's most recent
+        encounter where one exists, so opening the patient shows the assessment
+        the follow-up came from. Patients registered for review with no
+        encounter yet are left unattached, which the portal handles.
+        """
+
+        worker_by_village = {
+            u.village.code: u
+            for u in User.objects.filter(role=User.Role.CHW_PHC_WORKER)
+            if u.village and u.username.startswith("worker.")
+        }
+
+        made = 0
+        for row in getattr(S, "SEED_FOLLOWUPS", []):
+            patient = patients.get(row["patient"])
+            if patient is None:
+                continue
+
+            due_date = today + dt.timedelta(days=row["days"])
+            assessment = (
+                PatientAssessment.objects.filter(patient=patient, is_draft=False)
+                .order_by("-encounter_date", "-created_at")
+                .first()
+            )
+
+            FollowUp.objects.update_or_create(
+                patient=patient,
+                due_date=due_date,
+                defaults={
+                    "assessment": assessment,
+                    "status": row.get("status", FollowUp.Status.PENDING),
+                    "notes": row.get("notes", ""),
+                    "created_by": worker_by_village.get(patient.village.code),
+                },
+            )
+            made += 1
+
+        pending = FollowUp.objects.filter(status=FollowUp.Status.PENDING).count()
+        overdue = FollowUp.objects.filter(
+            status=FollowUp.Status.PENDING, due_date__lt=today
+        ).count()
+        self.stdout.write(
+            f"  follow-ups .......... {made} ({pending} pending, {overdue} overdue)"
+        )
 
     def _aggregate(self, villages, today: dt.date):
         total = 0

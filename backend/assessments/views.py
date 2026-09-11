@@ -27,18 +27,25 @@ from core.constants import DATA_NOTICE, MEDICAL_DISCLAIMER
 from patients.models import Patient
 from users.permissions import IsWorker
 
+from . import followups as followup_rules
 from .models import FollowUp, PatientAssessment
 from .serializers import (
     AssessmentInputSerializer,
     FollowUpSerializer,
     PatientAssessmentSerializer,
 )
+from .symptom_summary import summarise_assessments
 from .weeks import (
     ALL_WEEKS,
     build_week_options,
     format_range,
     resolve_selection,
 )
+
+#: How many pending follow-ups the dashboard card carries. Generous enough that
+#: the demonstration data never reaches it; the exact count is reported
+#: separately so the card can say so if it ever does.
+MAX_DASHBOARD_FOLLOWUPS = 60
 
 
 def _resolve_patient(request, patient_id: int) -> Patient:
@@ -270,7 +277,15 @@ class FollowUpListCreateView(generics.ListCreateAPIView):
             queryset = queryset.filter(patient__village_id=self.request.user.village_id)
         if self.request.query_params.get("pending") == "1":
             queryset = queryset.filter(status=FollowUp.Status.PENDING)
-        return queryset.order_by("due_date")
+
+        # Optional narrowing to one patient. The village scope above is applied
+        # first, so an id from another area simply matches nothing.
+        patient = (self.request.query_params.get("patient") or "").strip()
+        if patient.isdigit():
+            queryset = queryset.filter(patient_id=int(patient))
+
+        # Earliest due date first: overdue, then due today, then upcoming.
+        return followup_rules.order_queryset(queryset)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -341,6 +356,24 @@ class WorkerDashboardView(APIView):
         period_count = period_assessments.count()
         period_followup_count = period_followups.count()
 
+        # Reported-symptom counts for exactly the rows above: village scope has
+        # already been applied, then the week. Only the three fields the
+        # summary needs are read — no patient identifiers are aggregated.
+        symptom_summary = summarise_assessments(
+            period_assessments.values_list(
+                "patient_id", "symptoms", "other_symptom_text"
+            )
+        )
+
+        ordered_followups = list(
+            followup_rules.order_queryset(
+                period_followups.select_related("patient")
+            )[:MAX_DASHBOARD_FOLLOWUPS]
+        )
+        followup_payload = FollowUpSerializer(
+            ordered_followups, many=True, context={"today": today}
+        ).data
+
         return Response(
             {
                 "worker": request.user.display_name,
@@ -398,13 +431,23 @@ class WorkerDashboardView(APIView):
                     ),
                     "notice": notice,
                 },
-                "pending_followups": FollowUpSerializer(
-                    period_followups.select_related("patient").order_by("due_date")[
-                        :8
-                    ],
-                    many=True,
-                ).data,
+                # Priority order: overdue first, then due today, then the
+                # earliest upcoming date. Derived from the stored due dates.
+                "pending_followups": followup_payload,
                 "pending_followup_count": period_followup_count,
+                "followup_summary": self._followup_summary(
+                    followup_payload,
+                    period_followup_count,
+                    followups,
+                    today,
+                    is_all_weeks,
+                ),
+                "symptom_summary": {
+                    **symptom_summary,
+                    "period_label": self._period_label(selected, week_options),
+                    "is_all_weeks": is_all_weeks,
+                    "village_name": village.name if village else "",
+                },
                 "recent_assessments": PatientAssessmentSerializer(
                     recent, many=True
                 ).data,
@@ -412,6 +455,96 @@ class WorkerDashboardView(APIView):
                 "data_notice": DATA_NOTICE,
             }
         )
+
+    @staticmethod
+    def _followup_summary(
+        rows: list[dict],
+        period_total: int,
+        all_pending,
+        today: dt.date,
+        is_all_weeks: bool,
+    ) -> dict:
+        """Counts, patient options and the empty/overflow states for the card.
+
+        The patient list is built from the follow-ups already on screen, so the
+        dropdown can never offer someone this worker is not permitted to see.
+        """
+
+        counts = {
+            followup_rules.OVERDUE: 0,
+            followup_rules.DUE_TODAY: 0,
+            followup_rules.UPCOMING: 0,
+            followup_rules.UNSCHEDULED: 0,
+        }
+        patients: dict[int, dict] = {}
+
+        for row in rows:
+            state = row.get("followup_status") or followup_rules.UPCOMING
+            counts[state] = counts.get(state, 0) + 1
+
+            patient_id = row.get("patient")
+            if patient_id is None:
+                continue
+            entry = patients.setdefault(
+                patient_id,
+                {
+                    "id": patient_id,
+                    "patient_code": row.get("patient_code") or "",
+                    "patient_name": row.get("patient_name") or "",
+                    "pending_count": 0,
+                    "next_due_date": row.get("due_date"),
+                    "next_status": state,
+                },
+            )
+            entry["pending_count"] += 1
+
+        # Pending follow-ups that are already overdue but fall outside the
+        # selected week. Never hidden silently — the card says so.
+        overdue_outside = 0
+        if not is_all_weeks:
+            overdue_ids = {
+                row.get("id") for row in rows
+                if row.get("followup_status") == followup_rules.OVERDUE
+            }
+            overdue_outside = (
+                all_pending.filter(due_date__lt=today)
+                .exclude(id__in=[i for i in overdue_ids if i is not None])
+                .count()
+            )
+
+        return {
+            "counts": {
+                "total": period_total,
+                "shown": len(rows),
+                "overdue": counts.get(followup_rules.OVERDUE, 0),
+                "due_today": counts.get(followup_rules.DUE_TODAY, 0),
+                "upcoming": counts.get(followup_rules.UPCOMING, 0),
+                "undated": counts.get(followup_rules.UNSCHEDULED, 0),
+            },
+            "patients": sorted(
+                patients.values(),
+                key=lambda p: (p["patient_name"] or "", p["patient_code"] or ""),
+            ),
+            "overdue_outside_period": overdue_outside,
+            "overdue_outside_message": (
+                f"{overdue_outside} overdue follow-up(s) fall outside this week. "
+                "Select “All weeks” to see them."
+                if overdue_outside
+                else ""
+            ),
+            "empty_message": (
+                "No pending follow-ups."
+                if is_all_weeks
+                else "No follow-ups due in this week."
+            ),
+            "truncated": period_total > len(rows),
+            "truncated_message": (
+                f"Showing the {len(rows)} most urgent of {period_total} "
+                "pending follow-ups."
+                if period_total > len(rows)
+                else ""
+            ),
+        }
 
     @staticmethod
     def _period_label(selected: str, options: list[dict]) -> str:

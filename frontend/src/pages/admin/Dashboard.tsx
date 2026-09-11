@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 
 import {
+  Avatar,
   Card,
   Empty,
   ErrorNote,
@@ -504,57 +505,90 @@ export default function AdminDashboard() {
             </p>
           </Card>
 
-          {/* Assigned staff */}
-          <Card title="Assigned staff">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Assigned staff — the same card, now showing each person's
+              professional profile alongside their village assignment. */}
+          <Card
+            title="Assigned staff profiles"
+            action={
+              <span className="text-xs text-ink-400">
+                {totals.workers} worker(s) · {totals.officers} health officer(s)
+              </span>
+            }
+          >
+            <div className="grid gap-4 lg:grid-cols-3">
               {data.team.map((row) => (
                 <div
                   key={row.code}
                   className="rounded-md border border-ink-200 p-3"
                 >
                   <div className="text-sm font-semibold">{row.label}</div>
-                  <div className="text-xs text-ink-400">{row.name}</div>
-                  <dl className="mt-2 space-y-1.5 text-sm">
-                    <div>
-                      <dt className="text-xs text-ink-400">
-                        CHW / PHC Worker
-                      </dt>
-                      <dd>
-                        {row.workers.length ? (
-                          row.workers.map((w) => (
-                            <div key={w.username} className="text-ink-800">
-                              {w.name}
-                              <span className="text-xs text-ink-400 ml-1 font-mono">
-                                {w.username}
-                              </span>
-                            </div>
-                          ))
+                  <div className="text-xs text-ink-400">
+                    {row.name} · {row.cluster}
+                  </div>
+
+                  <div className="mt-3 space-y-3">
+                    {[
+                      ['CHW / PHC Worker', row.workers] as const,
+                      ['Health Officer', row.officers] as const,
+                    ].map(([heading, people]) => (
+                      <div key={heading}>
+                        <div className="text-xs text-ink-400">{heading}</div>
+                        {people.length === 0 ? (
+                          <span className="text-sm text-ink-400">
+                            Not assigned
+                          </span>
                         ) : (
-                          <span className="text-ink-400">Not assigned</span>
+                          <ul className="mt-1 space-y-2">
+                            {people.map((person) => (
+                              <li
+                                key={person.username}
+                                className="flex items-start gap-2.5"
+                              >
+                                <Avatar
+                                  src={person.photo_url}
+                                  initials={person.initials}
+                                  name={person.name}
+                                  size="sm"
+                                />
+                                <div className="min-w-0 text-sm">
+                                  <div className="text-ink-800">
+                                    {person.name}
+                                  </div>
+                                  <div className="font-mono text-xs text-ink-400">
+                                    {person.username}
+                                    {person.staff_id
+                                      ? ` · ${person.staff_id}`
+                                      : ''}
+                                  </div>
+                                  {person.qualification && (
+                                    <div className="text-xs text-ink-600">
+                                      {person.qualification}
+                                      {person.experience_years !== null &&
+                                      person.experience_years !== undefined
+                                        ? ` · ${person.experience_years} yr`
+                                        : ''}
+                                    </div>
+                                  )}
+                                  {person.phone_number && (
+                                    <div className="text-xs text-ink-400">
+                                      {person.phone_number}
+                                    </div>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
                         )}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-ink-400">Health Officer</dt>
-                      <dd>
-                        {row.officers.length ? (
-                          row.officers.map((o) => (
-                            <div key={o.username} className="text-ink-800">
-                              {o.name}
-                              <span className="text-xs text-ink-400 ml-1 font-mono">
-                                {o.username}
-                              </span>
-                            </div>
-                          ))
-                        ) : (
-                          <span className="text-ink-400">Not assigned</span>
-                        )}
-                      </dd>
-                    </div>
-                  </dl>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
+            <p className="mt-4 border-t border-ink-200 pt-3 text-xs text-ink-400">
+              Profiles are maintained by each member of staff. This is a
+              read-only view; roles and village assignments are unchanged by it.
+            </p>
           </Card>
         </>
       )}
