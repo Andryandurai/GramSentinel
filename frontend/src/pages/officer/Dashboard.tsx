@@ -21,41 +21,18 @@ import {
 } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
-import type { OfficerDashboard, TrendPoint } from '@/types'
+import type { OfficerDashboard, TrendDirection } from '@/types'
 
-const SERIES_COLOURS: Record<string, string> = {
-  CHW: '#3b5bad',
-  PHC: '#0e9f77',
-  PHARMACY: '#c2691a',
-  SCHOOL: '#8b5cf6',
-  LAB: '#dc2626',
-  WEATHER: '#64748b',
-  RURALCARE_AGGREGATE: '#0891b2',
-}
+/** One colour per health-signal category line — same palette as the
+ *  Community Data page's chart, so the two views read as one visual
+ *  language rather than two different products. */
+const SERIES_COLOURS = ['#3b5bad', '#0e9f77', '#c2691a', '#8b5cf6', '#dc2626']
 
-/**
- * Normalises each source to "percent of its own baseline" so streams measured
- * in different units (reports, units sold, % absent) can share one axis without
- * implying they are the same quantity.
- */
-function buildChartData(trends: Record<string, TrendPoint[]>) {
-  const byWeek = new Map<string, Record<string, number | string>>()
-
-  for (const [kind, points] of Object.entries(trends)) {
-    for (const point of points) {
-      if (point.baseline == null || point.baseline === 0) continue
-      const row = byWeek.get(point.week_label) ?? { week: point.week_label }
-      const pct = Math.round((point.value / point.baseline) * 100)
-      const existing = row[kind]
-      row[kind] =
-        typeof existing === 'number' ? Math.max(existing, pct) : pct
-      byWeek.set(point.week_label, row)
-    }
-  }
-
-  return [...byWeek.values()].sort((a, b) =>
-    String(a.week).localeCompare(String(b.week)),
-  )
+const TREND_CHIP: Record<TrendDirection, { arrow: string; chip: string }> = {
+  INCREASING: { arrow: '↑', chip: 'bg-red-100 text-red-700' },
+  DECREASING: { arrow: '↓', chip: 'bg-care-100 text-care-700' },
+  STABLE: { arrow: '→', chip: 'bg-ink-100 text-ink-600' },
+  INSUFFICIENT_DATA: { arrow: '–', chip: 'bg-ink-100 text-ink-400' },
 }
 
 export default function OfficerDashboardPage() {
@@ -67,8 +44,7 @@ export default function OfficerDashboardPage() {
   if (error) return <ErrorNote message={error} onRetry={reload} />
   if (!data) return null
 
-  const chartData = buildChartData(data.trends)
-  const seriesKeys = Object.keys(data.trends).filter((k) => k !== 'WEATHER')
+  const trend = data.community_trend
 
   return (
     <div className="space-y-6">
@@ -132,15 +108,27 @@ export default function OfficerDashboardPage() {
         />
       </div>
 
-      <Card title="Community trends — each source against its own baseline">
-        {chartData.length === 0 ? (
-          <Empty>No trend data yet.</Empty>
+      <Card title="Community reported signals over time">
+        <p className="text-xs text-ink-600 -mt-1 mb-3">
+          Actual signals recorded through Health Worker reports for your
+          monitored community.
+        </p>
+
+        {trend.is_empty || trend.points.length === 0 ? (
+          <>
+            <Empty>
+              {trend.empty_message || 'No community reports recorded for this period.'}
+            </Empty>
+            <p className="-mt-3 text-center text-xs text-ink-400">
+              {trend.empty_hint}
+            </p>
+          </>
         ) : (
           <>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
-                  data={chartData}
+                  data={trend.points}
                   margin={{ top: 8, right: 12, bottom: 4, left: -18 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#eef0f4" />
@@ -154,12 +142,11 @@ export default function OfficerDashboardPage() {
                     tick={{ fontSize: 11, fill: '#8a94a6' }}
                     tickLine={false}
                     axisLine={false}
-                    unit="%"
-                    domain={[0, 'auto']}
+                    allowDecimals={false}
                   />
                   <Tooltip
                     formatter={(value: number, name: string) => [
-                      `${value}% of baseline`,
+                      `${value} reported`,
                       name,
                     ]}
                     contentStyle={{
@@ -169,12 +156,12 @@ export default function OfficerDashboardPage() {
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  {seriesKeys.map((kind) => (
+                  {trend.keys.map((key, index) => (
                     <Line
-                      key={kind}
+                      key={key}
                       type="monotone"
-                      dataKey={kind}
-                      stroke={SERIES_COLOURS[kind] ?? '#8a94a6'}
+                      dataKey={key}
+                      stroke={SERIES_COLOURS[index % SERIES_COLOURS.length]}
                       strokeWidth={2}
                       dot={{ r: 2 }}
                       connectNulls
@@ -183,10 +170,25 @@ export default function OfficerDashboardPage() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-xs text-ink-400 mt-2">
-              100% is each source's own recent baseline. Sources are measured in
-              different units, so they are shown as a percentage of their own
-              normal rather than on a shared absolute scale.
+
+            <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-ink-200 pt-3">
+              <span
+                className={`pill ${
+                  (TREND_CHIP[trend.trend.direction] ?? TREND_CHIP.INSUFFICIENT_DATA).chip
+                }`}
+              >
+                {(TREND_CHIP[trend.trend.direction] ?? TREND_CHIP.INSUFFICIENT_DATA).arrow}{' '}
+                {trend.trend.direction_label}
+              </span>
+              <span className="text-xs text-ink-600">{trend.trend_note}</span>
+              <span className="ml-auto text-xs text-ink-400">
+                {trend.total_reported} reported across {trend.weeks_covered} week
+                {trend.weeks_covered === 1 ? '' : 's'}
+              </span>
+            </div>
+            <p className="mt-2 text-xs text-ink-400">
+              Reported counts, not confirmed diagnoses. Showing the busiest
+              health signals for your monitored area.
             </p>
           </>
         )}

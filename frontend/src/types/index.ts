@@ -414,14 +414,6 @@ export interface AlertEvidenceResponse {
   data_notice: string
 }
 
-export interface TrendPoint {
-  week_label: string
-  value: number
-  baseline: number | null
-  category: string
-  village: string
-}
-
 export interface OfficerDashboard {
   officer: string
   district: string
@@ -460,7 +452,8 @@ export interface OfficerDashboard {
   }
   outcomes: { valid_signal: number; false_alert: number; resolved: number }
   alerts: AlertSummary[]
-  trends: Record<string, TrendPoint[]>
+  /** Actual worker-reported signal counts over time — see CommunitySeries. */
+  community_trend: CommunitySeries
   disclaimer: string
   data_notice: string
 }
@@ -634,6 +627,36 @@ export interface CommunityDataCategory {
   is_new_activity: boolean
 }
 
+/**
+ * Weekly, per-category counts of ACTUAL reported cases from
+ * `CommunityReportEntry` (what Health Workers submitted through the
+ * Community Report form) — real integers, never a percentage of a baseline.
+ * Shared by the Officer Dashboard's chart and the Community Data page's
+ * chart so both read from the same underlying series shape.
+ */
+export interface CommunitySeries {
+  keys: string[]
+  points: Array<Record<string, string | number>>
+  /** Reflects the selected filters, e.g. "Reported high-severity …". */
+  title: string
+  total_reported: number
+  weeks_covered: number
+  trend: {
+    current: number
+    previous: number | null
+    change_pct: number | null
+    direction: TrendDirection
+    direction_label: string
+    symbol: string
+    is_new_activity: boolean
+  }
+  trend_note: string
+  is_empty: boolean
+  empty_message: string
+  empty_hint: string
+  applied: { severity: string; category: string }
+}
+
 export interface OfficerCommunityData {
   scope: {
     village_code: string | null
@@ -657,28 +680,7 @@ export interface OfficerCommunityData {
     has_previous_period_data: boolean
   }
   categories: CommunityDataCategory[]
-  series: {
-    keys: string[]
-    points: Array<Record<string, string | number>>
-    /** Reflects the selected filters, e.g. "Reported high-severity …". */
-    title: string
-    total_reported: number
-    weeks_covered: number
-    trend: {
-      current: number
-      previous: number | null
-      change_pct: number | null
-      direction: TrendDirection
-      direction_label: string
-      symbol: string
-      is_new_activity: boolean
-    }
-    trend_note: string
-    is_empty: boolean
-    empty_message: string
-    empty_hint: string
-    applied: { severity: string; category: string }
-  }
+  series: CommunitySeries
   filters: {
     severity: {
       selected: string

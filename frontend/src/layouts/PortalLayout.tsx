@@ -20,11 +20,16 @@ export function PortalLayout({
   subtitle,
   accent,
   nav,
+  hideFooterDisclaimer = false,
 }: {
   portal: string
   subtitle: string
   accent: 'care' | 'sentinel'
   nav: NavItem[]
+  /** Worker Portal only — its dashboard and community-report pages already
+   *  carry their own shorter disclaimer inline, so the long shared footer
+   *  would be redundant there. */
+  hideFooterDisclaimer?: boolean
 }) {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
@@ -97,14 +102,16 @@ export function PortalLayout({
         <Outlet />
       </main>
 
-      <footer className="border-t border-ink-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-3 text-xs text-ink-400">
-          Decision-support and early-warning prototype. It does not diagnose,
-          prescribe, or declare outbreaks, and it does not replace healthcare
-          professionals or official public-health surveillance. All data is
-          synthetic, public or anonymised — no real patient data.
-        </div>
-      </footer>
+      {!hideFooterDisclaimer && (
+        <footer className="border-t border-ink-200 bg-white">
+          <div className="mx-auto max-w-7xl px-4 py-3 text-xs text-ink-400">
+            Decision-support and early-warning prototype. It does not diagnose,
+            prescribe, or declare outbreaks, and it does not replace healthcare
+            professionals or official public-health surveillance. All data is
+            synthetic, public or anonymised — no real patient data.
+          </div>
+        </footer>
+      )}
     </div>
   )
 }

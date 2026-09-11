@@ -87,6 +87,7 @@ export default function App() {
               subtitle="Individual patient support · Worker Portal"
               accent="care"
               nav={WORKER_NAV}
+              hideFooterDisclaimer
             />
           </RequireRole>
         }

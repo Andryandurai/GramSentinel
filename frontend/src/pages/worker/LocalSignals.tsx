@@ -26,6 +26,14 @@ export default function LocalSignalsPage() {
             ? `${data.village.name} · ${data.village.cluster}`
             : 'No village assigned'}
         </p>
+        <p className="text-xs text-ink-400 mt-2 max-w-2xl">
+          Aggregated signals reported for your own village only — not
+          individual diagnoses or confirmed disease cases. A category shown
+          as above baseline means recent reported counts are higher than that
+          source&apos;s own recent average, which may be worth a closer look.
+          Use this to help notice unusual local patterns and decide whether
+          further review or reporting is needed.
+        </p>
       </div>
 
       <div

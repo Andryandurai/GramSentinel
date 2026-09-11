@@ -78,26 +78,29 @@ class OfficerDashboardView(APIView):
         ).order_by("-submitted_at")
         unread_reports = reports.filter(acknowledged_at__isnull=True).count()
 
-        # Trend series for the officer's charts: one point per week per source
-        # kind, aggregated across the villages this officer can see.
-        signals = (
+        # "Villages monitored" — distinct villages with any reported community
+        # signal this officer can see. Unrelated to the trend chart below.
+        villages_monitored = (
             scope_queryset(
                 CommunitySignal.objects.filter(is_reported=True), request.user
             )
-            .select_related("source", "village")
-            .order_by("period_start")
+            .values("village")
+            .distinct()
+            .count()
         )
-        series: dict[str, list[dict]] = {}
-        for signal in signals:
-            series.setdefault(signal.source.kind, []).append(
-                {
-                    "week_label": signal.week_label,
-                    "value": signal.value,
-                    "baseline": signal.baseline,
-                    "category": signal.category,
-                    "village": signal.village.code,
-                }
-            )
+
+        # Community trend chart — ACTUAL worker-reported counts (from
+        # CommunityReportEntry, what a Health Worker entered on the Community
+        # Report form), never a percentage of a baseline. Uses the exact same
+        # aggregation as the Community Data page's chart, so the two views
+        # can never disagree about what "reported" means. Same default period
+        # as that page.
+        today = timezone.localdate()
+        trend_days = OfficerCommunityDataView.DEFAULT_PERIOD
+        (trend_start, trend_end), _ = period_windows(trend_days, today)
+        community_trend = _weekly_reported_series(
+            reports, trend_start, trend_end, trend_days, user=request.user
+        )
 
         return Response(
             {
@@ -150,9 +153,7 @@ class OfficerDashboardView(APIView):
                     "safety_downgraded": alerts.filter(
                         safety_verdict="DOWNGRADE"
                     ).count(),
-                    "villages_monitored": (
-                        signals.values("village").distinct().count()
-                    ),
+                    "villages_monitored": villages_monitored,
                     "mean_confidence": round(
                         alerts.aggregate(v=Avg("confidence"))["v"] or 0.0, 2
                     ),
@@ -166,7 +167,7 @@ class OfficerDashboardView(APIView):
                 "alerts": AlertListSerializer(
                     active.order_by("-created_at")[:20], many=True
                 ).data,
-                "trends": series,
+                "community_trend": community_trend,
                 "disclaimer": MEDICAL_DISCLAIMER,
                 "data_notice": DATA_NOTICE,
             }
@@ -349,6 +350,160 @@ class AlertStatusView(APIView):
         )
 
 
+def _severity_keys(user, severity: str) -> set[tuple[int, str, str]]:
+    """(village, week, category) combinations an alert of this severity covers.
+
+    Severity belongs to alerts, not to raw reported counts — an alert is
+    where this platform records how serious a pattern looked. Filtering the
+    trend by severity therefore means "the reported signals behind the
+    alerts of that severity", which keeps one definition of severity rather
+    than inventing a second.
+    """
+
+    rows = scope_queryset(
+        Alert.objects.filter(severity=severity), user
+    ).values_list("village_id", "week_label", "category")
+    return {(row[0], row[1], row[2]) for row in rows}
+
+
+def _series_title(severity: str | None, category: str | None) -> str:
+    signal = (
+        SignalCategory(category).label.lower() if category else "community health"
+    )
+    if severity:
+        grade = Alert.Severity(severity).label.lower()
+        return f"Reported {grade}-severity {signal} signals over time"
+    return f"Reported {signal} signals over time"
+
+
+def _trend_note(trend, week_count: int) -> str:
+    if week_count < 2 or trend.direction == INSUFFICIENT_DATA:
+        return "Not enough weeks in this selection to describe a trend yet."
+    wording = {
+        INCREASING: "Reported signals in this selection are increasing.",
+        DECREASING: "Reported signals in this selection are decreasing.",
+        STABLE: "Reported signals in this selection are holding steady.",
+    }
+    return wording.get(trend.direction, "")
+
+
+def _weekly_reported_series(
+    reports,
+    current_start,
+    current_end,
+    days: int,
+    *,
+    severity: str | None = None,
+    category: str | None = None,
+    user=None,
+) -> dict:
+    """Weekly totals of ACTUAL worker-reported cases, by category.
+
+    The single source of truth for "what has been reported over time": reads
+    `CommunityReportEntry` rows, which are exactly what a Health Worker
+    entered on the Community Report form (village, category, case_count,
+    week). Real integer counts, never a percentage of a baseline. Shared by
+    the Officer Dashboard's chart and the Community Data page's chart so the
+    two views can never disagree about what "reported" means.
+
+    Covers roughly twice the selected window so the officer can see the
+    shape leading into it rather than two bare columns. Aggregated counts
+    only: this reads community report entries, which hold no patient
+    information of any kind.
+    """
+
+    history_start = current_start - dt.timedelta(days=days * 2)
+    window = reports.filter(
+        period_start__gte=history_start, period_start__lte=current_end
+    )
+
+    entries = CommunityReportEntry.objects.filter(report__in=window).exclude(
+        category__in=SYSTEM_CATEGORIES
+    )
+    if category:
+        entries = entries.filter(category=category)
+
+    rows = list(
+        entries.values(
+            "report__week_label", "category", "report__village_id"
+        ).annotate(total=Sum("case_count"))
+    )
+
+    if severity and user is not None:
+        permitted = _severity_keys(user, severity)
+        rows = [
+            row
+            for row in rows
+            if (
+                row["report__village_id"],
+                row["report__week_label"],
+                row["category"],
+            )
+            in permitted
+        ]
+
+    # Which lines to draw: the selected category alone, or the busiest few.
+    totals_by_category: dict[str, int] = {}
+    for row in rows:
+        totals_by_category[row["category"]] = totals_by_category.get(
+            row["category"], 0
+        ) + (row["total"] or 0)
+
+    if category:
+        wanted = [category] if category in totals_by_category else []
+    else:
+        wanted = [
+            name
+            for name, _ in sorted(
+                totals_by_category.items(), key=lambda kv: (-kv[1], kv[0])
+            )[:5]
+        ]
+    keys = [SignalCategory(name).label for name in wanted]
+
+    by_week: dict[str, dict] = {}
+    for row in rows:
+        if row["category"] not in wanted:
+            continue
+        week = row["report__week_label"]
+        bucket = by_week.setdefault(week, {"week": week})
+        label = SignalCategory(row["category"]).label
+        bucket[label] = (bucket.get(label) or 0) + (row["total"] or 0)
+
+    points = sorted(by_week.values(), key=lambda p: str(p["week"]))
+    for point in points:
+        for key in keys:
+            point.setdefault(key, 0)
+
+    weekly_totals = [
+        sum(int(point.get(key) or 0) for key in keys) for point in points
+    ]
+    trend = compute_trend(
+        weekly_totals[-1] if weekly_totals else 0,
+        weekly_totals[-2] if len(weekly_totals) > 1 else None,
+        has_previous_period_data=len(weekly_totals) > 1,
+    )
+
+    return {
+        "keys": keys,
+        "points": points,
+        "title": _series_title(severity, category),
+        "total_reported": sum(weekly_totals),
+        "weeks_covered": len(points),
+        "trend": trend.to_dict(),
+        "trend_note": _trend_note(trend, len(points)),
+        "is_empty": not points or not keys,
+        "empty_message": "Insufficient data for this selection.",
+        "empty_hint": (
+            "Try a wider selection, a longer period, or wait for the next "
+            "community report from your area."
+        ),
+        "applied": {
+            "severity": severity or "ALL",
+            "category": category or "ALL",
+        },
+    }
+
+
 class OfficerCommunityDataView(APIView):
     """Consolidated community-level view for the officer's own area.
 
@@ -426,7 +581,7 @@ class OfficerCommunityDataView(APIView):
                 },
                 "summary": self._summary(categories, has_previous),
                 "categories": categories,
-                "series": self._series(
+                "series": _weekly_reported_series(
                     reports,
                     current_start,
                     current_end,
@@ -555,154 +710,6 @@ class OfficerCommunityDataView(APIView):
         if value in REPORTABLE_CATEGORIES:
             return value, ""
         return None, "That health signal could not be read, so all cases are shown."
-
-    @staticmethod
-    def _severity_keys(user, severity: str) -> set[tuple[int, str, str]]:
-        """(village, week, category) combinations an alert of this severity covers.
-
-        Severity belongs to alerts, not to raw reported counts — an alert is
-        where this platform records how serious a pattern looked. Filtering the
-        trend by severity therefore means "the reported signals behind the
-        alerts of that severity", which keeps one definition of severity rather
-        than inventing a second.
-        """
-
-        rows = scope_queryset(
-            Alert.objects.filter(severity=severity), user
-        ).values_list("village_id", "week_label", "category")
-        return {(row[0], row[1], row[2]) for row in rows}
-
-    # ------------------------------------------------------------------
-    def _series(
-        self,
-        reports,
-        current_start,
-        current_end,
-        days: int,
-        *,
-        severity: str | None = None,
-        category: str | None = None,
-        user=None,
-    ) -> dict:
-        """Weekly totals for the chart, narrowed by the selected filters.
-
-        Covers roughly twice the selected window so the officer can see the
-        shape leading into it rather than two bare columns. Aggregated counts
-        only: this reads community report entries, which hold no patient
-        information of any kind.
-        """
-
-        history_start = current_start - dt.timedelta(days=days * 2)
-        window = reports.filter(
-            period_start__gte=history_start, period_start__lte=current_end
-        )
-
-        entries = CommunityReportEntry.objects.filter(report__in=window).exclude(
-            category__in=SYSTEM_CATEGORIES
-        )
-        if category:
-            entries = entries.filter(category=category)
-
-        rows = list(
-            entries.values(
-                "report__week_label", "category", "report__village_id"
-            ).annotate(total=Sum("case_count"))
-        )
-
-        if severity and user is not None:
-            permitted = self._severity_keys(user, severity)
-            rows = [
-                row
-                for row in rows
-                if (
-                    row["report__village_id"],
-                    row["report__week_label"],
-                    row["category"],
-                )
-                in permitted
-            ]
-
-        # Which lines to draw: the selected category alone, or the busiest few.
-        totals_by_category: dict[str, int] = {}
-        for row in rows:
-            totals_by_category[row["category"]] = totals_by_category.get(
-                row["category"], 0
-            ) + (row["total"] or 0)
-
-        if category:
-            wanted = [category] if category in totals_by_category else []
-        else:
-            wanted = [
-                name
-                for name, _ in sorted(
-                    totals_by_category.items(), key=lambda kv: (-kv[1], kv[0])
-                )[:5]
-            ]
-        keys = [SignalCategory(name).label for name in wanted]
-
-        by_week: dict[str, dict] = {}
-        for row in rows:
-            if row["category"] not in wanted:
-                continue
-            week = row["report__week_label"]
-            bucket = by_week.setdefault(week, {"week": week})
-            label = SignalCategory(row["category"]).label
-            bucket[label] = (bucket.get(label) or 0) + (row["total"] or 0)
-
-        points = sorted(by_week.values(), key=lambda p: str(p["week"]))
-        for point in points:
-            for key in keys:
-                point.setdefault(key, 0)
-
-        weekly_totals = [
-            sum(int(point.get(key) or 0) for key in keys) for point in points
-        ]
-        trend = compute_trend(
-            weekly_totals[-1] if weekly_totals else 0,
-            weekly_totals[-2] if len(weekly_totals) > 1 else None,
-            has_previous_period_data=len(weekly_totals) > 1,
-        )
-
-        return {
-            "keys": keys,
-            "points": points,
-            "title": self._series_title(severity, category),
-            "total_reported": sum(weekly_totals),
-            "weeks_covered": len(points),
-            "trend": trend.to_dict(),
-            "trend_note": self._trend_note(trend, len(points)),
-            "is_empty": not points or not keys,
-            "empty_message": "Insufficient data for this selection.",
-            "empty_hint": (
-                "Try a wider selection, a longer period, or wait for the next "
-                "community report from your area."
-            ),
-            "applied": {
-                "severity": severity or self.ALL,
-                "category": category or self.ALL,
-            },
-        }
-
-    @classmethod
-    def _series_title(cls, severity: str | None, category: str | None) -> str:
-        signal = (
-            SignalCategory(category).label.lower() if category else "community health"
-        )
-        if severity:
-            grade = Alert.Severity(severity).label.lower()
-            return f"Reported {grade}-severity {signal} signals over time"
-        return f"Reported {signal} signals over time"
-
-    @staticmethod
-    def _trend_note(trend, week_count: int) -> str:
-        if week_count < 2 or trend.direction == INSUFFICIENT_DATA:
-            return "Not enough weeks in this selection to describe a trend yet."
-        wording = {
-            INCREASING: "Reported signals in this selection are increasing.",
-            DECREASING: "Reported signals in this selection are decreasing.",
-            STABLE: "Reported signals in this selection are holding steady.",
-        }
-        return wording.get(trend.direction, "")
 
     # ------------------------------------------------------------------
     def _filter_options(

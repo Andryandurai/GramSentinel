@@ -219,7 +219,7 @@ export default function CommunityReportPage() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className={`grid gap-6 ${result ? 'lg:grid-cols-2' : ''}`}>
         <Card title="Reported health signals this week">
           <form onSubmit={submit} className="space-y-5">
             <div className="grid grid-cols-3 gap-3">
@@ -408,99 +408,67 @@ export default function CommunityReportPage() {
           </form>
         </Card>
 
-        <div className="space-y-6">
-          <Card title="What happens after you submit">
-            {!result ? (
-              <ol className="space-y-3 text-sm text-ink-600">
-                {[
-                  'Your report is validated and normalised.',
-                  'Each community source is compared against its own baseline.',
-                  'Signals that move together are assembled into a candidate pattern.',
-                  'Anonymised patient activity is checked against it.',
-                  'Deterministic safety rules pass, downgrade or block the result.',
-                  'The health officer for your village reviews what survives.',
-                ].map((line, index) => (
-                  <li key={line} className="flex gap-3">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ink-100 text-xs font-semibold text-ink-600">
-                      {index + 1}
-                    </span>
-                    {line}
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <div className="space-y-4">
-                <div className="rounded-md border border-care-200 bg-care-50 px-3 py-2">
-                  <div className="text-sm font-medium text-care-700">
-                    Report submitted
-                  </div>
-                  <p className="text-xs text-care-700 mt-1">
-                    {result.officer_note}
-                    {result.described_observations > 0 &&
-                      ` ${result.described_observations} described observation(s) included.`}
-                  </p>
+        {result && (
+          <Card title="Report submitted">
+            <div className="space-y-4">
+              <div className="rounded-md border border-care-200 bg-care-50 px-3 py-2">
+                <div className="text-sm font-medium text-care-700">
+                  Report submitted
                 </div>
-
-                {result.pipeline.length > 0 && (
-                  <div>
-                    <div className="label">Result by category</div>
-                    <ul className="space-y-2">
-                      {result.pipeline.map((outcome) => (
-                        <li
-                          key={outcome.category}
-                          className="rounded-md border border-ink-200 px-3 py-2"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-medium">
-                              {outcome.label}
-                            </span>
-                            <span className="text-xs text-ink-400">
-                              {outcome.reported_cases} reported
-                            </span>
-                            <span
-                              className={`pill ml-auto ${
-                                outcome.safety_verdict === 'PASS'
-                                  ? 'bg-care-100 text-care-700'
-                                  : 'bg-ink-100 text-ink-600'
-                              }`}
-                            >
-                              {outcome.corroborating_source_count} source(s)
-                            </span>
-                          </div>
-                          <p className="text-xs text-ink-600 mt-1">
-                            {outcome.alert_raised
-                              ? 'Raised for health-officer review.'
-                              : outcome.reason ||
-                                'Recorded. Not escalated — no other source corroborates it yet.'}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <button
-                  className="btn-ghost w-full"
-                  onClick={() => setResult(null)}
-                >
-                  Submit another report
-                </button>
+                <p className="text-xs text-care-700 mt-1">
+                  {result.officer_note}
+                  {result.described_observations > 0 &&
+                    ` ${result.described_observations} described observation(s) included.`}
+                </p>
               </div>
-            )}
-          </Card>
 
-          <Card title="About these categories">
-            <p className="text-sm text-ink-600">
-              {categories.data?.note}
-            </p>
-            <p className="mt-2 text-xs text-ink-400">
-              If something does not fit a listed category, use{' '}
-              <span className="font-medium">Other health concern</span> and
-              describe it in your own words. The health officer for your village
-              sees your description exactly as you wrote it.
-            </p>
+              {result.pipeline.length > 0 && (
+                <div>
+                  <div className="label">Result by category</div>
+                  <ul className="space-y-2">
+                    {result.pipeline.map((outcome) => (
+                      <li
+                        key={outcome.category}
+                        className="rounded-md border border-ink-200 px-3 py-2"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium">
+                            {outcome.label}
+                          </span>
+                          <span className="text-xs text-ink-400">
+                            {outcome.reported_cases} reported
+                          </span>
+                          <span
+                            className={`pill ml-auto ${
+                              outcome.safety_verdict === 'PASS'
+                                ? 'bg-care-100 text-care-700'
+                                : 'bg-ink-100 text-ink-600'
+                            }`}
+                          >
+                            {outcome.corroborating_source_count} source(s)
+                          </span>
+                        </div>
+                        <p className="text-xs text-ink-600 mt-1">
+                          {outcome.alert_raised
+                            ? 'Raised for health-officer review.'
+                            : outcome.reason ||
+                              'Recorded. Not escalated — no other source corroborates it yet.'}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <button
+                className="btn-ghost w-full"
+                onClick={() => setResult(null)}
+              >
+                Submit another report
+              </button>
+            </div>
           </Card>
-        </div>
+        )}
       </div>
     </div>
   )

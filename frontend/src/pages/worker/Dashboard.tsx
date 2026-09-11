@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import {
   Card,
-  Disclaimer,
   Empty,
   ErrorNote,
   FollowUpPill,
@@ -329,7 +328,7 @@ export default function WorkerDashboardPage() {
 
         {/* Pending follow-ups — most urgent first, filterable by patient. */}
         <Card
-          className="lg:col-span-2"
+          className="lg:col-span-3"
           title={
             allWeeks ? 'Pending follow-ups' : `Follow-ups due · ${period.label}`
           }
@@ -444,16 +443,6 @@ export default function WorkerDashboardPage() {
             Select a patient to open their record, previous assessments and
             follow-up history.
           </p>
-        </Card>
-
-        <Card title="How your work is used">
-          <p className="text-sm text-ink-600 leading-relaxed">
-            Each assessment you record stays inside RuralCare. Only an
-            anonymised count — for example “7 fever-related encounters this
-            week” — crosses into community monitoring. Patient names,
-            identifiers and records never leave this portal.
-          </p>
-          <Disclaimer className="mt-4" />
         </Card>
       </div>
     </div>
