@@ -55,8 +55,15 @@ databases:
 
 services:
   # --- Backend: Django + DRF -------------------------------------------
+  #
+  # CONFIRMED live URL: https://gramsentinel.onrender.com — the name below
+  # matches it exactly. Earlier drafts of this file guessed
+  # `gramsentinel-backend` before any service existed; that guess turned out
+  # wrong (the live service was created manually, named just `gramsentinel`,
+  # not through this Blueprint) and is now corrected to the real name/URL
+  # throughout this file and RENDER_DEPLOYMENT.md.
   - type: web
-    name: gramsentinel-backend
+    name: gramsentinel
     runtime: python
     rootDir: backend
     plan: free
@@ -104,9 +111,11 @@ services:
         fromDatabase:
           name: gramsentinel-db
           property: connectionString
-      # Set to the frontend Static Site's actual Render URL once known —
-      # see RENDER_DEPLOYMENT.md's ordering note (both service URLs are
-      # knowable before either finishes its first build).
+      # PLACEHOLDER — not yet confirmed, unlike the backend URL above. The
+      # frontend Static Site did not exist as of this writing. Once it is
+      # created, replace this with its real Render URL exactly (scheme +
+      # host, no trailing slash, no path) and redeploy the backend —
+      # otherwise the browser's CORS check on every API request will fail.
       - key: CORS_ALLOWED_ORIGINS
         value: https://gramsentinel-frontend.onrender.com
       - key: SECURE_HSTS_SECONDS
@@ -120,6 +129,12 @@ services:
         sync: false
 
   # --- Frontend: React + Vite, static build -----------------------------
+  #
+  # NOT yet created as of this writing (the backend above is; this one is
+  # not). `gramsentinel-frontend` here is a suggested name — Render will
+  # assign whatever URL corresponds to the name actually chosen when the
+  # Static Site is created. `VITE_API_BASE_URL` below is NOT a placeholder,
+  # though — it's the confirmed real backend URL and does not need editing.
   - type: web
     name: gramsentinel-frontend
     runtime: static
@@ -129,9 +144,14 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20"
-      # Set to the backend Web Service's actual Render URL + /api.
+      # CONFIRMED — this is the backend's real, live Render URL (the one
+      # returning {"service":"GramSentinel","status":"running"} at /api
+      # /health/), not a guess. This is a build-time value: Vite bakes it
+      # into the compiled JS bundle when the Static Site builds, so if it
+      # is ever changed, the frontend must be rebuilt (redeployed), not
+      # just have the env var updated in place.
       - key: VITE_API_BASE_URL
-        value: https://gramsentinel-backend.onrender.com/api
+        value: https://gramsentinel.onrender.com/api
     routes:
       # Client-side routing (React Router): unmatched paths (e.g. a
       # refresh on /officer/dashboard) must resolve to index.html, not 404.

@@ -16,13 +16,19 @@ combined service.
 Browser
   |
   +---> Render Static Site   (frontend/, React + Vite build)
-  |        gramsentinel-frontend.onrender.com
+  |        gramsentinel-frontend.onrender.com  <- NOT YET CREATED, suggested
+  |                                                name only (see section 3b)
   |
   +---> Render Web Service   (backend/, Django + DRF, served by Daphne)
-           gramsentinel-backend.onrender.com
+           gramsentinel.onrender.com  <- CONFIRMED live and correct
                 |
                 +---> Render PostgreSQL
 ```
+
+**If you are seeing the JSON/HTML status page at `gramsentinel.onrender.com`
+instead of the React app: that is correct, expected behaviour for the
+*backend's* URL — it is supposed to show that. The frontend has its own,
+separate URL. See section 3c below if that Static Site does not exist yet.**
 
 **Why split, rather than one Web Service serving both:** Django's built-in
 admin site is mounted at `/admin/` (`backend/config/urls.py`). The React
@@ -199,6 +205,35 @@ the Dashboard.
 
 ---
 
+## 3c. "I opened the URL and got JSON/HTML, not the app" — you opened the backend
+
+**This is not a bug.** `https://gramsentinel.onrender.com` is the Django
+backend's URL. Showing a status page there — JSON at `/api/health/`, the
+small HTML status card at `/` — is exactly correct: the backend is not, and
+must never become, the React frontend (see section 1's collision reason
+for why this project deliberately never merges the two).
+
+**The React application lives on a second, separate Render service — a
+Static Site — with its own, different URL.** Two situations:
+
+- **The Static Site doesn't exist yet.** This is the actual state as of
+  this writing: only the backend Web Service above has been created and
+  confirmed live. Follow section 4–10 / the numbered steps near the end of
+  this document to create it. Once created, Render assigns it its own URL
+  immediately (before the first build even finishes) — that is the one to
+  open, not the backend's.
+- **The Static Site already exists, but you opened the wrong URL.** Open
+  the *frontend* service's URL instead — check the Render Dashboard's
+  service list; the frontend entry (Static Site type) has its own distinct
+  `.onrender.com` address, separate from `gramsentinel.onrender.com`.
+
+**Whichever situation applies, the fix is never to change the backend.**
+`/api/health/` returning JSON and `/` returning the status page are both
+already correct and were verified in the previous hardening pass — nothing
+about them is broken, and nothing about them should change.
+
+---
+
 ## 4–10. Service definitions
 
 ### Backend — Render Web Service
@@ -334,16 +369,19 @@ explicitly if you attach a custom domain.
 JS bundle by Vite when the Static Site builds — it is not read at request
 time. If you change it, you must trigger a new frontend build (a redeploy),
 not just update the env var. This was verified locally: building with
-`VITE_API_BASE_URL=https://gramsentinel-backend.onrender.com/api npm run
-build` produces a bundle containing that literal string.
+`VITE_API_BASE_URL=https://gramsentinel.onrender.com/api npm run build`
+produces a bundle containing that literal string — this is now the
+project's confirmed real backend URL, not a guess (see section 3c).
 
-**Ordering note:** the two service URLs (`https://gramsentinel-backend
-.onrender.com`, `https://gramsentinel-frontend.onrender.com`) are
-predictable from the service *name* as soon as you create each service —
-you don't need to wait for a build to finish to know a service's URL. The
-practical order is: create both services (reserving their names/URLs) →
-set `CORS_ALLOWED_ORIGINS` on the backend and `VITE_API_BASE_URL` on the
-frontend using each other's known URLs → deploy both.
+**Ordering note:** a Render service's URL is predictable from its *name* as
+soon as you create it — you don't need to wait for a build to finish to
+know it. The backend's URL is already known and fixed:
+`https://gramsentinel.onrender.com`. So the practical order for the
+frontend, which doesn't exist yet, is: create the Static Site (reserving
+its name/URL) → set `VITE_API_BASE_URL` on it to the backend URL above
+(already knowable, no waiting) → note the frontend's own new URL once
+assigned → go back and set `CORS_ALLOWED_ORIGINS` on the backend to that
+frontend URL → redeploy the backend.
 
 ## 13. Static files
 
@@ -628,21 +666,30 @@ Action: Rewrite
    string automatically — do not type it by hand). For
    `DJANGO_SECRET_KEY`, use "Generate Value".
 9. Health Check Path: `/api/health/`.
-10. Create the service. Note its URL, e.g.
-    `https://gramsentinel-backend.onrender.com` (visible immediately,
-    before the build even finishes).
+10. Create the service. Note its URL.
+
+    > **Steps 1–10 are already done for this project.** The backend Web
+    > Service exists and its URL is confirmed and fixed:
+    > **`https://gramsentinel.onrender.com`**. Skip straight to step 11 —
+    > only the frontend Static Site remains to be created. Do not repeat
+    > steps 1–10 or create a second backend service.
+
 11. **New → Static Site**, connect the same repository.
 12. Root Directory: `frontend`. Build Command: `npm install && npm run
     build`. Publish Directory: `dist`.
-13. Add `VITE_API_BASE_URL` = the backend URL from step 10 + `/api`, and
-    `NODE_VERSION` = `20`.
+13. Add `VITE_API_BASE_URL` = `https://gramsentinel.onrender.com/api`
+    (the confirmed backend URL from above + `/api` — already known, no
+    need to wait for step 10), and `NODE_VERSION` = `20`.
 14. Under **Redirects/Rewrites**, add: Source `/*` → Destination
     `/index.html` → Action Rewrite.
-15. Create the site. Note its URL, e.g.
-    `https://gramsentinel-frontend.onrender.com`.
+15. Create the site. Note its URL — this is the one to open in the
+    browser to see the React app. It is not predictable in advance the
+    way the backend's was, because it depends on what name you give the
+    service; Render shows it as soon as the service is created.
 16. Go back to the **backend** service → Environment → set
-    `CORS_ALLOWED_ORIGINS` to the frontend URL from step 15 → save
-    (triggers an automatic redeploy).
+    `CORS_ALLOWED_ORIGINS` to the frontend URL from step 15 exactly
+    (scheme + host, no trailing slash) → save (triggers an automatic
+    redeploy).
 17. Watch the backend's build logs; confirm `collectstatic` and
     `migrate` both complete without error.
 18. Watch the frontend's build logs; confirm `vite build` completes and
