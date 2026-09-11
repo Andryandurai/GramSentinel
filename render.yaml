@@ -75,7 +75,23 @@ services:
     # It is best-effort/optional by design — REST polling covers the same
     # feature — but Daphne is already a dependency, so serving over ASGI
     # costs nothing and keeps that enhancement working in production too.
-    startCommand: daphne -b 0.0.0.0 -p $PORT config.asgi:application
+    #
+    # `[ -f manage.py ] || cd backend` guards against a real, observed
+    # failure: this exact `config.asgi:application` command (correct — see
+    # the PYTHON VERSION / START COMMAND notes above for the package name)
+    # failed with `ModuleNotFoundError: No module named 'config'` because
+    # the running process's working directory was the repository root, not
+    # `backend`, even though `rootDir: backend` is declared right above and
+    # the BUILD command's own `../requirements.txt` reference proves the
+    # BUILD phase's working directory *was* `backend`. Reproduced locally:
+    # this identical command fails with that identical error when run from
+    # the repo root, and succeeds when run from `backend`. Rather than trust
+    # that `rootDir` is applied identically to the start phase as it is to
+    # the build phase — evidently not guaranteed — this guard makes the
+    # command correct either way: skip the `cd` if already where manage.py
+    # lives, otherwise step into `backend` first.
+    startCommand: >-
+      sh -c '[ -f manage.py ] || cd backend; daphne -b 0.0.0.0 -p $PORT config.asgi:application'
     healthCheckPath: /api/health/
     envVars:
       - key: DJANGO_SECRET_KEY

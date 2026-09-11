@@ -136,7 +136,7 @@ run with `backend` as the working directory (i.e. Root Directory =
 `backend`), is:
 
 ```
-daphne -b 0.0.0.0 -p $PORT config.asgi:application
+sh -c '[ -f manage.py ] || cd backend; daphne -b 0.0.0.0 -p $PORT config.asgi:application'
 ```
 
 This exact command is already what `render.yaml` declares. **If your live
@@ -208,7 +208,7 @@ the Dashboard.
 | Runtime | Python |
 | Root Directory | `backend` |
 | Build Command | `python --version && pip install --upgrade pip && pip install -r ../requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate` |
-| Start Command | `daphne -b 0.0.0.0 -p $PORT config.asgi:application` |
+| Start Command | `sh -c '[ -f manage.py ] || cd backend; daphne -b 0.0.0.0 -p $PORT config.asgi:application'` |
 | Health Check Path | `/api/health/` |
 
 `requirements.txt` is one directory above `backend/` (repo root), hence
@@ -563,7 +563,7 @@ BUILD COMMAND:
 python --version && pip install --upgrade pip && pip install -r ../requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
 
 START COMMAND:
-daphne -b 0.0.0.0 -p $PORT config.asgi:application
+sh -c '[ -f manage.py ] || cd backend; daphne -b 0.0.0.0 -p $PORT config.asgi:application'
 
 HEALTH CHECK PATH:
 /api/health/
@@ -621,7 +621,7 @@ Action: Rewrite
 6. Build Command:
    `python --version && pip install --upgrade pip && pip install -r ../requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate`
 7. Start Command:
-   `daphne -b 0.0.0.0 -p $PORT config.asgi:application`
+   `sh -c '[ -f manage.py ] || cd backend; daphne -b 0.0.0.0 -p $PORT config.asgi:application'`
 8. Add the backend environment variables listed above. For
    `DATABASE_URL`, use the "Add from Database" picker and select the
    Postgres instance from step 2 (this fills in the correct connection
@@ -674,7 +674,8 @@ Action: Rewrite
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | Build fails during `pip install`, deep inside a `pandas`/Cython/C++ error such as `standard attributes in middle of decl-specifiers`, `metadata-generation-failed` | Render used a Python version newer than what `pandas==2.2.2` has a prebuilt wheel for (observed: Render defaulted to 3.14.3) — pip fell back to compiling pandas from source and that failed | Check the top of the build log: the `python --version` line must read `Python 3.11.9`. If it doesn't, confirm (a) `.python-version` exists at the **repository root** (not `backend/.python-version`) and (b) `PYTHON_VERSION=3.11.9` is set as an explicit env var on the backend service — both must be present; do not upgrade pandas/numpy/scikit-learn to "fix" this |
-| Build succeeds, then the service crash-loops at startup with `ModuleNotFoundError: No module named 'app'` | The service is running Render's generic placeholder `gunicorn app:app`, not this project's own start command. There is no `app.py` in this repository — see section 3b | Open the service's **Settings → Start Command** in the Render Dashboard directly and set it to `daphne -b 0.0.0.0 -p $PORT config.asgi:application`, then save. This almost always means the service was created manually rather than via Blueprint, so `render.yaml` was never being read for it — fixing `render.yaml` alone does not fix an already-created manual service |
+| Build succeeds, then the service crash-loops at startup with `ModuleNotFoundError: No module named 'app'` | The service is running Render's generic placeholder `gunicorn app:app`, not this project's own start command. There is no `app.py` in this repository — see section 3b | Open the service's **Settings → Start Command** in the Render Dashboard directly and set it to `sh -c '[ -f manage.py ] || cd backend; daphne -b 0.0.0.0 -p $PORT config.asgi:application'`, then save. This almost always means the service was created manually rather than via Blueprint, so `render.yaml` was never being read for it — fixing `render.yaml` alone does not fix an already-created manual service |
+| Build succeeds, then the service crash-loops at startup with `ModuleNotFoundError: No module named 'config'` | The correct command (`... config.asgi:application` — `config` is the real, confirmed Django package at `backend/config/`) is running with the **repository root** as its working directory instead of `backend`, so `config` isn't importable from there. This has been directly reproduced locally: the identical command fails with this identical error run from the repo root, and succeeds run from `backend`. The build succeeding doesn't rule this out — the build command's own `../requirements.txt` reference only proves the *build* phase's working directory was `backend`, not that the *start* phase's is too | The start command now guards against this itself (`sh -c '[ -f manage.py ] \|\| cd backend; daphne ...'` — steps into `backend` first if not already there), so redeploying with the current `render.yaml`/documented command should resolve it regardless of what Root Directory is actually applied at start time. If you're not on the Blueprint, paste that exact guarded command into **Settings → Start Command**. Also directly check **Settings → Root Directory** is `backend` while you're there — it should be, but section 3b covers why that field can't always be trusted to match `render.yaml` |
 | Build fails: `ModuleNotFoundError` (during the **build**, not at startup) | A dependency is missing from `requirements.txt`, or the build command's `pip install` path is wrong | Confirm Root Directory is `backend` and the build command reads `../requirements.txt` (one level up) |
 | `DisallowedHost` error on every request | `RENDER_EXTERNAL_HOSTNAME` wasn't picked up (unlikely — Render sets it automatically) or you're using a custom domain | Add the exact hostname to `ALLOWED_HOSTS` explicitly as an env var |
 | Browser console: CORS error, request blocked | `CORS_ALLOWED_ORIGINS` on the backend doesn't exactly match the frontend's URL (scheme + host, no trailing slash) | Set it to the exact `https://...onrender.com` origin, redeploy the backend |
