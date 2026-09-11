@@ -1,4 +1,4 @@
-# GramSentinel backend — Django + DRF, served by Gunicorn.
+# GramSentinel backend — Django + DRF + Channels, served by Daphne (ASGI).
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -21,5 +21,11 @@ RUN python manage.py collectstatic --noinput || true
 
 EXPOSE 8000
 
-# Migrate, seed the deterministic demo scenario, then serve.
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py seed_demo && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 60"]
+# Migrate, seed the deterministic demo scenario, then serve over ASGI.
+# Daphne (ASGI), not gunicorn (WSGI): this project's officer-alert WebSocket
+# push (backend/alerts/consumers.py, routed in backend/config/asgi.py) only
+# works over ASGI. gunicorn==22.0.0 remains a dependency for anyone who
+# specifically wants a plain-WSGI deployment path, but it is not what this
+# image's own CMD uses, precisely so this path doesn't silently drop
+# WebSocket support the way it previously did.
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py seed_demo && daphne -b 0.0.0.0 -p 8000 config.asgi:application"]

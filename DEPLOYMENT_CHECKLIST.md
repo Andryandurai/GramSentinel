@@ -61,7 +61,12 @@ quick pre-flight/post-flight list.
 - [ ] PostgreSQL database created, status **Available**
 - [ ] Backend Web Service created (Root Directory `backend`)
 - [ ] Backend build command set exactly as documented
-- [ ] Backend start command set exactly as documented
+- [ ] Backend start command set exactly as documented — **confirmed by
+      reading the actual value in Settings, not assumed from `render.yaml`**
+      (a manually-created service ignores `render.yaml` entirely; Render's
+      own default placeholder for a Python service is `gunicorn app:app`,
+      which will crash this project with `ModuleNotFoundError: No module
+      named 'app'` — see `RENDER_DEPLOYMENT.md` section 3b)
 - [ ] Backend env vars set (`DJANGO_SECRET_KEY` generated, `DEBUG=False`,
       `DATABASE_URL` from the "Add from Database" picker, `PYTHON_VERSION`,
       `CORS_ALLOWED_ORIGINS`)

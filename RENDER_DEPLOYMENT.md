@@ -117,6 +117,88 @@ these packages.
 
 ---
 
+## 3b. Start command — required reading if you ever see `gunicorn app:app`
+
+**If the backend deploy fails at *startup* (build succeeds, then the
+service crash-loops) with `ModuleNotFoundError: No module named 'app'`,
+the service is running `gunicorn app:app`.** This is Render's own generic
+placeholder start command for a Python web service — it is **not**
+anything in this repository. There is no `app.py` in this project by
+design (this is Django, not Flask/FastAPI), and the exact string
+`gunicorn app:app` does not appear anywhere in this codebase.
+
+**The actual Django project package is `config`** (`backend/config/`,
+confirmed from `backend/config/settings.py`, `asgi.py`, `wsgi.py`, and
+`DJANGO_SETTINGS_MODULE` in `backend/manage.py`). Its ASGI entrypoint
+(`backend/config/asgi.py`) exposes a module-level `application` object
+wrapping Django Channels' `ProtocolTypeRouter` — the correct start command,
+run with `backend` as the working directory (i.e. Root Directory =
+`backend`), is:
+
+```
+daphne -b 0.0.0.0 -p $PORT config.asgi:application
+```
+
+This exact command is already what `render.yaml` declares. **If your live
+service is still running `gunicorn app:app` anyway, `render.yaml` is not
+taking effect for it — almost always because the service was created
+through Render's Dashboard "New → Web Service" flow rather than "New →
+Blueprint" pointed at this file.** Render only reads `render.yaml` for
+services provisioned via a Blueprint; a manually-created service has its
+own Start Command field in its **Settings** tab, which is authoritative
+for that service regardless of what this file says, and Render's own
+default suggestion for a from-scratch Python web service appears to be
+`gunicorn app:app` (a generic placeholder, presumably assuming a
+Flask-style project) if never overridden.
+
+**Fix, if this is your situation:** open the backend service in the
+Render Dashboard → **Settings** → **Start Command** → replace whatever is
+there with the exact command above → **Save Changes** (this triggers a
+redeploy). Do the same check for **Build Command** while you're there —
+compare it against section 4–10 below — since the same manually-created
+service would equally not be picking up `render.yaml`'s build command
+either.
+
+A second, independent contributing factor was found and fixed in this
+same pass: the backend's service block in `render.yaml` had used the
+field name `env: python`, while the frontend block used `runtime: static`
+— an inconsistency across the two blocks in the same file. Both now use
+`runtime:`. If a mismatched/deprecated field name is silently rejected by
+Render's current Blueprint parser for one block, that block's other
+fields (build/start command, `PYTHON_VERSION`, etc.) going unapplied while
+the service itself still gets created would look exactly like what was
+observed — so this is a plausible mechanism behind *both* the Python
+version incident and this one, not just a coincidence of two unrelated
+bugs.
+
+**This has now recurred after `render.yaml` was already fixed and
+re-verified correct once.** That repetition is itself the important
+signal: a second failure, identical to the first, with an unchanged and
+confirmed-correct `render.yaml`, means this is no longer explainable by
+anything in this repository — there is nothing left here to fix. If you
+are still seeing `gunicorn app:app`, do one of the following two things
+directly in the Render Dashboard (not in this repository):
+
+- **Option A — edit the field directly.** Backend service → **Settings**
+  → **Start Command**. Read what is actually typed there right now (don't
+  assume). Replace it with the exact command above, character for
+  character, then **Save Changes**. Do the same for **Build Command** —
+  compare it against section 4–10 below.
+- **Option B — recreate the service from the Blueprint (more reliable if
+  Option A doesn't stick, or if you're not sure the service is even
+  connected to a Blueprint).** Delete the existing manually-configured
+  backend Web Service entirely. From the Render Dashboard, choose
+  **New → Blueprint**, point it at this repository, and let Render create
+  the service directly from `render.yaml`. This guarantees the file you
+  are editing is the one actually controlling the service, removing the
+  Dashboard-field-vs-file ambiguity entirely.
+
+No commit to this repository can perform either of those two actions —
+they require someone with access to the Render account to click through
+the Dashboard.
+
+---
+
 ## 4–10. Service definitions
 
 ### Backend — Render Web Service
@@ -142,11 +224,32 @@ dashboard is fully functional on REST polling alone if the socket never
 connects — but Daphne is already a dependency and needs no extra
 infrastructure (the channel layer is `InMemoryChannelLayer`, which needs no
 Redis and is correct for Render's default single-instance web service), so
-there is no reason to give up that feature for a Render deployment. The
-existing `docker-compose.yml` / `docker/Dockerfile.backend` path (which
-does use `gunicorn` + WSGI) was left untouched — this Daphne choice is
-specific to the Render start command documented here, not a change to that
-file.
+there is no reason to give up that feature for a Render deployment.
+
+`docker/Dockerfile.backend` (the separate `docker-compose.yml` path, not
+used by the native-Python Render deployment above) previously served over
+`gunicorn config.wsgi:application` — WSGI, meaning that specific path
+would have silently dropped WebSocket support even though this document
+said Channels was preserved. It now runs `daphne ... config.asgi
+:application` too, for the same reason as the Render start command above.
+This makes the Docker image a genuinely usable fallback deployment path —
+see the box below — if the native-Python Dashboard start-command issue
+described in section 3b turns out not to be resolvable by editing that one
+field.
+
+> **Fallback option: deploy the backend as a Docker-runtime Render service
+> instead of a native-Python one.** In the Render Dashboard, when creating
+> the Web Service, choose **Docker** as the runtime and point it at
+> `docker/Dockerfile.backend` (Dockerfile Path) with the repository root as
+> the build context. Render then runs the image's own `CMD` directly —
+> there is no separate Start Command field to misconfigure, and no
+> `render.yaml` schema to be silently ignored. This trades away this
+> document's `collectstatic`/`migrate`-in-build-step approach (the Docker
+> image instead runs `migrate` and `seed_demo` at container start, per its
+> own `CMD`) but sidesteps the exact class of failure sections 3a/3b
+> describe. Not the primary recommended path — only offered because that
+> primary path has now failed for Dashboard-configuration reasons outside
+> this repository's control, twice.
 
 ### Frontend — Render Static Site
 
@@ -571,7 +674,8 @@ Action: Rewrite
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | Build fails during `pip install`, deep inside a `pandas`/Cython/C++ error such as `standard attributes in middle of decl-specifiers`, `metadata-generation-failed` | Render used a Python version newer than what `pandas==2.2.2` has a prebuilt wheel for (observed: Render defaulted to 3.14.3) — pip fell back to compiling pandas from source and that failed | Check the top of the build log: the `python --version` line must read `Python 3.11.9`. If it doesn't, confirm (a) `.python-version` exists at the **repository root** (not `backend/.python-version`) and (b) `PYTHON_VERSION=3.11.9` is set as an explicit env var on the backend service — both must be present; do not upgrade pandas/numpy/scikit-learn to "fix" this |
-| Build fails: `ModuleNotFoundError` | A dependency is missing from `requirements.txt`, or the build command's `pip install` path is wrong | Confirm Root Directory is `backend` and the build command reads `../requirements.txt` (one level up) |
+| Build succeeds, then the service crash-loops at startup with `ModuleNotFoundError: No module named 'app'` | The service is running Render's generic placeholder `gunicorn app:app`, not this project's own start command. There is no `app.py` in this repository — see section 3b | Open the service's **Settings → Start Command** in the Render Dashboard directly and set it to `daphne -b 0.0.0.0 -p $PORT config.asgi:application`, then save. This almost always means the service was created manually rather than via Blueprint, so `render.yaml` was never being read for it — fixing `render.yaml` alone does not fix an already-created manual service |
+| Build fails: `ModuleNotFoundError` (during the **build**, not at startup) | A dependency is missing from `requirements.txt`, or the build command's `pip install` path is wrong | Confirm Root Directory is `backend` and the build command reads `../requirements.txt` (one level up) |
 | `DisallowedHost` error on every request | `RENDER_EXTERNAL_HOSTNAME` wasn't picked up (unlikely — Render sets it automatically) or you're using a custom domain | Add the exact hostname to `ALLOWED_HOSTS` explicitly as an env var |
 | Browser console: CORS error, request blocked | `CORS_ALLOWED_ORIGINS` on the backend doesn't exactly match the frontend's URL (scheme + host, no trailing slash) | Set it to the exact `https://...onrender.com` origin, redeploy the backend |
 | Django admin login: "CSRF verification failed" | `CSRF_TRUSTED_ORIGINS` doesn't include the backend's own origin, or `SECURE_PROXY_SSL_HEADER` isn't honouring Render's proxy | Confirm `RENDER_EXTERNAL_HOSTNAME` is set (automatic); for a custom domain, set `CSRF_TRUSTED_ORIGINS` explicitly |

@@ -25,6 +25,27 @@
 # the exact same version. Without one of these, Render currently defaults to
 # a much newer Python for which pandas==2.2.2 has no prebuilt wheel, so pip
 # falls back to a source build that fails inside Cython/C++ compilation.
+#
+# START COMMAND — must be Daphne (ASGI), never gunicorn/`app:app`:
+# The backend service previously specified `env: python` here while the
+# frontend block used `runtime: static` — an inconsistent field name across
+# the two service blocks in this same file. That inconsistency is now fixed
+# (`runtime: python` on both). Mixing the older/newer field name is one
+# concrete, evidenced way this file's startCommand/buildCommand for the
+# backend block could go unrecognised by Render's Blueprint parser, which
+# would explain a live service silently falling back to Render's own
+# generic Python-service default start command (`gunicorn app:app` — which
+# does not appear anywhere else in this repository; there is no `app.py`,
+# by design, in a Django project) instead of the `daphne ... config.asgi
+# :application` declared below.
+#
+# THE OTHER LIKELY CAUSE, which no repository-level fix can address: if the
+# live Render Web Service was created through the Dashboard's manual "New
+# -> Web Service" flow rather than "New -> Blueprint" pointed at this file,
+# Render never reads this file for that service at all — whatever is typed
+# into that service's own Settings -> Start Command field is authoritative,
+# full stop. See RENDER_DEPLOYMENT.md section 3b for the exact value to
+# paste there directly if that is the case.
 
 databases:
   - name: gramsentinel-db
@@ -36,7 +57,7 @@ services:
   # --- Backend: Django + DRF -------------------------------------------
   - type: web
     name: gramsentinel-backend
-    env: python
+    runtime: python
     rootDir: backend
     plan: free
     # `python --version` runs first purely so the build log states the
