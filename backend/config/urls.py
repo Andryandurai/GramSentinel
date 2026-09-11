@@ -3,6 +3,18 @@ from django.http import JsonResponse
 from django.urls import include, path
 
 
+def root(_request):
+    """Backend status landing page at "/".
+
+    This is not, and must not become, the React frontend — the frontend is a
+    separate Render Static Site with its own origin. This exists only so a
+    browser or health probe hitting the backend's bare domain gets a plain
+    JSON acknowledgement instead of a 404 (Django has no route for "/" unless
+    one is declared, since the frontend has always lived elsewhere).
+    """
+    return JsonResponse({"service": "GramSentinel", "status": "running"})
+
+
 def health(_request):
     return JsonResponse(
         {
@@ -21,6 +33,7 @@ def health(_request):
 
 
 urlpatterns = [
+    path("", root, name="root"),
     path("admin/", admin.site.urls),
     path("api/health/", health, name="health"),
     path("api/auth/", include("users.urls")),

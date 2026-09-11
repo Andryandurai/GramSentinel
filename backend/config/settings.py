@@ -33,14 +33,24 @@ SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY",
     "dev-only-insecure-key-change-me-in-any-real-deployment",
 )
-DEBUG = env_bool("DEBUG", True)
-ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0,testserver")
 
 # Render assigns every web service a hostname and exposes it to the running
 # process via this variable — trust it automatically so a Render deployment
 # does not need ALLOWED_HOSTS / CSRF_TRUSTED_ORIGINS set by hand for the
 # happy path. Custom domains still go through the explicit env vars below.
+# Read once, up here, because DEBUG's default (right below) also uses it.
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME", "")
+
+# DEBUG defaults to True for local development convenience, exactly as
+# before — but only when RENDER_EXTERNAL_HOSTNAME is absent. On Render that
+# variable is always present, so the *default* there is False even if the
+# DEBUG env var itself was never explicitly set on the service (this is not
+# hypothetical: it happened). An explicit DEBUG env var — set to either
+# value, on either platform — still always wins; this only changes what
+# happens when nobody set one.
+DEBUG = env_bool("DEBUG", default=not RENDER_EXTERNAL_HOSTNAME)
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0,testserver")
+
 if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
