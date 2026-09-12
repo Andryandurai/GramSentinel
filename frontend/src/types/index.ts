@@ -374,6 +374,45 @@ export interface EvidenceCard {
   produced_by_agent: string
 }
 
+export type RelationshipKind = 'AGREE' | 'DISAGREE' | 'NOT_COMPARABLE'
+
+export interface EvidenceRelationshipEdge {
+  source_a: string
+  source_a_kind: string
+  what_a_reported: string
+  source_b: string
+  source_b_kind: string
+  what_b_reported: string
+  relationship: RelationshipKind
+  relationship_label: string
+  statement: string
+  reason: string
+  investigate: string | null
+}
+
+export interface EvidenceRelationshipContext {
+  source_kind: string
+  source_kind_display: string
+  source_name: string
+  status: string
+  status_display: string
+  relationship: RelationshipKind
+  relationship_label: string
+  reason: string
+}
+
+export interface EvidenceRelationships {
+  anchor: { source_kind: string; source_kind_display: string } | null
+  edges: EvidenceRelationshipEdge[]
+  context: EvidenceRelationshipContext[]
+  summary: {
+    agree_count: number
+    disagree_count: number
+    not_comparable_count: number
+    has_disagreement: boolean
+  }
+}
+
 export interface AlertEvidenceResponse {
   alert: {
     id: number
@@ -399,6 +438,7 @@ export interface AlertEvidenceResponse {
     explanation: string
   }
   evidence: EvidenceCard[]
+  relationships: EvidenceRelationships
   cross_level: { verdict: string; statement: string }
   safety_check: {
     verdict: SafetyVerdict
@@ -738,4 +778,31 @@ export interface OfficerCommunityReport {
   acknowledged: boolean
   total_cases: number
   entries: CommunityReportEntry[]
+}
+
+// --- GramSentinel Intelligence Simulator (Phase 2 — read-only) -------------
+
+export type SimulationScenarioType =
+  | 'EMERGING_SIGNAL'
+  | 'STABLE_COMMUNITY'
+  | 'WEAK_EVIDENCE'
+  | 'MISSING_DATA'
+  | 'SOURCE_DISAGREEMENT'
+  | 'WHAT_IF'
+  | 'REPLAY'
+  | 'LIVE_EMERGENCE'
+
+/** GET /api/simulation/scenarios/ row shape. Selecting a scenario in Phase 2
+ *  only highlights a card and shows this description — it never starts a
+ *  session, calls an agent, or touches operational data. */
+export interface SimulationScenario {
+  id: number
+  name: string
+  scenario_type: SimulationScenarioType
+  scenario_type_display: string
+  description: string
+  village_code: string
+  village_name: string
+  is_active: boolean
+  version: number
 }

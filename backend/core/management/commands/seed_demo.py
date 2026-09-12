@@ -41,17 +41,40 @@ from data.synthetic import scenario as S
 from integrations.ingestion import ingest_batch
 from integrations.models import IngestionEvent
 from patients.models import Patient
+from simulation.models import (
+    SimulationEvent,
+    SimulationScenario,
+    SimulationSession,
+    SimulationSourceSignal,
+)
 
 User = get_user_model()
 
+#: CHW is deliberately NOT listed here. Every CHW/FEVER CommunitySignal must
+#: come from `_seed_historical_reports` / `_seed_chw_reports`, which derive it
+#: from the actual `CommunityReportEntry` rows a worker "submitted" — the same
+#: rows the Worker Portal itself reads. Seeding it a second time from this
+#: table's own "chw" field, independently of what a worker actually reported,
+#: is exactly the kind of drift Part 11 warns about: a village/week whose real
+#: report has no FEVER entry could otherwise be left with a phantom non-zero
+#: FEVER signal that only `_seed_community_signals` ever wrote, and the
+#: Worker's own Local Signals view would show a number nothing in the Worker
+#: Portal ever produced. One source of truth for CHW: the report itself.
 SOURCE_FIELD_BY_KIND = {
-    SourceKind.CHW: ("chw", SignalCategory.FEVER),
     SourceKind.PHC: ("phc", SignalCategory.FEVER),
     SourceKind.PHARMACY: ("pharmacy", SignalCategory.FEVER),
     SourceKind.SCHOOL: ("school", SignalCategory.FEVER),
     SourceKind.WEATHER: ("weather", SignalCategory.ENVIRONMENT),
     SourceKind.LAB: ("lab", SignalCategory.LAB_CONFIRMATION),
 }
+
+#: Demo accounts this command used to create but no longer does. `_reset()`
+#: deletes by username, matched against `S.DEMO_USERS` — a username dropped
+#: from that list (like the old Village C accounts) would otherwise never be
+#: matched again and would survive every future `--reset` as an orphaned
+#: login with `village=None`, which under the scoping rule reads as
+#: district-wide access. Keep this list append-only as accounts are retired.
+RETIRED_DEMO_USERNAMES = {"worker.c", "officer.c"}
 
 CHANNEL_BY_KIND = {
     SourceKind.CHW: DataSource.Channel.PORTAL,
@@ -90,6 +113,7 @@ class Command(BaseCommand):
         patients = self._seed_patients(villages)
         self._link_patient_accounts(patients)
 
+        self._clear_stale_alerts(villages, today)
         self._seed_community_signals(sources, today)
         self._seed_prior_aggregates(villages, today)
         self._seed_historical_reports(villages, today)
@@ -98,14 +122,67 @@ class Command(BaseCommand):
         self._seed_encounters(patients, today)
         self._seed_followups(patients, today)
         self._aggregate(villages, today)
+        self._seed_evidence_relationship_scenarios(villages, today)
         self._run_pipelines(villages, today)
+        self._seed_simulation_scenarios(villages)
 
         self._report(today)
+
+    # ------------------------------------------------------------------
+    def _clear_stale_alerts(self, villages, today: dt.date):
+        """Remove demo records from a previous day's seed run.
+
+        Every week-labelled record in this command is generated from
+        `weeks_ago` relative to `today`. Re-running on the SAME day is
+        already idempotent (every write below is `update_or_create` /
+        delete-then-recreate), but re-running on a DIFFERENT day maps the
+        same `weeks_ago` slots onto different calendar week labels — without
+        this, the previous day's rows are simply left behind as stale
+        duplicates instead of being replaced, which is exactly the
+        "duplicate records every run" failure mode this command must avoid.
+        Scoped to the demo villages only (whichever villages the seed just
+        wrote), and only to the demonstration window (`weeks_ago` 0-6) plus
+        one extra week of slack for the `Feedback`/`Investigation` backdating
+        in `_seed_historical_alerts`.
+        """
+
+        valid_labels = {
+            S.week_label_for(S.week_start_for(today, weeks_ago))
+            for weeks_ago in range(8)
+        }
+        village_objs = list(villages.values())
+
+        cleared = {}
+        for model, field in (
+            (Alert, "week_label"),
+            (CommunityReport, "week_label"),
+            (CommunitySignal, "week_label"),
+            (AgentRun, "week_label"),
+        ):
+            stale = model.objects.filter(village__in=village_objs).exclude(
+                **{f"{field}__in": valid_labels}
+            )
+            count = stale.count()
+            if count:
+                stale.delete()
+                cleared[model.__name__] = count
+
+        if cleared:
+            summary = ", ".join(f"{n} {k}" for k, n in cleared.items())
+            self.stdout.write(
+                f"  cleared stale demo data from a previous day's seed run: {summary}"
+            )
 
     # ------------------------------------------------------------------
     def _reset(self):
         self.stdout.write("Clearing previous demonstration data...")
         for model in (
+            # Simulation data first — physically separate app, but cleared
+            # here too so `--reset` really does reset everything this
+            # command creates. `SimulationScenario.delete()` cascades down
+            # through session -> event -> source signal / agent run / safety
+            # check / result / investigation (see simulation/models.py).
+            SimulationScenario,
             Feedback,
             Investigation,
             SafetyCheck,
@@ -123,7 +200,8 @@ class Command(BaseCommand):
         ):
             model.objects.all().delete()
         User.objects.filter(
-            username__in=[u["username"] for u in S.DEMO_USERS]
+            username__in={u["username"] for u in S.DEMO_USERS}
+            | RETIRED_DEMO_USERNAMES
         ).delete()
         Village.objects.all().delete()
 
@@ -559,14 +637,16 @@ class Command(BaseCommand):
 
                 made += 1
 
-        self.stdout.write(f"  historical alerts ... {made} across 3 villages")
+        self.stdout.write(
+            f"  historical alerts ... {made} across {len(villages)} villages"
+        )
 
     def _seed_chw_reports(self, villages, today: dt.date):
         """One community report per village, each with a different shape.
 
         Village A is the corroborated fever cluster; Village B is a described
-        skin/eye concern no other source corroborates; Village C is quiet with
-        an injury note. This gives each officer dashboard something distinct.
+        skin/eye concern no other source corroborates. This gives each
+        officer dashboard something distinct.
         """
 
         week_start = S.week_start_for(today, 0)
@@ -587,7 +667,6 @@ class Command(BaseCommand):
                 "Skin and eye complaints noticed during home visits this week. "
                 "Recording for visibility — cause unclear."
             ),
-            "MLR": "Routine week. Injuries relate to harvest activity.",
         }
 
         made = 0
@@ -743,7 +822,7 @@ class Command(BaseCommand):
         return 1
 
     def _seed_followups(self, patients, today: dt.date):
-        """Pending and completed follow-ups across the three villages.
+        """Pending and completed follow-ups across the demo villages.
 
         Dates are offsets from the day the seed runs, so the dashboard always
         shows the same mixture — something overdue, something due today, and
@@ -806,6 +885,322 @@ class Command(BaseCommand):
             f"  aggregated signals .. {total} (anonymised counts across the boundary)"
         )
 
+    def _seed_evidence_relationship_scenarios(self, villages, today: dt.date):
+        """Run the real six-stage pipeline for a few past weeks, not only the
+        current one.
+
+        `_seed_historical_alerts` above backfills plain alert metadata for the
+        rest of Alert History — fine for the list view, but it never calls
+        `run_community_pipeline`, so those alerts carry no `AlertEvidence` at
+        all. The new Evidence Relationships feature reads `AlertEvidence`
+        directly, so it needs at least a few *real* pipeline runs on past
+        weeks to have genuine agreement/disagreement material to show,
+        exactly like the current week already gets from `_run_pipelines`.
+
+        The two weeks below were chosen (see HISTORY in data/synthetic/
+        scenario.py) without touching week 0's own baseline or outcome for
+        any village. Verified directly against the running system's actual
+        evidence cards (not hand-calculated):
+          KVL weeks_ago=2 — CHW and PHC agree (both rise); PHARMACY and
+                             SCHOOL disagree with that pair. A mixed alert.
+          ARY weeks_ago=2 — PHC alone rises; CHW/PHARMACY/SCHOOL all
+                             disagree with it. A pure disagreement alert.
+        The flagship current-week Kovilur alert below adds a full multi-
+        source AGREEMENT case on its own (CHW, PHC, PHARMACY and SCHOOL all
+        rise together).
+        """
+
+        scenarios = [
+            {
+                "village": "KVL",
+                "weeks_ago": 2,
+                "outcome": "VALID_SIGNAL",
+                "notes": (
+                    "Field visit confirmed the rise was real and worth "
+                    "watching."
+                ),
+            },
+            {
+                "village": "ARY",
+                "weeks_ago": 2,
+                "status": Alert.Status.UNDER_INVESTIGATION,
+                "notes": (
+                    "PHC visit counts are rising while pharmacy demand and "
+                    "CHW reports have not moved. Confirming whether this "
+                    "reflects better facility access or a genuine increase."
+                ),
+            },
+        ]
+
+        officer_by_village = {
+            u.village.code: u
+            for u in User.objects.filter(role=User.Role.HEALTH_OFFICER)
+            if u.village
+        }
+
+        made = 0
+        for spec in scenarios:
+            village = villages[spec["village"]]
+            week_start = S.week_start_for(today, spec["weeks_ago"])
+            label = S.week_label_for(week_start)
+
+            outcome = run_community_pipeline(village, label, SignalCategory.FEVER)
+            if not outcome["alert_raised"]:
+                self.stderr.write(
+                    f"    evidence scenario {spec['village']} {label}: "
+                    f"no alert raised ({outcome['reason']})"
+                )
+                continue
+
+            alert = outcome["alert"]
+            created_at = timezone.make_aware(
+                dt.datetime.combine(
+                    week_start + dt.timedelta(days=5), dt.time(9, 30)
+                )
+            )
+            Alert.objects.filter(pk=alert.pk).update(created_at=created_at)
+
+            officer = officer_by_village.get(spec["village"])
+            outcome_value = spec.get("outcome")
+            status = (
+                Alert.Status.CLOSED if outcome_value else spec.get("status")
+            )
+            if status:
+                alert.status = status
+                alert.save(update_fields=["status"])
+
+            if outcome_value or status == Alert.Status.UNDER_INVESTIGATION:
+                Investigation.objects.update_or_create(
+                    alert=alert,
+                    defaults={
+                        "officer": officer,
+                        "status": (
+                            Investigation.Status.COMPLETED
+                            if outcome_value
+                            else Investigation.Status.UNDER_INVESTIGATION
+                        ),
+                        "notes": spec.get("notes", ""),
+                    },
+                )
+
+            if outcome_value:
+                feedback = Feedback.objects.create(
+                    alert=alert,
+                    officer=officer,
+                    outcome=outcome_value,
+                    notes=spec.get("notes", ""),
+                    resolution_latency_seconds=3 * 24 * 3600,
+                )
+                Feedback.objects.filter(pk=feedback.pk).update(
+                    created_at=created_at + dt.timedelta(days=3)
+                )
+
+            made += 1
+
+        self.stdout.write(
+            f"  evidence scenarios .. {made} real pipeline run(s) on past "
+            "weeks (agreement/disagreement demonstration)"
+        )
+
+    def _seed_simulation_scenarios(self, villages):
+        """GramSentinel Intelligence Simulator — Phase 2 demonstration data.
+
+        Village A (Kovilur) only, per the Phase 2 task brief: Health Officer
+        A is the current implementation target, and Village B/the
+        district-wide `officer` account get no simulation scenarios from
+        this seed at all (a Village B scenario exists only inside the
+        backend test suite's own fixtures, for the cross-village negative
+        test — never here).
+
+        Architectural boundary (Phase 2 task §23), upheld structurally by
+        this method never importing or touching `ingest_batch`,
+        `run_community_pipeline`, or any operational model: nothing here
+        writes a `CommunityReport`, `CommunitySignal`, `Alert`, or
+        `Investigation` row. Every row this method writes lives in the
+        `simulation` app's own tables.
+
+        Idempotent: every row is `update_or_create`d (or delete-then-
+        recreate for the per-week child rows) on its natural key, so
+        re-running `seed_demo` never duplicates simulation data.
+        """
+
+        village = villages["KVL"]
+
+        scenarios = [
+            {
+                "scenario_type": SimulationScenario.ScenarioType.EMERGING_SIGNAL,
+                "name": "Emerging Community Signal",
+                "description": (
+                    "A synthetic community signal gradually increases across "
+                    "four reporting weeks — fever-related reports and CHW/PHC "
+                    "counts climb together. Shows what a genuinely emerging "
+                    "pattern looks like, before any analysis is run on it."
+                ),
+                "weeks": [
+                    {
+                        "week_number": 1,
+                        "categories": {"FEVER": 2, "RESPIRATORY": 1, "HEADACHE": 2},
+                        "status_label": "NORMAL",
+                        "sources": {"CHW": 2, "PHC": 5},
+                    },
+                    {
+                        "week_number": 2,
+                        "categories": {"FEVER": 3, "RESPIRATORY": 1, "HEADACHE": 2},
+                        "status_label": "STABLE",
+                        "sources": {"CHW": 3, "PHC": 6},
+                    },
+                    {
+                        "week_number": 3,
+                        "categories": {"FEVER": 5, "RESPIRATORY": 2, "HEADACHE": 2},
+                        "status_label": "INCREASING",
+                        "sources": {"CHW": 5, "PHC": 9},
+                    },
+                    {
+                        "week_number": 4,
+                        "categories": {"FEVER": 8, "RESPIRATORY": 3, "HEADACHE": 2},
+                        "status_label": "SIGNAL_DETECTED",
+                        "sources": {"CHW": 8, "PHC": 14},
+                    },
+                ],
+            },
+            {
+                "scenario_type": SimulationScenario.ScenarioType.STABLE_COMMUNITY,
+                "name": "Stable Community",
+                "description": (
+                    "A synthetic community signal that stays within its "
+                    "ordinary range across four reporting weeks — no "
+                    "escalation. The everyday, quiet case a real village "
+                    "spends most weeks in."
+                ),
+                "weeks": [
+                    {
+                        "week_number": 1,
+                        "categories": {"FEVER": 2},
+                        "status_label": "NORMAL",
+                        "sources": {"CHW": 2, "PHC": 5},
+                    },
+                    {
+                        "week_number": 2,
+                        "categories": {"FEVER": 2},
+                        "status_label": "NORMAL",
+                        "sources": {"CHW": 2, "PHC": 5},
+                    },
+                    {
+                        "week_number": 3,
+                        "categories": {"FEVER": 3},
+                        "status_label": "STABLE",
+                        "sources": {"CHW": 3, "PHC": 5},
+                    },
+                    {
+                        "week_number": 4,
+                        "categories": {"FEVER": 2},
+                        "status_label": "NORMAL",
+                        "sources": {"CHW": 2, "PHC": 5},
+                    },
+                ],
+            },
+            {
+                "scenario_type": SimulationScenario.ScenarioType.MISSING_DATA,
+                "name": "Missing Data",
+                "description": (
+                    "A synthetic scenario where one source stops reporting "
+                    "partway through — demonstrating that an absent report is "
+                    "recorded as not reported, never silently treated as zero."
+                ),
+                "weeks": [
+                    {
+                        "week_number": 1,
+                        "categories": {"FEVER": 2},
+                        "status_label": "NORMAL",
+                        "sources": {"CHW": 2, "PHC": 1},
+                    },
+                    {
+                        "week_number": 2,
+                        "categories": {"FEVER": 3},
+                        "status_label": "STABLE",
+                        "sources": {"CHW": 3, "PHC": 2},
+                    },
+                    {
+                        "week_number": 3,
+                        "categories": {"FEVER": 4},
+                        "status_label": "STABLE",
+                        # PHC did not report this week — None, never 0.
+                        "sources": {"CHW": 4, "PHC": None},
+                    },
+                    {
+                        "week_number": 4,
+                        "categories": {"FEVER": 5},
+                        "status_label": "INSUFFICIENT_DATA",
+                        "sources": {"CHW": 5, "PHC": None},
+                    },
+                ],
+            },
+        ]
+
+        scenario_count = 0
+        event_count = 0
+        signal_count = 0
+
+        for spec in scenarios:
+            scenario, _ = SimulationScenario.objects.update_or_create(
+                village=village,
+                scenario_type=spec["scenario_type"],
+                version=1,
+                defaults={
+                    "name": spec["name"],
+                    "description": spec["description"],
+                    "is_active": True,
+                },
+            )
+            scenario_count += 1
+
+            # One unexecuted template session per scenario, holding its
+            # canonical synthetic timeline. `health_officer=None` marks it
+            # as seed-created rather than a real officer's run (see the
+            # model docstring) — Phase 3 creates the officer-owned kind.
+            session, _ = SimulationSession.objects.update_or_create(
+                scenario=scenario,
+                health_officer=None,
+                defaults={
+                    "village": village,
+                    "status": SimulationSession.Status.NOT_STARTED,
+                    "replay_position": 0,
+                },
+            )
+
+            for week in spec["weeks"]:
+                event, _ = SimulationEvent.objects.update_or_create(
+                    session=session,
+                    week_number=week["week_number"],
+                    defaults={
+                        "village": village,
+                        "source_signals": {
+                            "categories": week["categories"],
+                            "status_label": week["status_label"],
+                        },
+                        "is_synthetic": True,
+                    },
+                )
+                event_count += 1
+
+                event.per_source_signals.all().delete()
+                for source_type, value in week["sources"].items():
+                    SimulationSourceSignal.objects.create(
+                        event=event,
+                        village=village,
+                        source_type=source_type,
+                        value=value,
+                        reported=value is not None,
+                    )
+                    signal_count += 1
+
+        self.stdout.write(
+            f"  simulation scenarios  {scenario_count} for {village.name} "
+            f"(Emerging Signal, Stable Community, Missing Data), "
+            f"{event_count} weekly events, {signal_count} source signals — "
+            "no operational tables written"
+        )
+
     def _run_pipelines(self, villages, today: dt.date):
         label = S.week_label_for(S.week_start_for(today, 0))
         self.stdout.write("\n  Running the six-stage pipeline per village:")
@@ -847,8 +1242,6 @@ class Command(BaseCommand):
             ("Village A", "officer.a", "Health Officer", "Kovilur only"),
             ("Village B", "worker.b", "CHW / PHC Worker", "Ariyanur only"),
             ("Village B", "officer.b", "Health Officer", "Ariyanur only"),
-            ("Village C", "worker.c", "CHW / PHC Worker", "Melur only"),
-            ("Village C", "officer.c", "Health Officer", "Melur only"),
         ]
         for area, username, role, scope in rows:
             self.stdout.write(

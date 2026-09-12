@@ -21,14 +21,6 @@ const AREAS = [
       { username: 'officer.b', role: 'Health Officer' },
     ],
   },
-  {
-    area: 'Village C',
-    place: 'Melur',
-    accounts: [
-      { username: 'worker.c', role: 'CHW / PHC Worker' },
-      { username: 'officer.c', role: 'Health Officer' },
-    ],
-  },
 ]
 
 const OTHER_ACCOUNTS = [

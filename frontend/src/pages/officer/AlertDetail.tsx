@@ -79,7 +79,7 @@ export default function AlertDetail() {
   if (error) return <ErrorNote message={error} onRetry={reload} />
   if (!data) return null
 
-  const { alert, why_this_alert: why, cross_level: cross } = data
+  const { alert, why_this_alert: why, cross_level: cross, relationships } = data
   const closed = alert.status === 'CLOSED'
 
   return (
@@ -148,6 +148,38 @@ export default function AlertDetail() {
           </div>
           <p className="text-sm text-violet-900 mt-1">{cross.statement}</p>
         </div>
+
+        {relationships.anchor && (
+          <div
+            className={`mt-4 rounded-md border p-3 ${
+              relationships.summary.has_disagreement
+                ? 'border-amber-300 bg-amber-50'
+                : 'border-care-200 bg-care-50'
+            }`}
+          >
+            <div
+              className={`text-xs font-semibold ${
+                relationships.summary.has_disagreement
+                  ? 'text-amber-900'
+                  : 'text-care-700'
+              }`}
+            >
+              Evidence relationships — {relationships.summary.agree_count} agree
+              · {relationships.summary.disagree_count} disagree
+            </div>
+            <p
+              className={`text-sm mt-1 ${
+                relationships.summary.has_disagreement
+                  ? 'text-amber-900'
+                  : 'text-care-900'
+              }`}
+            >
+              {relationships.summary.has_disagreement
+                ? 'At least one source disagrees with the rest — see the evidence view for why.'
+                : 'The comparable sources for this alert agree with each other.'}
+            </p>
+          </div>
+        )}
 
         <Link
           to={`/officer/alerts/${id}/evidence`}

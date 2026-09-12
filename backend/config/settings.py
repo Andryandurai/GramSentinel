@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     "community",
     "alerts",
     "integrations",
+    "simulation",
 ]
 
 MIDDLEWARE = [

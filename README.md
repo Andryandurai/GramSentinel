@@ -56,13 +56,12 @@ docker compose up --build            # frontend on :8080, API on :8000
 Created by `seed_demo` and available from the login screen (expand
 **Demonstration accounts** to fill the form). Password for all: `demo1234`.
 
-Three areas, each with its own worker and officer:
+Two areas, each with its own worker and officer:
 
 | Area | Village | Worker | Health Officer |
 |------|---------|--------|----------------|
 | **Village A** | Kovilur | `worker.a` | `officer.a` |
 | **Village B** | Ariyanur | `worker.b` | `officer.b` |
-| **Village C** | Melur | `worker.c` | `officer.c` |
 
 Plus:
 
@@ -225,11 +224,13 @@ The anomaly arithmetic is genuine; only the inputs are fixed.
 |---------|---------|--------------|-----------------|
 | **Kovilur** | A | CHW +180%, PHC +63%, pharmacy +55%, school +8pp, 1 lab confirmation, heavy rainfall | **PASS · HIGH** · 5 corroborating sources |
 | **Ariyanur** | A | Pharmacy rises alone | **DOWNGRADE · LOW** — one source cannot carry an alert |
-| **Melur** | B | Quiet; school did not submit | **No alert** — and the school shows as *missing*, not zero |
 
-The last two rows matter as much as the first: they are the negative controls
-that show the corroboration rule and the missing-data rule actually doing
-something.
+The second row matters as much as the first: it is the negative control that
+shows the corroboration rule actually doing something (a single moving
+source cannot, on its own, carry a high-priority alert). Ariyanur's school
+also did not submit data for the earliest seeded week (2026-W31), which is
+where "missing data is shown as missing, never as zero" is visible in this
+two-village demo.
 
 ### Five-minute demo
 

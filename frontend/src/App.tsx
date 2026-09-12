@@ -18,6 +18,7 @@ import CommunityDataPage from '@/pages/officer/CommunityData'
 import OfficerCommunityReports from '@/pages/officer/CommunityReports'
 import OfficerDashboardPage from '@/pages/officer/Dashboard'
 import EvidenceView from '@/pages/officer/EvidenceView'
+import SimulationLabPage from '@/pages/officer/SimulationLab'
 import OfficerTeamPage from '@/pages/officer/Team'
 import PatientDashboard from '@/pages/patient/Dashboard'
 import CommunityReportPage from '@/pages/worker/CommunityReport'
@@ -128,6 +129,7 @@ export default function App() {
           element={<OfficerCommunityReports />}
         />
         <Route path="/officer/history" element={<AlertHistory />} />
+        <Route path="/officer/simulation" element={<SimulationLabPage />} />
         <Route path="/officer/team" element={<OfficerTeamPage />} />
         <Route path="/officer/profile" element={<MyProfilePage />} />
       </Route>

@@ -39,6 +39,7 @@ from core.trends import (
 from users.permissions import IsHealthOfficer
 from users.scoping import scope_queryset, scoped_village_id
 
+from .evidence_relationships import build_evidence_relationships
 from .models import AgentRun, Alert, Feedback, Investigation
 from .serializers import (
     AlertDetailSerializer,
@@ -220,7 +221,7 @@ class AlertEvidenceView(APIView):
         alert = generics.get_object_or_404(
             officer_alert_queryset(request.user), pk=pk
         )
-        evidence = alert.evidence.all()
+        evidence = list(alert.evidence.all())
         safety_check = alert.safety_checks.order_by("-created_at").first()
 
         runs = AgentRun.objects.filter(run_id=alert.orchestration_run_id).order_by(
@@ -264,6 +265,7 @@ class AlertEvidenceView(APIView):
                     ),
                 },
                 "evidence": AlertEvidenceSerializer(evidence, many=True).data,
+                "relationships": build_evidence_relationships(alert, evidence),
                 "cross_level": {
                     "verdict": alert.cross_level_verdict,
                     "statement": alert.cross_level_statement,

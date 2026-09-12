@@ -196,4 +196,5 @@ urlpatterns = [
     path("api/", include("assessments.urls")),
     path("api/", include("community.urls")),
     path("api/", include("alerts.urls")),
+    path("api/", include("simulation.urls")),
 ]

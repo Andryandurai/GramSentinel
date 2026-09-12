@@ -27,6 +27,20 @@ OVERVIEW = "/api/admin/overview/"
 
 @pytest.fixture
 def areas(db):
+    """Three isolated, test-local villages — deliberately more than the two
+    the demo seed now creates, to prove the admin's cross-village
+    aggregation still scales past two villages (see Part 21 of the Village C
+    demo-removal task: the architecture must keep supporting more villages
+    even though the demo data no longer does).
+
+    "MLR"/"Village C" here has no relationship to the old demo's Village C
+    account (`worker.c`/`officer.c`, now removed) — it is a fresh row in
+    this test's own transaction, named "Village C" directly (not through
+    `core.constants.DEMO_VILLAGE_LABELS`, which no longer has an "MLR"
+    entry) purely so this file's existing "Village C" assertions keep
+    reading naturally.
+    """
+
     return {
         code: Village.objects.create(
             code=code, name=name, cluster=cluster, district="Thiruvannamalai"
@@ -34,7 +48,7 @@ def areas(db):
         for code, name, cluster in (
             ("KVL", "Kovilur", "Village Cluster A"),
             ("ARY", "Ariyanur", "Village Cluster A"),
-            ("MLR", "Melur", "Village Cluster B"),
+            ("MLR", "Village C", "Village Cluster B"),
         )
     }
 

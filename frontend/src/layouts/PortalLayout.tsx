@@ -129,6 +129,7 @@ export const OFFICER_NAV: NavItem[] = [
   { to: '/officer/community-data', label: 'Community data' },
   { to: '/officer/community-reports', label: 'Community reports' },
   { to: '/officer/history', label: 'Alert history' },
+  { to: '/officer/simulation', label: 'Simulation Lab' },
   { to: '/officer/team', label: 'Health team' },
   { to: '/officer/profile', label: 'My profile' },
 ]

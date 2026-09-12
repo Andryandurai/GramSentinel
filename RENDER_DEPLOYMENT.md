@@ -444,11 +444,11 @@ the platform runs on deterministic logic alone with no key configured).
 
 `python manage.py seed_demo` (idempotent — re-running does not duplicate
 records, per its own docstring in
-`backend/core/management/commands/seed_demo.py`) creates the three-village
+`backend/core/management/commands/seed_demo.py`) creates the two-village
 demonstration scenario and its accounts (`worker.a`/`officer.a` for
-Village A, `worker.b`/`officer.b` for Village B, `worker.c`/`officer.c` for
-Village C, plus `patient`, `admin`, and the original `worker`/`officer`
-accounts — all password `demo1234`, all synthetic data only).
+Village A, `worker.b`/`officer.b` for Village B, plus `patient`, `admin`,
+and the original `worker`/`officer` accounts — all password `demo1234`, all
+synthetic data only).
 
 **This is intentionally not part of the build command.** Run it once, by
 hand, after the first successful deploy, via Render's Shell tab:

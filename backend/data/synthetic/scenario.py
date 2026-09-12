@@ -19,9 +19,12 @@ Shape of the scenario:
                                       Expected: DOWNGRADE, no high-priority
                                       alert. This is the negative control that
                                       shows the corroboration rule working.
-  Melur (Village Cluster B)        -> quiet, with one source not reporting.
-                                      Expected: no alert; the missing source is
-                                      shown as missing, never as zero.
+
+Two demonstration villages only (Village A / Kovilur, Village B / Ariyanur).
+A third village (Melur, "Village C") was part of an earlier iteration of this
+demo and has been deliberately removed — see git history for the record of
+what it looked like. Nothing here prevents the platform itself from serving
+more villages; this module just no longer seeds one.
 """
 
 from __future__ import annotations
@@ -30,7 +33,6 @@ import datetime as dt
 from typing import Any
 
 CLUSTER_A = "Village Cluster A"
-CLUSTER_B = "Village Cluster B"
 
 VILLAGES: list[dict[str, Any]] = [
     {
@@ -49,14 +51,6 @@ VILLAGES: list[dict[str, Any]] = [
         "district": "Thiruvannamalai",
         "population": 2600,
     },
-    {
-        "code": "MLR",
-        "name": "Melur",
-        "cluster": CLUSTER_B,
-        "block": "Thiruvannamalai South",
-        "district": "Thiruvannamalai",
-        "population": 3100,
-    },
 ]
 
 FACILITIES: list[dict[str, Any]] = [
@@ -67,9 +61,6 @@ FACILITIES: list[dict[str, Any]] = [
     {"code": "PHC-ARY", "name": "Ariyanur PHC", "kind": "PHC", "village": "ARY"},
     {"code": "PHR-ARY", "name": "Ariyanur Medical Store", "kind": "PHARMACY", "village": "ARY"},
     {"code": "SCH-ARY", "name": "Ariyanur Middle School", "kind": "SCHOOL", "village": "ARY"},
-    {"code": "PHC-MLR", "name": "Melur PHC", "kind": "PHC", "village": "MLR"},
-    {"code": "PHR-MLR", "name": "Melur Medical Store", "kind": "PHARMACY", "village": "MLR"},
-    {"code": "SCH-MLR", "name": "Melur Primary School", "kind": "SCHOOL", "village": "MLR"},
 ]
 
 #: (code, name, kind, channel, village) — `channel` records how the source
@@ -88,15 +79,12 @@ DATA_SOURCES: list[dict[str, Any]] = [
     {"code": "PHR-SIG-ARY", "name": "Ariyanur pharmacy category trends", "kind": "PHARMACY", "channel": "EXPORT", "village": "ARY", "facility": "PHR-ARY"},
     {"code": "SCH-SIG-ARY", "name": "Ariyanur school absenteeism", "kind": "SCHOOL", "channel": "PORTAL", "village": "ARY", "facility": "SCH-ARY"},
     {"code": "WTH-SIG-ARY", "name": "Rainfall feed — Ariyanur", "kind": "WEATHER", "channel": "PUBLIC_FEED", "village": "ARY"},
-    # Melur — quiet cluster, with a non-reporting source
-    {"code": "CHW-MLR", "name": "CHW reports — Melur", "kind": "CHW", "channel": "PORTAL", "village": "MLR"},
-    {"code": "PHC-SIG-MLR", "name": "Melur PHC aggregate trends", "kind": "PHC", "channel": "API", "village": "MLR", "facility": "PHC-MLR"},
-    {"code": "PHR-SIG-MLR", "name": "Melur pharmacy category trends", "kind": "PHARMACY", "channel": "EXPORT", "village": "MLR", "facility": "PHR-MLR"},
-    {"code": "SCH-SIG-MLR", "name": "Melur school absenteeism", "kind": "SCHOOL", "channel": "PORTAL", "village": "MLR", "facility": "SCH-MLR"},
 ]
 
 #: Historical weeks that establish each source's own baseline, then the
-#: demonstration week. `weeks_ago = 0` is the current week.
+#: demonstration week. `weeks_ago = 0` is the current week — with `today`
+#: pinned to the 2026-09-13 demonstration date, weeks_ago 0..6 map exactly
+#: onto 2026-W37 (Sep 7-13) back to 2026-W31 (Jul 27-Aug 2).
 #:
 #: Kovilur fever-related, week 0 vs the 5/19/200/6 baselines:
 #:   CHW        5  -> 14   +180%   (threshold  40%) -> anomaly
@@ -105,30 +93,52 @@ DATA_SOURCES: list[dict[str, Any]] = [
 #:   SCHOOL     6% -> 14%   +8pp   (threshold +5pp) -> anomaly
 #:   LAB        0  -> 1              (floor 1)      -> corroborating
 #:   WEATHER  110  -> 240  +118%                    -> supporting context only
-#: => 5 corroborating sources -> PASS, HIGH.
+#: => 5 corroborating sources -> PASS, HIGH. Weeks 4-1 and 0 are unchanged
+#: from the original scenario; weeks 6-5 only extend the baseline further
+#: back and do not affect week 0's rolling baseline (which only ever looks at
+#: the four weeks immediately before it).
+#:
+#: Kovilur week weeks_ago=2 (2026-W35) is also a deliberately planted
+#: evidence-relationship scenario, run through the real six-stage pipeline by
+#: `_seed_evidence_relationship_scenarios` in seed_demo.py. Verified against
+#: the running system (not hand-calculated, since CHW's own rolling baseline
+#: for FEVER is recomputed from HISTORICAL_REPORTS below, not from this
+#: table's "chw" field): CHW and PHC both rise against their own baseline
+#: (agreement), while PHARMACY and SCHOOL stay within their expected range
+#: (disagreement against that pair) — a genuinely mixed agree/disagree
+#: alert. The flagship week 0 alert above gives a full multi-source
+#: AGREEMENT demonstration (CHW, PHC, PHARMACY and SCHOOL all rise
+#: together); the ARY scenario below adds a pure single-source DISAGREEMENT
+#: case in the other village.
 HISTORY: dict[str, list[dict[str, Any]]] = {
     "KVL": [
+        {"weeks_ago": 6, "chw": 3, "phc": 16, "pharmacy": 175, "school": 5.0, "weather": 80, "lab": 0},
+        {"weeks_ago": 5, "chw": 4, "phc": 17, "pharmacy": 182, "school": 5.0, "weather": 85, "lab": 0},
         {"weeks_ago": 4, "chw": 4, "phc": 18, "pharmacy": 195, "school": 6.0, "weather": 95, "lab": 0},
         {"weeks_ago": 3, "chw": 5, "phc": 20, "pharmacy": 205, "school": 5.0, "weather": 105, "lab": 0},
-        {"weeks_ago": 2, "chw": 6, "phc": 19, "pharmacy": 198, "school": 7.0, "weather": 120, "lab": 0},
+        {"weeks_ago": 2, "chw": 9, "phc": 26, "pharmacy": 198, "school": 6.0, "weather": 120, "lab": 0},
         {"weeks_ago": 1, "chw": 5, "phc": 19, "pharmacy": 202, "school": 6.0, "weather": 130, "lab": 0},
         {"weeks_ago": 0, "chw": 14, "phc": 31, "pharmacy": 310, "school": 14.0, "weather": 240, "lab": 1},
     ],
-    # Ariyanur: only the pharmacy moves. One source cannot carry an alert.
+    # Ariyanur: only the pharmacy moves at week 0. One source cannot carry an
+    # alert. Week weeks_ago=2 (2026-W35) plants the opposite demonstration:
+    # PHC alone rises while CHW, PHARMACY and SCHOOL stay flat — a clean
+    # single-source-disagrees-with-everything scenario for Evidence
+    # Relationships. School did not submit at weeks_ago=6 — a `None` value
+    # here is recorded as `is_reported=False`, never as zero, and (being the
+    # very first historical week) cannot affect any later week's rolling
+    # baseline. This is what keeps the "missing data is shown as missing,
+    # never as zero" rule visibly demonstrated now that the old three-village
+    # scenario's single-purpose "quiet, non-reporting village" no longer
+    # exists.
     "ARY": [
+        {"weeks_ago": 6, "chw": 3, "phc": 11, "pharmacy": 130, "school": None, "weather": 85},
+        {"weeks_ago": 5, "chw": 3, "phc": 11, "pharmacy": 133, "school": 5.0, "weather": 90},
         {"weeks_ago": 4, "chw": 3, "phc": 12, "pharmacy": 140, "school": 5.0, "weather": 95},
         {"weeks_ago": 3, "chw": 4, "phc": 13, "pharmacy": 145, "school": 5.0, "weather": 105},
-        {"weeks_ago": 2, "chw": 3, "phc": 12, "pharmacy": 138, "school": 6.0, "weather": 120},
+        {"weeks_ago": 2, "chw": 3, "phc": 18, "pharmacy": 138, "school": 6.0, "weather": 120},
         {"weeks_ago": 1, "chw": 4, "phc": 13, "pharmacy": 142, "school": 5.0, "weather": 130},
         {"weeks_ago": 0, "chw": 4, "phc": 14, "pharmacy": 225, "school": 6.0, "weather": 150},
-    ],
-    # Melur: quiet, and the school did not submit this week.
-    "MLR": [
-        {"weeks_ago": 4, "chw": 3, "phc": 15, "pharmacy": 160, "school": 4.0},
-        {"weeks_ago": 3, "chw": 4, "phc": 16, "pharmacy": 158, "school": 5.0},
-        {"weeks_ago": 2, "chw": 3, "phc": 15, "pharmacy": 165, "school": 4.0},
-        {"weeks_ago": 1, "chw": 4, "phc": 16, "pharmacy": 162, "school": 5.0},
-        {"weeks_ago": 0, "chw": 4, "phc": 17, "pharmacy": 168, "school": None},
     ],
 }
 
@@ -144,16 +154,13 @@ PATIENTS: list[dict[str, Any]] = [
     {"code": "KVL-P-008", "name": "Demo Patient 008", "age_years": 23, "sex": "M", "village": "KVL"},
     {"code": "ARY-P-001", "name": "Demo Patient 101", "age_years": 38, "sex": "F", "village": "ARY"},
     {"code": "ARY-P-002", "name": "Demo Patient 102", "age_years": 45, "sex": "M", "village": "ARY"},
-    {"code": "MLR-P-001", "name": "Demo Patient 201", "age_years": 30, "sex": "F", "village": "MLR"},
     # Registered patients under follow-up who have no encounter recorded in
-    # this demonstration window. Added so Villages B and C have several
-    # patients to choose between in the follow-up list, and so the "no previous
+    # this demonstration window. Added so Village B has several patients to
+    # choose between in the follow-up list, and so the "no previous
     # assessment yet" case is visible rather than hypothetical. They contribute
     # no encounters, so every aggregate, baseline and alert is unchanged.
     {"code": "ARY-P-003", "name": "Demo Patient 103", "age_years": 52, "sex": "F", "village": "ARY"},
     {"code": "ARY-P-004", "name": "Demo Patient 104", "age_years": 19, "sex": "M", "village": "ARY"},
-    {"code": "MLR-P-002", "name": "Demo Patient 202", "age_years": 64, "sex": "M", "village": "MLR"},
-    {"code": "MLR-P-003", "name": "Demo Patient 203", "age_years": 26, "sex": "F", "village": "MLR"},
 ]
 
 #: Follow-ups, so the worker dashboard's Pending Follow-ups card has a real
@@ -185,17 +192,6 @@ SEED_FOLLOWUPS: list[dict[str, Any]] = [
      "notes": "Routine review scheduled after home visit."},
     {"patient": "ARY-P-001", "days": -6, "status": "COMPLETED",
      "notes": "Reviewed at home. Recovered; no referral needed."},
-    # --- Village C — Melur ---------------------------------------------
-    {"patient": "MLR-P-001", "days": -2, "status": "PENDING",
-     "notes": "Headache and tiredness reported. Review and record blood pressure."},
-    {"patient": "MLR-P-002", "days": 0, "status": "PENDING",
-     "notes": "Farm injury dressing change due today."},
-    {"patient": "MLR-P-003", "days": 3, "status": "PENDING",
-     "notes": "Antenatal follow-up. Confirm the PHC visit was attended."},
-    {"patient": "MLR-P-001", "days": 7, "status": "PENDING",
-     "notes": "Second review if symptoms continue."},
-    {"patient": "MLR-P-002", "days": -5, "status": "COMPLETED",
-     "notes": "Wound reviewed and clean. Advised to return if it worsens."},
 ]
 
 #: Encounters seeded for the current week so the aggregated individual signal
@@ -212,7 +208,6 @@ SEED_ENCOUNTERS: list[dict[str, Any]] = [
     {"patient": "KVL-P-007", "symptoms": ["fever", "body_pain"], "duration_days": 5, "temperature_c": 38.6, "days_ago": 3},
     {"patient": "KVL-P-008", "symptoms": ["diarrhoea", "vomiting"], "duration_days": 2, "days_ago": 1},
     {"patient": "ARY-P-001", "symptoms": ["cough", "sore_throat"], "duration_days": 3, "days_ago": 1},
-    {"patient": "MLR-P-001", "symptoms": ["headache"], "duration_days": 1, "days_ago": 2},
 ]
 
 #: Prior-week aggregated RuralCare baseline per village and category, so the
@@ -220,7 +215,6 @@ SEED_ENCOUNTERS: list[dict[str, Any]] = [
 PRIOR_WEEK_ENCOUNTER_COUNTS: dict[str, dict[str, int]] = {
     "KVL": {"FEVER": 2, "DIARRHOEAL": 1, "RESPIRATORY": 1},
     "ARY": {"FEVER": 1, "RESPIRATORY": 1},
-    "MLR": {"OTHER": 1},
 }
 
 #: Two earlier quiet weeks of encounters, so the worker dashboard's week filter
@@ -247,12 +241,9 @@ SEED_HISTORY_ENCOUNTERS: list[dict[str, Any]] = [
     {"patient": "ARY-P-002", "symptoms": ["cough", "sore_throat"], "duration_days": 3, "weeks_ago": 2, "day_offset": 4},
     {"patient": "ARY-P-002", "symptoms": ["fever", "body_pain"], "duration_days": 2, "temperature_c": 38.3, "weeks_ago": 1, "day_offset": 2},
     {"patient": "ARY-P-001", "symptoms": ["cough"], "duration_days": 2, "weeks_ago": 1, "day_offset": 4},
-    # --- Melur: one quiet non-specific encounter each week -----------------
-    {"patient": "MLR-P-001", "symptoms": ["headache"], "duration_days": 1, "weeks_ago": 2, "day_offset": 3},
-    {"patient": "MLR-P-001", "symptoms": ["fatigue"], "duration_days": 2, "weeks_ago": 1, "day_offset": 3},
 ]
 
-#: Village A / B / C map onto the three existing villages, so all previously
+#: Village A / B map onto the two existing villages, so all previously
 #: seeded data, alerts and history stay valid. The mapping itself lives in
 #: core.constants so the API and the seed cannot drift apart.
 from core.constants import DEMO_VILLAGE_LABELS as VILLAGE_LABELS  # noqa: E402,F401
@@ -319,33 +310,6 @@ DEMO_USERS: list[dict[str, Any]] = [
         "qualification": "MBBS, DPH",
         "experience_years": 9,
     },
-    # --- Village C — Melur ---------------------------------------------
-    {
-        "username": "worker.c",
-        "password": "demo1234",
-        "role": "CHW_PHC_WORKER",
-        "full_name": "P. Anitha (CHW, Melur)",
-        "village": "MLR",
-        "facility": "PHC-MLR",
-        "email": "anitha.chw@example.invalid",
-        "phone_number": "+91 99999 10003",
-        "staff_id": "CHW-MLR-008",
-        "qualification": "ASHA facilitator, ANM training",
-        "experience_years": 4,
-    },
-    {
-        "username": "officer.c",
-        "password": "demo1234",
-        "role": "HEALTH_OFFICER",
-        "full_name": "Dr. M. Rajan (Health Officer, Melur)",
-        "village": "MLR",
-        "district": "Thiruvannamalai",
-        "email": "rajan.pho@example.invalid",
-        "phone_number": "+91 99999 20003",
-        "staff_id": "HO-MLR-005",
-        "qualification": "MBBS, MPH",
-        "experience_years": 15,
-    },
     # --- Preserved original accounts ------------------------------------
     # `worker` and `officer` are kept exactly as they were so any existing
     # bookmark, script or demo note continues to work. `officer` has no
@@ -396,15 +360,13 @@ DEMO_USERS: list[dict[str, Any]] = [
     },
 ]
 
-#: Accounts surfaced on the login screen: three villages × (worker + officer),
+#: Accounts surfaced on the login screen: two villages × (worker + officer),
 #: plus the preserved patient and administrator logins.
 PRIMARY_DEMO_USERNAMES = (
     "worker.a",
     "officer.a",
     "worker.b",
     "officer.b",
-    "worker.c",
-    "officer.c",
     "patient",
     "admin",
 )
@@ -412,7 +374,7 @@ PRIMARY_DEMO_USERNAMES = (
 #: Additional community reports seeded per village so each officer dashboard
 #: has something distinct to review. Deliberately different in shape: Village A
 #: is the corroborated fever cluster, Village B is a described skin concern
-#: that no other source corroborates, Village C is quiet with an injury note.
+#: that no other source corroborates.
 VILLAGE_REPORT_ENTRIES: dict[str, list[dict[str, Any]]] = {
     "KVL": [
         {"category": "FEVER", "case_count": 14},
@@ -432,26 +394,23 @@ VILLAGE_REPORT_ENTRIES: dict[str, list[dict[str, Any]]] = {
         {"category": "WATER_BORNE", "case_count": 2,
          "description": "Two households drawing from the same open well."},
     ],
-    "MLR": [
-        {"category": "INJURY", "case_count": 3,
-         "description": "Farm-equipment injuries during harvest week."},
-        {"category": "ANIMAL_BITE", "case_count": 2,
-         "description": "Two stray-dog bites reported; both referred for evaluation."},
-        {"category": "MATERNAL", "case_count": 1,
-         "description": "One antenatal follow-up overdue."},
-        {"category": "OTHER", "case_count": 2,
-         "description": "Two households reporting persistent joint pain in older "
-                        "adults. Unclear cause; recording for visibility."},
-    ],
 }
 
 
-#: Six weeks of community reporting history per village.
+#: Seven weeks of community reporting history per village — plus
+#: VILLAGE_REPORT_ENTRIES below for the current week (weeks_ago=0) — covering
+#: the full 2026-W31 (Jul 27) to 2026-W37 (Sep 13) demonstration window with
+#: `today` pinned to 2026-09-13. Weeks 6 and 5 are the quiet baseline; weeks
+#: 4-0 are the visible story, unchanged from the original five-week scenario.
 #:
-#: Six rather than three: the officer's Community Data view compares a period
-#: against the one before it, so a 21-day window needs three further weeks
-#: behind it to have anything to compare against. Weeks 5 and 4 are the
-#: quiet baseline; weeks 2-0 are the visible 1-3 week story.
+#: NOTE for whoever next edits HISTORY above: its own "chw" field is not read
+#: by the seed command (`SOURCE_FIELD_BY_KIND` in seed_demo.py deliberately
+#: excludes CHW) and is kept here only as a human-readable record of what
+#: each village's CHW story looks like. Every real CHW/FEVER CommunitySignal
+#: comes from HISTORICAL_REPORTS/VILLAGE_REPORT_ENTRIES below, through
+#: `_seed_historical_reports` / `_seed_chw_reports` — i.e. from the same
+#: "reported cases" a worker actually submitted, so it can never drift from
+#: what the Worker Portal itself shows.
 #:
 #: Each village tells a different story on purpose — identical trends would
 #: make the per-village dashboards impossible to tell apart:
@@ -459,11 +418,11 @@ VILLAGE_REPORT_ENTRIES: dict[str, list[dict[str, Any]]] = {
 #:   Village A (Kovilur)  fever climbs steadily across the weeks
 #:   Village B (Ariyanur) respiratory holds steady with one temporary spike;
 #:                        a skin/eye concern emerges late
-#:   Village C (Melur)    gastrointestinal rises then settles back toward normal
 #:
 #: `weeks_ago = 0` is the current week.
 HISTORICAL_REPORTS: dict[str, list[dict[str, Any]]] = {
     "KVL": [
+        {"weeks_ago": 6, "entries": {"FEVER": 3, "RESPIRATORY": 4, "DIARRHOEAL": 2}},
         {"weeks_ago": 5, "entries": {"FEVER": 4, "RESPIRATORY": 5, "DIARRHOEAL": 3, "SKIN": 1}},
         {"weeks_ago": 4, "entries": {"FEVER": 5, "RESPIRATORY": 4, "DIARRHOEAL": 2, "INJURY": 1}},
         {"weeks_ago": 3, "entries": {"FEVER": 6, "RESPIRATORY": 5, "DIARRHOEAL": 3, "CHILD_HEALTH": 2}},
@@ -493,6 +452,7 @@ HISTORICAL_REPORTS: dict[str, list[dict[str, Any]]] = {
         },
     ],
     "ARY": [
+        {"weeks_ago": 6, "entries": {"RESPIRATORY": 6, "FEVER": 3, "DIARRHOEAL": 2}},
         {"weeks_ago": 5, "entries": {"RESPIRATORY": 7, "FEVER": 3, "DIARRHOEAL": 2}},
         {
             "weeks_ago": 4,
@@ -513,30 +473,6 @@ HISTORICAL_REPORTS: dict[str, list[dict[str, Any]]] = {
             },
         },
     ],
-    "MLR": [
-        {"weeks_ago": 5, "entries": {"DIARRHOEAL": 3, "FEVER": 2, "INJURY": 2}},
-        {
-            "weeks_ago": 4,
-            "entries": {"DIARRHOEAL": 8, "FEVER": 3, "WATER_BORNE": 3, "INJURY": 1},
-            "unusual": True,
-            "notes": "Several households reporting loose motions; shared well suspected.",
-            "descriptions": {
-                "WATER_BORNE": "Affected households all draw from the same open well."
-            },
-        },
-        {
-            "weeks_ago": 3,
-            "entries": {"DIARRHOEAL": 11, "FEVER": 4, "WATER_BORNE": 4, "DEHYDRATION": 3},
-            "unusual": True,
-            "notes": "Diarrhoeal reports still rising. Well cleaning requested.",
-        },
-        {
-            "weeks_ago": 2,
-            "entries": {"DIARRHOEAL": 6, "FEVER": 3, "DEHYDRATION": 1, "INJURY": 2},
-            "notes": "Fewer reports after the well was cleaned.",
-        },
-        {"weeks_ago": 1, "entries": {"DIARRHOEAL": 4, "FEVER": 2, "INJURY": 3}},
-    ],
 }
 
 #: Historical alerts, so Alert History is not an empty page.
@@ -545,6 +481,18 @@ HISTORICAL_REPORTS: dict[str, list[dict[str, Any]]] = {
 #: and closes the alert. `status` applies only when there is no outcome yet.
 #: Counts per village are kept small and uneven on purpose — a realistic
 #: demonstration environment, not a stress test.
+#:
+#: KVL's own weeks_ago=2 (2026-W35) is deliberately NOT listed here: that
+#: slot is generated for real by `_seed_evidence_relationship_scenarios` in
+#: seed_demo.py (running the actual six-stage pipeline, so it has genuine
+#: `AlertEvidence` for the Evidence Relationships feature), which then applies
+#: this same "field visit confirmed" outcome to the real alert instead of a
+#: backfilled stub.
+EVIDENCE_SCENARIO_OUTCOME_KVL_W2 = {
+    "outcome": "VALID_SIGNAL",
+    "notes": "Field visit confirmed the rise was real and worth watching.",
+}
+
 HISTORICAL_ALERTS: dict[str, list[dict[str, Any]]] = {
     "KVL": [
         {
@@ -555,15 +503,6 @@ HISTORICAL_ALERTS: dict[str, list[dict[str, Any]]] = {
             "confidence": 0.5,
             "outcome": "FALSE_ALERT",
             "notes": "Seasonal dust; no underlying pattern found on visit.",
-        },
-        {
-            "weeks_ago": 2,
-            "category": "FEVER",
-            "severity": "MODERATE",
-            "sources": 3,
-            "confidence": 0.65,
-            "outcome": "VALID_SIGNAL",
-            "notes": "Field visit confirmed the rise was real and worth watching.",
         },
         {
             "weeks_ago": 1,
@@ -595,37 +534,6 @@ HISTORICAL_ALERTS: dict[str, list[dict[str, Any]]] = {
             "safety_status": "MONITOR_ONLY",
             "status": "DETECTED",
             "notes": "Single-source signal. Monitoring only.",
-        },
-    ],
-    "MLR": [
-        {
-            "weeks_ago": 4,
-            "category": "DIARRHOEAL",
-            "severity": "MODERATE",
-            "sources": 2,
-            "confidence": 0.6,
-            "outcome": "VALID_SIGNAL",
-            "notes": "Shared water source identified as the likely common factor.",
-        },
-        {
-            "weeks_ago": 3,
-            "category": "WATER_BORNE",
-            "severity": "HIGH",
-            "sources": 3,
-            "confidence": 0.75,
-            "outcome": "VALID_SIGNAL",
-            "notes": "Well cleaning arranged with the panchayat.",
-        },
-        {
-            "weeks_ago": 2,
-            "category": "DIARRHOEAL",
-            "severity": "LOW",
-            "sources": 1,
-            "confidence": 0.25,
-            "safety_verdict": "DOWNGRADE",
-            "safety_status": "MONITOR_ONLY",
-            "outcome": "RESOLVED",
-            "notes": "Reports fell after the well was cleaned.",
         },
     ],
 }

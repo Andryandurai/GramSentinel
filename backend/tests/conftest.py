@@ -95,8 +95,14 @@ def village(db) -> Village:
 
 @pytest.fixture
 def other_village(db) -> Village:
+    """A second, isolated test village — unrelated to any seeded demo
+    account. Named "Village C" directly (not via `DEMO_VILLAGE_LABELS`,
+    which only maps the two current demo villages) purely so tests that
+    assert on its label read naturally; nothing here depends on the old
+    demo's since-removed Village C / worker.c / officer.c."""
+
     return Village.objects.create(
-        code="MLR", name="Melur", cluster="Village Cluster B", district="Thiruvannamalai"
+        code="MLR", name="Village C", cluster="Village Cluster B", district="Thiruvannamalai"
     )
 
 

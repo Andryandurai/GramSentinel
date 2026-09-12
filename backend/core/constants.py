@@ -175,7 +175,6 @@ PROHIBITED_OUTPUT_TERMS = (
 DEMO_VILLAGE_LABELS: dict[str, str] = {
     "KVL": "Village A",
     "ARY": "Village B",
-    "MLR": "Village C",
 }
 
 
