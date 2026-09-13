@@ -1,9 +1,14 @@
 import { type FormEvent, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
+import {
+  ConnectivityStatus,
+  PendingReports,
+} from '@/components/ConnectivityStatus'
 import { Card, Disclaimer, ErrorNote, Loading } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
-import { api } from '@/services/api'
+import { useOfflineSync } from '@/hooks/useOfflineSync'
+import { ApiError, api } from '@/services/api'
 import { useAuth } from '@/store/auth'
 import type { SymptomSummary } from '@/types'
 
@@ -34,6 +39,14 @@ interface ReportResponse {
   pipeline: PipelineOutcome[]
   described_observations: number
   officer_note: string
+  duplicate?: boolean
+  sync?: {
+    client_report_uid: string
+    created_at: string | null
+    synced_at: string
+    delayed_seconds?: number | null
+    duplicate_deliveries: number
+  } | null
 }
 
 interface EntryRow {
@@ -108,6 +121,8 @@ export default function CommunityReportPage() {
   const [result, setResult] = useState<ReportResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [queued, setQueued] = useState(false)
+  const sync = useOfflineSync()
 
   const options = categories.data?.categories ?? []
   const optionFor = (value: string) => options.find((o) => o.value === value)
@@ -153,26 +168,86 @@ export default function CommunityReportPage() {
 
     setBusy(true)
     setError(null)
-    try {
-      const entries = rows
-        .filter(
-          (r) =>
-            r.category && (r.case_count.trim() !== '' || r.description.trim()),
-        )
-        .map((r) => ({
-          category: r.category,
-          case_count: Number(r.case_count || 0),
-          description: r.description.trim(),
-        }))
+    setQueued(false)
 
+    const entries = rows
+      .filter(
+        (r) =>
+          r.category && (r.case_count.trim() !== '' || r.description.trim()),
+      )
+      .map((r) => ({
+        category: r.category,
+        case_count: Number(r.case_count || 0),
+        description: r.description.trim(),
+      }))
+
+    const payload = { village: user.village, ...meta, entries }
+
+    // Identity and creation time are fixed here, once, before any network
+    // attempt. The uid is what lets the backend recognise a redelivery as the
+    // same report; `client_created_at` is the worker's own record of when they
+    // observed this, and must survive however long the report waits.
+    const clientReportUid = crypto.randomUUID()
+    const clientCreatedAt = new Date().toISOString()
+
+    const queueIt = (capturedOffline: boolean) => {
+      sync.enqueue({
+        client_report_uid: clientReportUid,
+        client_created_at: clientCreatedAt,
+        captured_offline: capturedOffline,
+        payload,
+        village_name: user.village_name ?? '',
+        week_label: meta.week_label,
+        attempts: 0,
+        last_error: null,
+        last_attempt_at: null,
+      })
+      setQueued(true)
+    }
+
+    // Known offline: do not attempt a request that cannot succeed, and do not
+    // make the worker wait for it to time out.
+    if (!sync.online) {
+      try {
+        queueIt(true)
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'This device could not save the report.',
+        )
+      } finally {
+        setBusy(false)
+      }
+      return
+    }
+
+    try {
       const response = await api.post<ReportResponse>('/community-reports/', {
-        village: user.village,
-        ...meta,
-        entries,
+        ...payload,
+        client_report_uid: clientReportUid,
+        client_created_at: clientCreatedAt,
+        captured_offline: false,
       })
       setResult(response)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not submit.')
+      // Status 0 is the api layer's "the request never reached the server".
+      // The connection dropped between loading the page and submitting it —
+      // the worker's work is not lost for that.
+      const unreachable = err instanceof ApiError && err.status === 0
+      if (unreachable) {
+        try {
+          queueIt(true)
+        } catch (queueErr) {
+          setError(
+            queueErr instanceof Error
+              ? queueErr.message
+              : 'This device could not save the report.',
+          )
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'Could not submit.')
+      }
     } finally {
       setBusy(false)
     }
@@ -193,6 +268,8 @@ export default function CommunityReportPage() {
           Counts by category only — never household identities.
         </p>
       </div>
+
+      <ConnectivityStatus sync={sync} />
 
       {handoff?.summary && !handoff.summary.is_empty && (
         <div className="rounded-lg border border-care-200 bg-care-50 px-4 py-3">
@@ -218,6 +295,35 @@ export default function CommunityReportPage() {
           </p>
         </div>
       )}
+
+      {queued && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+          <div className="text-sm font-semibold text-amber-900">
+            Saved on this device — pending sync
+          </div>
+          <p className="mt-1 text-sm text-amber-900">
+            There was no connection, so this report was stored safely on your
+            device. It will be sent to GramSentinel automatically as soon as the
+            internet is available. You can close the app — it will not be lost.
+          </p>
+          <p className="mt-1 text-xs text-amber-800">
+            Nothing has been analysed yet and no alert has been raised. That
+            happens after the report reaches GramSentinel and passes through the
+            usual checks.
+          </p>
+          <button
+            className="btn-ghost mt-2 text-sm"
+            onClick={() => {
+              setQueued(false)
+              setRows([newRow('FEVER'), newRow('RESPIRATORY'), newRow('DIARRHOEAL')])
+            }}
+          >
+            Start another report
+          </button>
+        </div>
+      )}
+
+      <PendingReports sync={sync} />
 
       <div className={`grid gap-6 ${result ? 'lg:grid-cols-2' : ''}`}>
         <Card title="Reported health signals this week">
@@ -402,8 +508,18 @@ export default function CommunityReportPage() {
             {error && <ErrorNote message={error} />}
 
             <button type="submit" className="btn-care w-full" disabled={busy}>
-              {busy ? 'Submitting…' : 'Submit report'}
+              {busy
+                ? 'Submitting…'
+                : sync.online
+                  ? 'Submit report'
+                  : 'Save report on this device'}
             </button>
+            {!sync.online && (
+              <p className="-mt-3 text-xs text-ink-600">
+                You are offline. This report will be saved on your device and
+                sent automatically when the connection returns.
+              </p>
+            )}
             <Disclaimer />
           </form>
         </Card>
@@ -413,7 +529,9 @@ export default function CommunityReportPage() {
             <div className="space-y-4">
               <div className="rounded-md border border-care-200 bg-care-50 px-3 py-2">
                 <div className="text-sm font-medium text-care-700">
-                  Report submitted
+                  {result.duplicate
+                    ? 'Already received'
+                    : 'Report submitted'}
                 </div>
                 <p className="text-xs text-care-700 mt-1">
                   {result.officer_note}
@@ -421,6 +539,28 @@ export default function CommunityReportPage() {
                     ` ${result.described_observations} described observation(s) included.`}
                 </p>
               </div>
+
+              {/* Two distinct times, shown separately whenever the report
+                  waited on the device. Collapsing them would misrepresent when
+                  the worker actually observed the community. */}
+              {result.sync?.created_at &&
+                result.sync.delayed_seconds != null &&
+                result.sync.delayed_seconds > 60 && (
+                  <div className="rounded-md border border-ink-200 px-3 py-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-ink-500">Report created</span>
+                      <span className="font-mono">
+                        {new Date(result.sync.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex justify-between">
+                      <span className="text-ink-500">Report synced</span>
+                      <span className="font-mono">
+                        {new Date(result.sync.synced_at).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
               {result.pipeline.length > 0 && (
                 <div>

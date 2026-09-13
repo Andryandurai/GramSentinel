@@ -42,8 +42,17 @@ class CommunityReportSerializer(serializers.ModelSerializer):
             "entries",
             "total_reported_cases",
             "submitted_at",
+            "captured_offline",
+            "client_created_at",
         )
-        read_only_fields = ("id", "submitted_at", "village_name", "worker_name")
+        read_only_fields = (
+            "id",
+            "submitted_at",
+            "village_name",
+            "worker_name",
+            "captured_offline",
+            "client_created_at",
+        )
 
     def get_entries(self, obj):
         return CommunityReportEntrySerializer(obj.entries.all(), many=True).data
@@ -104,6 +113,20 @@ class CommunityReportCreateSerializer(serializers.ModelSerializer):
 
     entries = CommunityReportEntryInputSerializer(many=True, required=False)
 
+    # --- offline sync envelope ------------------------------------------
+    # All three are optional: a report submitted from an online device omits
+    # them entirely and the existing path is unchanged.
+    client_report_uid = serializers.UUIDField(
+        required=False,
+        allow_null=True,
+        help_text=(
+            "Identity the device gave this report when it was saved. The same "
+            "uid arriving twice is the same report, not a second one."
+        ),
+    )
+    client_created_at = serializers.DateTimeField(required=False, allow_null=True)
+    captured_offline = serializers.BooleanField(required=False, default=False)
+
     class Meta:
         model = CommunityReport
         fields = (
@@ -118,6 +141,9 @@ class CommunityReportCreateSerializer(serializers.ModelSerializer):
             "unusual_observation",
             "notes",
             "entries",
+            "client_report_uid",
+            "client_created_at",
+            "captured_offline",
         )
 
     def validate(self, attrs):
@@ -199,5 +225,6 @@ class DataSourceSerializer(serializers.ModelSerializer):
             "village_name",
             "is_active",
             "simulated",
+            "last_report_at",
         )
         read_only_fields = fields

@@ -5,6 +5,7 @@ from .views import (
     DataSourceListView,
     LocalSignalsView,
     ReportCategoryListView,
+    SourceFreshnessView,
 )
 
 urlpatterns = [
@@ -20,4 +21,9 @@ urlpatterns = [
     ),
     path("local-signals/", LocalSignalsView.as_view(), name="local-signals"),
     path("data-sources/", DataSourceListView.as_view(), name="data-source-list"),
+    path(
+        "officer/source-freshness/",
+        SourceFreshnessView.as_view(),
+        name="source-freshness",
+    ),
 ]

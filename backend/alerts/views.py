@@ -16,10 +16,17 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from community.aggregation import week_label_for
+from community.freshness import (
+    freshness_by_village_kind,
+    freshness_report,
+    summarise,
+)
 from community.models import (
     CommunityReport,
     CommunityReportEntry,
     CommunitySignal,
+    DataSource,
 )
 from core.constants import (
     DATA_NOTICE,
@@ -103,6 +110,21 @@ class OfficerDashboardView(APIView):
             reports, trend_start, trend_end, trend_days, user=request.user
         )
 
+        # Source freshness for this officer's area. Informational: it is
+        # rendered beside the alerts, and deliberately feeds nothing that
+        # computes severity, confidence or a safety verdict.
+        freshness_rows = freshness_report(
+            list(
+                scope_queryset(
+                    DataSource.objects.filter(is_active=True).select_related(
+                        "village"
+                    ),
+                    request.user,
+                )
+            ),
+            week_label=week_label_for(today),
+        )
+
         return Response(
             {
                 "officer": request.user.display_name,
@@ -169,6 +191,8 @@ class OfficerDashboardView(APIView):
                     active.order_by("-created_at")[:20], many=True
                 ).data,
                 "community_trend": community_trend,
+                "source_freshness": freshness_rows,
+                "source_freshness_summary": summarise(freshness_rows),
                 "disclaimer": MEDICAL_DISCLAIMER,
                 "data_notice": DATA_NOTICE,
             }
@@ -203,6 +227,25 @@ class AlertListView(generics.ListAPIView):
         return queryset.order_by("-created_at")
 
 
+def evidence_freshness_for(alert: Alert) -> dict:
+    """Freshness of every source in this alert's village, keyed for lookup.
+
+    Assessed against the *current* reporting period, not the alert's week: the
+    question a card answers is "has this source said anything since?", and
+    whether it reported during the alert's own week is already on the card as
+    its evidence status.
+    """
+
+    sources = list(
+        DataSource.objects.filter(
+            village=alert.village, is_active=True
+        ).select_related("village")
+    )
+    return freshness_by_village_kind(
+        sources, week_label=week_label_for(timezone.localdate())
+    )
+
+
 class AlertDetailView(generics.RetrieveAPIView):
     permission_classes = (IsHealthOfficer,)
     serializer_class = AlertDetailSerializer
@@ -210,6 +253,14 @@ class AlertDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return officer_alert_queryset(self.request.user)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        # Built once here and read by every nested evidence card, which
+        # inherits this context.
+        if self.lookup_field in self.kwargs:
+            context["source_freshness"] = evidence_freshness_for(self.get_object())
+        return context
 
 
 class AlertEvidenceView(APIView):
@@ -264,7 +315,11 @@ class AlertEvidenceView(APIView):
                         f"{alert.safety_verdict}."
                     ),
                 },
-                "evidence": AlertEvidenceSerializer(evidence, many=True).data,
+                "evidence": AlertEvidenceSerializer(
+                    evidence,
+                    many=True,
+                    context={"source_freshness": evidence_freshness_for(alert)},
+                ).data,
                 "relationships": build_evidence_relationships(alert, evidence),
                 "cross_level": {
                     "verdict": alert.cross_level_verdict,

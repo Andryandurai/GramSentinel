@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -26,13 +27,17 @@ from core.constants import (
 )
 from core.models import Village
 from integrations.ingestion import ingest_batch
-from users.permissions import IsWorker, IsWorkerOrOfficer
+from users.permissions import IsHealthOfficer, IsWorker, IsWorkerOrOfficer
+from users.scoping import scope_queryset
 
+from .aggregation import week_label_for
+from .freshness import freshness_report, summarise
 from .models import (
     CommunityReport,
     CommunityReportEntry,
     CommunitySignal,
     DataSource,
+    OfflineSubmission,
 )
 from .serializers import (
     CommunityReportCreateSerializer,
@@ -94,6 +99,49 @@ class CommunityReportListCreateView(generics.ListCreateAPIView):
             queryset = queryset.filter(village_id=self.request.user.village_id)
         return queryset.order_by("-period_start")
 
+    @staticmethod
+    def _already_received(receipt: OfflineSubmission) -> Response:
+        """Answer a retry of a report the server has already processed.
+
+        Deliberately a success, not a 409. From the device's point of view the
+        goal was "get this report to the server", and that goal is met — the
+        queue entry should be cleared, not retried forever. The pipeline is
+        *not* re-run: the report has already been through it, and running it
+        again could raise a second alert for one observation.
+        """
+
+        receipt.retry_count += 1
+        receipt.save(update_fields=["retry_count"])
+        logger.info(
+            "[OFFLINE SYNC] duplicate delivery of %s absorbed (retry %d)",
+            receipt.client_report_uid,
+            receipt.retry_count,
+        )
+
+        return Response(
+            {
+                "report": (
+                    CommunityReportSerializer(receipt.report).data
+                    if receipt.report_id
+                    else None
+                ),
+                "duplicate": True,
+                "pipeline": [],
+                "sync": {
+                    "client_report_uid": str(receipt.client_report_uid),
+                    "created_at": receipt.client_created_at,
+                    "synced_at": receipt.received_at,
+                    "duplicate_deliveries": receipt.retry_count,
+                },
+                "officer_note": (
+                    "This report had already reached GramSentinel and was stored "
+                    "once. Nothing was duplicated and no second alert was raised."
+                ),
+                "data_notice": DATA_NOTICE,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -107,6 +155,31 @@ class CommunityReportListCreateView(generics.ListCreateAPIView):
             )
 
         entry_inputs = serializer.validated_data.pop("entries", [])
+
+        # --- offline sync envelope --------------------------------------
+        # Pulled out of validated_data before it is splatted into the report's
+        # defaults below: `client_report_uid` belongs to the receipt, not the
+        # report.
+        client_uid = serializer.validated_data.pop("client_report_uid", None)
+        client_created_at = serializer.validated_data.pop("client_created_at", None)
+        captured_offline = serializer.validated_data.pop("captured_offline", False)
+
+        receipt = None
+        if client_uid is not None:
+            # Claim the uid first. `get_or_create` takes the unique constraint
+            # in its own savepoint, so two retries racing each other cannot
+            # both proceed — the loser is told the report already exists
+            # instead of running the pipeline a second time.
+            receipt, is_first_delivery = OfflineSubmission.objects.get_or_create(
+                client_report_uid=client_uid,
+                defaults={
+                    "worker": request.user,
+                    "village": village,
+                    "client_created_at": client_created_at or timezone.now(),
+                },
+            )
+            if not is_first_delivery:
+                return self._already_received(receipt)
 
         # Roll the entries up per category so the legacy columns and the
         # ingested signal both reflect the whole report. 'Other' can appear
@@ -135,8 +208,22 @@ class CommunityReportListCreateView(generics.ListCreateAPIView):
                 },
                 **legacy_values,
                 "acknowledged_at": None,  # resubmission is new for the officer
+                "captured_offline": captured_offline,
+                "client_created_at": client_created_at,
             },
         )
+
+        if receipt is not None:
+            receipt.report = report
+            receipt.save(update_fields=["report"])
+            # Re-read so both timestamps in the `sync` block below are rendered
+            # from the same source. `client_created_at` is still the value DRF
+            # parsed off the request (carrying the device's UTC offset) while
+            # `received_at` came from auto_now_add, and serialising the two
+            # side by side produced one payload with two different offset
+            # representations of correct times — a trap for any consumer that
+            # compares them as strings.
+            receipt.refresh_from_db()
 
         # Replace this report's entries rather than accumulating duplicates
         # when a worker corrects and resubmits the same week.
@@ -221,6 +308,21 @@ class CommunityReportListCreateView(generics.ListCreateAPIView):
                     "result": event.result,
                 },
                 "pipeline": pipeline_outcomes,
+                "duplicate": False,
+                "sync": (
+                    {
+                        "client_report_uid": str(receipt.client_report_uid),
+                        # Two distinct times, kept distinct. The worker saw the
+                        # community at `created_at`; GramSentinel learned about
+                        # it at `synced_at`.
+                        "created_at": receipt.client_created_at,
+                        "synced_at": receipt.received_at,
+                        "delayed_seconds": receipt.sync_delay_seconds,
+                        "duplicate_deliveries": receipt.retry_count,
+                    }
+                    if receipt is not None
+                    else None
+                ),
                 "described_observations": len(described),
                 "officer_note": (
                     f"This report is now visible to the health officer for "
@@ -369,3 +471,54 @@ class DataSourceListView(generics.ListAPIView):
         if village_code:
             queryset = queryset.filter(village__code=village_code)
         return queryset.order_by("village__name", "kind")
+
+
+class SourceFreshnessView(APIView):
+    """How recent each evidence source is, for the officer's own area.
+
+    Informational only. Nothing here changes an alert's severity, its
+    confidence, or the Safety Engine's verdict — it tells the officer what they
+    are looking at before they decide whether to investigate. A source that has
+    gone quiet is shown as MISSING and is never collapsed into a zero reading.
+    """
+
+    permission_classes = (IsHealthOfficer,)
+
+    def get(self, request):
+        week_label = request.query_params.get("week") or week_label_for(
+            timezone.localdate()
+        )
+
+        sources = list(
+            scope_queryset(
+                DataSource.objects.filter(is_active=True).select_related("village"),
+                request.user,
+            )
+        )
+        rows = freshness_report(sources, week_label=week_label)
+
+        return Response(
+            {
+                "week_label": week_label,
+                "generated_at": timezone.now(),
+                "summary": summarise(rows),
+                "sources": rows,
+                "scope_note": (
+                    "Sources registered for your area only."
+                    if request.user.village_id
+                    else "All sources across the district."
+                ),
+                "interpretation_note": (
+                    "Freshness describes when a source last delivered data, not "
+                    "what it said. A missing source has reported nothing for this "
+                    "period — that is not the same as reporting zero cases, and it "
+                    "is never counted as zero."
+                ),
+                "safety_note": (
+                    "Freshness is shown for your judgement only. It does not "
+                    "change alert severity, confidence, or any deterministic "
+                    "safety rule."
+                ),
+                "data_notice": DATA_NOTICE,
+            }
+        )

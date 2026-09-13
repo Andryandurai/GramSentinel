@@ -372,6 +372,9 @@ export interface EvidenceCard {
   is_corroborating: boolean
   explanation: string
   produced_by_agent: string
+  /** How current this source is *now*, which is a different question from
+   *  `status` — that records what the source said during the alert's week. */
+  source_freshness: SourceFreshness | null
 }
 
 export type RelationshipKind = 'AGREE' | 'DISAGREE' | 'NOT_COMPARABLE'
@@ -494,6 +497,10 @@ export interface OfficerDashboard {
   alerts: AlertSummary[]
   /** Actual worker-reported signal counts over time — see CommunitySeries. */
   community_trend: CommunitySeries
+  /** How recent each evidence source is, worst first. Informational only —
+   *  it feeds no severity, confidence or safety computation. */
+  source_freshness: SourceFreshness[]
+  source_freshness_summary: FreshnessSummary
   disclaimer: string
   data_notice: string
 }
@@ -806,3 +813,80 @@ export interface SimulationScenario {
   is_active: boolean
   version: number
 }
+
+
+// --- Source freshness -----------------------------------------------------
+
+/** Fresh / Aging / Stale describe how old a source's last delivery is.
+ *
+ *  MISSING is categorically different: the source reported nothing for the
+ *  current period. It is never rendered as a number and never as zero — the
+ *  backend sends `value: null` for exactly this reason. */
+export type FreshnessStatus = 'FRESH' | 'AGING' | 'STALE' | 'MISSING'
+
+export interface SourceFreshness {
+  source_id: number
+  source_code: string
+  source_name: string
+  source_kind: string
+  source_kind_display: string
+  village_code: string
+  village_name: string
+  channel: string
+  status: FreshnessStatus
+  status_display: string
+  /** ISO timestamp, or null when this source has never delivered anything. */
+  last_report_at: string | null
+  /** Pre-humanised by the backend ("20 minutes ago"), so the portal and any
+   *  other consumer phrase staleness identically. */
+  age_text: string | null
+  reported_this_period: boolean
+  explanation: string
+  /** Always null. Freshness deliberately carries no measurement, so it can
+   *  never be mistaken for a reported count. */
+  value: null
+}
+
+export interface FreshnessSummary {
+  total_sources: number
+  fresh: number
+  aging: number
+  stale: number
+  missing: number
+  needs_attention: number
+}
+
+export interface SourceFreshnessResponse {
+  week_label: string
+  generated_at: string
+  summary: FreshnessSummary
+  sources: SourceFreshness[]
+  scope_note: string
+  interpretation_note: string
+  safety_note: string
+  data_notice: string
+}
+
+// --- Offline reporting and sync -------------------------------------------
+
+/** A community report captured on the device, waiting to reach the server.
+ *
+ *  `client_report_uid` is generated once when the worker saves the report and
+ *  never regenerated, including across retries and reloads — it is what lets
+ *  the backend recognise a redelivered report as the same report. */
+export interface QueuedReport {
+  client_report_uid: string
+  /** Device clock, when the worker finished the report. */
+  client_created_at: string
+  captured_offline: boolean
+  /** The exact request body, stored verbatim so a retry re-sends what the
+   *  worker actually entered rather than something reconstructed later. */
+  payload: Record<string, unknown>
+  village_name: string
+  week_label: string
+  attempts: number
+  last_error: string | null
+  last_attempt_at: string | null
+}
+
+export type SyncPhase = 'IDLE' | 'SYNCING' | 'SYNCED' | 'ERROR'

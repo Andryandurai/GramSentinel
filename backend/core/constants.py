@@ -98,6 +98,55 @@ class SourceKind(models.TextChoices):
     RURALCARE_AGGREGATE = "RURALCARE_AGGREGATE", "Aggregated RuralCare signal"
 
 
+class FreshnessStatus(models.TextChoices):
+    """How recent a source's most recent successful delivery is.
+
+    Deliberately separate from `DataQuality`. Quality describes *the content of
+    a record that arrived* ("partial", "poor"); freshness describes *whether
+    anything arrived recently at all*. A source can deliver good-quality data
+    and still be stale, and the officer needs to see both.
+
+    MISSING is not a degree of staleness — it is the explicit statement that
+    nothing was received for the current reporting period. It is never
+    rendered as a number and never collapses to zero (Safety Rule 8).
+    """
+
+    FRESH = "FRESH", "Fresh"
+    AGING = "AGING", "Aging"
+    STALE = "STALE", "Stale"
+    MISSING = "MISSING", "Missing"
+
+
+#: Default age thresholds, in hours, for the FRESH -> AGING -> STALE
+#: progression: fresh up to the first number, aging up to the second, stale
+#: beyond it. Suits a source that is expected to deliver about once a day.
+FRESHNESS_FRESH_MAX_HOURS = 24
+FRESHNESS_AGING_MAX_HOURS = 72
+
+#: Kinds whose expected cadence genuinely differs from that default.
+#:
+#: Freshness only means anything relative to how often a source is *supposed*
+#: to report. A CHW is the active frontline reporter and is expected to be in
+#: touch through the day, so half a day of silence is already worth noticing;
+#: a PHC aggregate export arriving once a day is perfectly current at the same
+#: age. Applying one threshold to both would either cry stale at every
+#: institutional feed or stay green while the primary reporter went dark.
+FRESHNESS_OVERRIDES: dict[str, tuple[int, int]] = {
+    # Frontline worker — expected to sync during the day, so hours matter.
+    SourceKind.CHW: (4, 24),
+    # Public feed, updated continuously; a day of silence is already unusual.
+    SourceKind.WEATHER: (6, 24),
+}
+
+
+def freshness_thresholds(source_kind: str) -> tuple[int, int]:
+    """(fresh_max_hours, aging_max_hours) for a source kind."""
+
+    return FRESHNESS_OVERRIDES.get(
+        source_kind, (FRESHNESS_FRESH_MAX_HOURS, FRESHNESS_AGING_MAX_HOURS)
+    )
+
+
 class DataQuality(models.TextChoices):
     GOOD = "GOOD", "Good"
     PARTIAL = "PARTIAL", "Partial"
