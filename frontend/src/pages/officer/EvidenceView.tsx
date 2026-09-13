@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { AgentTrace } from '@/components/AgentTrace'
 import { SafetyPanel } from '@/components/SafetyPanel'
+import { EvidenceFreshness } from '@/components/SourceFreshness'
 import { Card, Delta, ErrorNote, Loading, SeverityPill } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
@@ -232,6 +233,12 @@ function EvidenceCardView({ card }: { card: EvidenceCard }) {
         <span className="text-ink-400">·</span>
         <span className="text-ink-600">data quality {card.data_quality}</span>
       </div>
+
+      {/* How current this source is now — distinct from the status above,
+          which is what it said during the alert's own week. */}
+      {card.source_freshness && (
+        <EvidenceFreshness freshness={card.source_freshness} />
+      )}
 
       <p className="mt-2 text-xs text-ink-600 leading-relaxed">
         {card.explanation}

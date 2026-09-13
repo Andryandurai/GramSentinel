@@ -46,6 +46,15 @@ class DataSource(models.Model):
         default=True,
         help_text="True for the whole prototype. No real institutional feed exists.",
     )
+    last_report_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "When this source last successfully delivered data, set by the "
+            "Integration Layer on every accepted record. Null means nothing "
+            "has ever been received — which is not the same as a zero reading."
+        ),
+    )
 
     class Meta:
         ordering = ["kind", "name"]
@@ -90,6 +99,25 @@ class CommunityReport(models.Model):
         null=True,
         blank=True,
         help_text="Set when a health officer has opened this report.",
+    )
+
+    # --- offline capture provenance -------------------------------------
+    # `submitted_at` is when the report reached the server. For a report
+    # captured without connectivity that can be hours after the worker
+    # actually recorded it, and an officer reading "6 fever cases" needs to
+    # know which of those two times the observation belongs to.
+    captured_offline = models.BooleanField(
+        default=False,
+        help_text="True when this report was recorded on a device with no connectivity.",
+    )
+    client_created_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "When the worker completed the report on their device. Device "
+            "clock, so it is displayed as the worker's own record of when they "
+            "observed this — never used for ordering against server times."
+        ),
     )
 
     class Meta:
@@ -190,3 +218,70 @@ class CommunitySignal(models.Model):
         if self.baseline in (None, 0):
             return None
         return (self.value - self.baseline) / self.baseline * 100.0
+
+
+class OfflineSubmission(models.Model):
+    """Receipt for one offline-captured report that reached the server.
+
+    This is what makes "store it only once" true rather than hoped for. An
+    unstable connection retries: the same report can arrive two or five times,
+    and every one of those attempts carries the same `client_report_uid`
+    generated on the device when the worker first saved it. The first arrival
+    creates a receipt; every later arrival finds it and is answered with the
+    report that already exists, without re-running the pipeline.
+
+    Why a separate table rather than a unique column on `CommunityReport`:
+    reports are written with `update_or_create` keyed on
+    (village, week_label, worker), so a second report for the same week
+    overwrites the first row. A uid stored on that row would be overwritten
+    with it, and a late retry of the *first* report would then look unseen and
+    be processed a second time. A receipt is never overwritten, so the
+    guarantee holds however the reports collapse.
+
+    Receipts are kept after the report they point at is gone
+    (`on_delete=SET_NULL`): a retry arriving later must still be recognised as
+    something already handled.
+    """
+
+    client_report_uid = models.UUIDField(
+        unique=True,
+        help_text="Generated on the device when the report was saved, before any sync.",
+    )
+    worker = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="offline_submissions",
+    )
+    village = models.ForeignKey(
+        "core.Village", on_delete=models.PROTECT, related_name="offline_submissions"
+    )
+    report = models.ForeignKey(
+        CommunityReport,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="offline_submissions",
+    )
+    client_created_at = models.DateTimeField(
+        help_text="Device clock — when the worker completed the report offline."
+    )
+    received_at = models.DateTimeField(auto_now_add=True)
+    retry_count = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="How many duplicate deliveries of this report the server absorbed.",
+    )
+
+    class Meta:
+        ordering = ["-received_at"]
+
+    def __str__(self) -> str:
+        return f"Offline submission {self.client_report_uid}"
+
+    @property
+    def sync_delay_seconds(self) -> float | None:
+        """How long the report waited on the device before it synced."""
+
+        if not self.client_created_at or not self.received_at:
+            return None
+        return (self.received_at - self.client_created_at).total_seconds()

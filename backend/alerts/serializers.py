@@ -12,6 +12,7 @@ class AlertEvidenceSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(
         source="get_status_display", read_only=True
     )
+    source_freshness = serializers.SerializerMethodField()
 
     class Meta:
         model = AlertEvidence
@@ -33,8 +34,28 @@ class AlertEvidenceSerializer(serializers.ModelSerializer):
             "is_corroborating",
             "explanation",
             "produced_by_agent",
+            "source_freshness",
         )
         read_only_fields = fields
+
+    def get_source_freshness(self, obj) -> dict | None:
+        """How current the source behind this card is, as of now.
+
+        Answers "is the evidence behind this alert still up to date?" — which
+        is a different question from the card's own `status`. `status` records
+        what this source said during the alert's week; freshness records
+        whether that source has said anything since. An officer opening a
+        three-day-old alert needs both.
+
+        Read from a map the view builds once per request, so a page of
+        evidence cards costs no extra queries. Absent when the view did not
+        supply one, rather than silently querying per card.
+        """
+
+        freshness = self.context.get("source_freshness")
+        if not freshness:
+            return None
+        return freshness.get((obj.village_code, obj.source_kind))
 
 
 class SafetyCheckSerializer(serializers.ModelSerializer):

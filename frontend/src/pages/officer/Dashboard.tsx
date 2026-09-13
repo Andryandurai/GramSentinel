@@ -10,6 +10,7 @@ import {
   YAxis,
 } from 'recharts'
 
+import { SourceFreshnessPanel } from '@/components/SourceFreshness'
 import {
   Card,
   Empty,
@@ -107,6 +108,18 @@ export default function OfficerDashboardPage() {
           tone="care"
         />
       </div>
+
+      {/* Placed above the alert list deliberately: how current the evidence is
+          belongs before the conclusions drawn from it, not as a footnote. */}
+      <Card
+        title={`Source freshness${
+          data.source_freshness_summary?.needs_attention
+            ? ` — ${data.source_freshness_summary.needs_attention} need attention`
+            : ''
+        }`}
+      >
+        <SourceFreshnessPanel sources={data.source_freshness ?? []} />
+      </Card>
 
       <Card title="Community reported signals over time">
         <p className="text-xs text-ink-600 -mt-1 mb-3">

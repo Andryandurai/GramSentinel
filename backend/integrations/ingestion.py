@@ -16,6 +16,7 @@ import logging
 from typing import Any
 
 from django.db import transaction
+from django.utils import timezone
 
 from community.models import CommunitySignal, DataSource
 from core.constants import DataQuality, SignalCategory, SourceKind
@@ -129,6 +130,10 @@ def ingest_batch(
     accepted = rejected = deduplicated = missing = 0
     notes: list[str] = []
     last_source: DataSource | None = None
+    #: Sources that delivered at least one real reading in this batch. Their
+    #: freshness clock is reset once at the end rather than per record.
+    delivered_by: set[int] = set()
+    now = timezone.now()
 
     for record in records:
         problems = validate_record(record)
@@ -159,6 +164,12 @@ def ingest_batch(
         payload = normalise_record(record, source)
         if not payload["is_reported"]:
             missing += 1
+        else:
+            # A successful delivery from this source. Only genuinely reported
+            # records count: a record explicitly marked not-reported is the
+            # source telling us it has nothing, which must not make it look
+            # freshly updated.
+            delivered_by.add(source.id)
 
         existed = CommunitySignal.objects.filter(
             source=source,
@@ -175,6 +186,13 @@ def ingest_batch(
             defaults=payload,
         )
         accepted += 1
+
+    # Stage 1 freshness stamp. This is the single point where "this source is
+    # up to date" becomes true, so a CHW report that was captured offline
+    # yesterday and synced just now marks the CHW source fresh at sync time —
+    # which is exactly when the platform actually gained the information.
+    if delivered_by:
+        DataSource.objects.filter(id__in=delivered_by).update(last_report_at=now)
 
     if rejected and accepted:
         result = IngestionEvent.Result.PARTIAL
