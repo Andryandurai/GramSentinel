@@ -172,14 +172,61 @@ PROHIBITED_OUTPUT_TERMS = (
 #: demo environment, not a property of a real village, and adding a schema
 #: field for it would be a change the feature does not need. Anything not
 #: listed falls back to its own name.
+#:
+#: "ARY" (internal code, unchanged) deliberately has NO override here any
+#: more: it now carries a real, researched identity (`Village.name` =
+#: "Manikkampatti"), so `village_label()` already returns the correct
+#: human-readable name via its own fallback — a second, duplicate label
+#: would be exactly the kind of demo-placeholder this dict exists to avoid
+#: once a village is no longer a placeholder.
 DEMO_VILLAGE_LABELS: dict[str, str] = {
     "KVL": "Village A",
-    "ARY": "Village B",
 }
 
 
 def village_label(code: str, fallback: str = "") -> str:
     return DEMO_VILLAGE_LABELS.get(code, fallback or code)
+
+
+def real_world_village_profile(village) -> dict | None:
+    """The researched real-world profile for a village, or `None` when the
+    village has never had one populated (`real_world_profile=False`) —
+    every field below is either a verified researched value or an explicit
+    "Not reported" string, never inferred.
+
+    One function, reused by every view/serializer that surfaces village
+    identity to the frontend (admin overview, staff profile, worker/officer
+    dashboards) — so the same village can never describe itself two
+    different ways in two different API responses.
+    """
+
+    if village is None or not village.real_world_profile:
+        return None
+
+    return {
+        "village_name": village.name,
+        "taluk": village.taluk,
+        "district": village.district,
+        "state": village.state,
+        "pin_code": village.pin_code,
+        "census_village_code": village.census_village_code,
+        "population": village.population,
+        "households": village.households,
+        "male_population": village.male_population,
+        "female_population": village.female_population,
+        "children_0_6": village.children_0_6,
+        "area_hectares": (
+            str(village.area_hectares) if village.area_hectares is not None else None
+        ),
+        "demographic_baseline_year": village.demographic_baseline_year,
+        "healthcare_access": {
+            "asha_chw": village.asha_chw_status or "Not reported",
+            "nearby_government_phc": village.nearby_government_phc_status or "Not reported",
+            "health_sub_centre": village.health_sub_centre_status or "Not reported",
+            "phc_inside_village": village.phc_inside_village_status or "Not reported",
+            "chc_inside_village": village.chc_inside_village_status or "Not reported",
+        },
+    }
 
 
 MEDICAL_DISCLAIMER = (

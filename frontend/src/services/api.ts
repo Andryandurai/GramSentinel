@@ -5,7 +5,7 @@
  * enforces every role check server-side.
  */
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
 const ACCESS_KEY = 'gs.access'
 const REFRESH_KEY = 'gs.refresh'
@@ -116,6 +116,32 @@ export const api = {
     request<T>(path, { method: 'POST', body: JSON.stringify(body ?? {}) }),
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body ?? {}) }),
+}
+
+/**
+ * Phase 8 — the one place a WebSocket URL is derived from `BASE_URL`.
+ *
+ * A browser `WebSocket` cannot set an `Authorization` header, so the JWT
+ * access token travels as a `?token=` query parameter instead — see
+ * `backend/simulation/ws_auth.py`'s docstring for the server side of this.
+ * `BASE_URL` already ends in `/api` (either the explicit
+ * `VITE_API_BASE_URL` or the Vite dev-server's own `/api` proxy target) —
+ * stripped here because WebSocket routes live under `/ws/`, not `/api/`,
+ * on the same backend origin.
+ */
+export function buildSimulationSocketUrl(sessionId: number): string {
+  const token = tokens.access() ?? ''
+  const path = `/ws/simulation/sessions/${sessionId}/?token=${encodeURIComponent(token)}`
+
+  if (import.meta.env.VITE_API_BASE_URL) {
+    const wsBase = BASE_URL.replace(/^http/, 'ws').replace(/\/api\/?$/, '')
+    return `${wsBase}${path}`
+  }
+  // No explicit API base — same convention the REST client falls back to
+  // (a relative `/api`, resolved by the Vite dev proxy or same-origin
+  // deployment). `vite.config.ts` already proxies `/ws` the same way.
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}${path}`
 }
 
 export async function login(username: string, password: string) {

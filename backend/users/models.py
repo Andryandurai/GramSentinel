@@ -13,7 +13,6 @@ class User(AbstractUser):
     class Role(models.TextChoices):
         CHW_PHC_WORKER = "CHW_PHC_WORKER", "CHW / PHC Worker"
         HEALTH_OFFICER = "HEALTH_OFFICER", "Health Officer"
-        PATIENT = "PATIENT", "Patient"
         ADMIN = "ADMIN", "Administrator"
 
     role = models.CharField(

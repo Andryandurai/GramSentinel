@@ -74,7 +74,7 @@ SOURCE_FIELD_BY_KIND = {
 #: matched again and would survive every future `--reset` as an orphaned
 #: login with `village=None`, which under the scoping rule reads as
 #: district-wide access. Keep this list append-only as accounts are retired.
-RETIRED_DEMO_USERNAMES = {"worker.c", "officer.c"}
+RETIRED_DEMO_USERNAMES = {"worker.c", "officer.c", "patient"}
 
 CHANNEL_BY_KIND = {
     SourceKind.CHW: DataSource.Channel.PORTAL,
@@ -216,6 +216,33 @@ class Command(BaseCommand):
                     "block": row["block"],
                     "district": row["district"],
                     "population": row["population"],
+                    # Real-world community profile (task: Village B /
+                    # Manikkampatti transformation) — every key here is
+                    # `.get()` with an empty/False fallback so a village
+                    # dict without a researched profile (Kovilur) leaves
+                    # every one of these fields blank, exactly as before.
+                    "real_world_profile": row.get("real_world_profile", False),
+                    "state": row.get("state", ""),
+                    "taluk": row.get("taluk", ""),
+                    "pin_code": row.get("pin_code", ""),
+                    "census_village_code": row.get("census_village_code", ""),
+                    "households": row.get("households"),
+                    "male_population": row.get("male_population"),
+                    "female_population": row.get("female_population"),
+                    "children_0_6": row.get("children_0_6"),
+                    "area_hectares": row.get("area_hectares"),
+                    "demographic_baseline_year": row.get("demographic_baseline_year"),
+                    "asha_chw_status": row.get("asha_chw_status", ""),
+                    "nearby_government_phc_status": row.get(
+                        "nearby_government_phc_status", ""
+                    ),
+                    "health_sub_centre_status": row.get("health_sub_centre_status", ""),
+                    "phc_inside_village_status": row.get(
+                        "phc_inside_village_status", ""
+                    ),
+                    "chc_inside_village_status": row.get(
+                        "chc_inside_village_status", ""
+                    ),
                 },
             )
             villages[row["code"]] = village
@@ -1012,6 +1039,13 @@ class Command(BaseCommand):
         backend test suite's own fixtures, for the cross-village negative
         test — never here).
 
+        Phase 8 adds `LIVE_EMERGENCE` alongside the original three
+        (Emerging Signal, Stable Community, Missing Data) — same shape,
+        same `update_or_create` idempotency, no new fields or scoring: it
+        exists so the live WebSocket stream has a scenario whose name says
+        what it demonstrates, not because it needs different execution
+        logic from any other scenario.
+
         Architectural boundary (Phase 2 task §23), upheld structurally by
         this method never importing or touching `ingest_batch`,
         `run_community_pipeline`, or any operational model: nothing here
@@ -1054,12 +1088,22 @@ class Command(BaseCommand):
                         "categories": {"FEVER": 5, "RESPIRATORY": 2, "HEADACHE": 2},
                         "status_label": "INCREASING",
                         "sources": {"CHW": 5, "PHC": 9},
+                        # Phase 9 Investigation Notebook's Community Context
+                        # section (task §15) reads this optional key — seeded
+                        # illustrative synthetic context only, never invented
+                        # per-request. See `SimulationEvent`'s own docstring
+                        # for the JSON contract this extends.
+                        "context": ["Increased rainfall reported across the village this week."],
                     },
                     {
                         "week_number": 4,
                         "categories": {"FEVER": 8, "RESPIRATORY": 3, "HEADACHE": 2},
                         "status_label": "SIGNAL_DETECTED",
                         "sources": {"CHW": 8, "PHC": 14},
+                        "context": [
+                            "Stagnant water observed near the community water tank.",
+                            "Local school reported higher-than-usual absenteeism.",
+                        ],
                     },
                 ],
             },
@@ -1096,6 +1140,50 @@ class Command(BaseCommand):
                         "categories": {"FEVER": 2},
                         "status_label": "NORMAL",
                         "sources": {"CHW": 2, "PHC": 5},
+                    },
+                ],
+            },
+            {
+                "scenario_type": SimulationScenario.ScenarioType.LIVE_EMERGENCE,
+                "name": "Live Signal Emergence",
+                "description": (
+                    "The same kind of gradually emerging community signal as "
+                    "'Emerging Community Signal', run through the Phase 8 "
+                    "live WebSocket stream instead of manual Next-Week "
+                    "clicks — every stage and week you see is computed and "
+                    "persisted exactly as it would be for any other "
+                    "scenario, just streamed as it happens."
+                ),
+                "weeks": [
+                    {
+                        "week_number": 1,
+                        "categories": {"FEVER": 2, "RESPIRATORY": 1},
+                        "status_label": "NORMAL",
+                        "sources": {"CHW": 2, "PHC": 4},
+                    },
+                    {
+                        "week_number": 2,
+                        "categories": {"FEVER": 3, "RESPIRATORY": 1},
+                        "status_label": "STABLE",
+                        "sources": {"CHW": 3, "PHC": 5},
+                    },
+                    {
+                        "week_number": 3,
+                        "categories": {"FEVER": 4, "RESPIRATORY": 2},
+                        "status_label": "STABLE",
+                        "sources": {"CHW": 4, "PHC": 6},
+                    },
+                    {
+                        "week_number": 4,
+                        "categories": {"FEVER": 6, "RESPIRATORY": 2},
+                        "status_label": "INCREASING",
+                        "sources": {"CHW": 6, "PHC": 10},
+                    },
+                    {
+                        "week_number": 5,
+                        "categories": {"FEVER": 10, "RESPIRATORY": 3},
+                        "status_label": "SIGNAL_DETECTED",
+                        "sources": {"CHW": 10, "PHC": 16},
                     },
                 ],
             },
@@ -1169,15 +1257,22 @@ class Command(BaseCommand):
             )
 
             for week in spec["weeks"]:
+                source_signals = {
+                    "categories": week["categories"],
+                    "status_label": week["status_label"],
+                }
+                # Optional (task §15 — Phase 9's Community Context section):
+                # only present for the weeks that actually seed it above,
+                # never fabricated for the rest.
+                if week.get("context"):
+                    source_signals["context"] = week["context"]
+
                 event, _ = SimulationEvent.objects.update_or_create(
                     session=session,
                     week_number=week["week_number"],
                     defaults={
                         "village": village,
-                        "source_signals": {
-                            "categories": week["categories"],
-                            "status_label": week["status_label"],
-                        },
+                        "source_signals": source_signals,
                         "is_synthetic": True,
                     },
                 )
@@ -1196,9 +1291,9 @@ class Command(BaseCommand):
 
         self.stdout.write(
             f"  simulation scenarios  {scenario_count} for {village.name} "
-            f"(Emerging Signal, Stable Community, Missing Data), "
-            f"{event_count} weekly events, {signal_count} source signals — "
-            "no operational tables written"
+            f"(Emerging Signal, Stable Community, Live Signal Emergence, "
+            f"Missing Data), {event_count} weekly events, {signal_count} "
+            "source signals — no operational tables written"
         )
 
     def _run_pipelines(self, villages, today: dt.date):
@@ -1240,8 +1335,8 @@ class Command(BaseCommand):
         rows = [
             ("Village A", "worker.a", "CHW / PHC Worker", "Kovilur only"),
             ("Village A", "officer.a", "Health Officer", "Kovilur only"),
-            ("Village B", "worker.b", "CHW / PHC Worker", "Ariyanur only"),
-            ("Village B", "officer.b", "Health Officer", "Ariyanur only"),
+            ("Village B", "worker.b", "CHW / PHC Worker", "Manikkampatti only"),
+            ("Village B", "officer.b", "Health Officer", "Manikkampatti only"),
         ]
         for area, username, role, scope in rows:
             self.stdout.write(
@@ -1251,7 +1346,6 @@ class Command(BaseCommand):
             )
         self.stdout.write("    " + "-" * 68)
         for area, username, role, scope in (
-            ("—", "patient", "Patient", "Own record only"),
             ("—", "admin", "Administrator", "All villages"),
             ("—", "worker", "CHW (original)", "Kovilur only"),
             ("—", "officer", "Officer (original)", "District-wide"),

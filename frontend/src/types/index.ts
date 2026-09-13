@@ -1,10 +1,38 @@
-export type Role = 'CHW_PHC_WORKER' | 'HEALTH_OFFICER' | 'PATIENT' | 'ADMIN'
+export type Role = 'CHW_PHC_WORKER' | 'HEALTH_OFFICER' | 'ADMIN'
 
 export type TriageLevel = 'ROUTINE' | 'CONCERNING' | 'URGENT'
 export type SafetyVerdict = 'PASS' | 'DOWNGRADE' | 'BLOCK'
 export type Severity = 'LOW' | 'MODERATE' | 'HIGH'
 export type AlertStatus = 'DETECTED' | 'UNDER_INVESTIGATION' | 'CLOSED'
 export type Outcome = 'VALID_SIGNAL' | 'FALSE_ALERT' | 'RESOLVED'
+
+/** A village's researched real-world community profile — present only for
+ *  a village that actually has one (currently Manikkampatti / Village B);
+ *  `null` for every other village, including Village A. Every field is
+ *  either a verified researched value or the literal string "Not
+ *  reported" (see `healthcare_access`) — never inferred or guessed. */
+export interface VillageRealWorldProfile {
+  village_name: string
+  taluk: string
+  district: string
+  state: string
+  pin_code: string
+  census_village_code: string
+  population: number | null
+  households: number | null
+  male_population: number | null
+  female_population: number | null
+  children_0_6: number | null
+  area_hectares: string | null
+  demographic_baseline_year: number | null
+  healthcare_access: {
+    asha_chw: string
+    nearby_government_phc: string
+    health_sub_centre: string
+    phc_inside_village: string
+    chc_inside_village: string
+  }
+}
 
 export interface User {
   id: number
@@ -17,6 +45,7 @@ export interface User {
   village_name: string | null
   village_code: string | null
   village_cluster: string | null
+  village_profile: VillageRealWorldProfile | null
   facility_name: string | null
 }
 
@@ -237,7 +266,12 @@ export interface DashboardWeek {
 
 export interface WorkerDashboard {
   worker: string
-  village: { code: string; name: string; cluster: string } | null
+  village: {
+    code: string
+    name: string
+    cluster: string
+    real_world_profile: VillageRealWorldProfile | null
+  } | null
   today: {
     date: string
     assessment_count: number
@@ -460,6 +494,7 @@ export interface OfficerDashboard {
   scope: {
     village_code: string | null
     village_name: string | null
+    real_world_profile: VillageRealWorldProfile | null
     is_district_wide: boolean
   }
   new_reports: number
@@ -498,33 +533,6 @@ export interface OfficerDashboard {
   data_notice: string
 }
 
-export interface PatientPortal {
-  patient: {
-    patient_code: string
-    display_name: string
-    age_years: number | null
-    village_name: string
-  }
-  records: Array<{
-    id: number
-    encounter_date: string
-    symptoms: string[]
-    duration_days: number
-    triage_level: TriageLevel
-    referral_recommendation: string
-    followup_interval_days: number | null
-  }>
-  followups: Array<{
-    id: number
-    due_date: string
-    status: string
-    notes: string
-  }>
-  guidance: string[]
-  scope_note: string
-  disclaimer: string
-}
-
 export interface LocalSignalRow {
   id: number
   source_kind: string
@@ -561,6 +569,7 @@ export interface VillageRef {
   label: string
   name: string
   cluster: string
+  real_world_profile: VillageRealWorldProfile | null
 }
 
 export interface AdminOverview {
@@ -701,6 +710,7 @@ export interface OfficerCommunityData {
   scope: {
     village_code: string | null
     village_name: string | null
+    real_world_profile: VillageRealWorldProfile | null
     is_district_wide: boolean
   }
   period: {
@@ -805,4 +815,545 @@ export interface SimulationScenario {
   village_name: string
   is_active: boolean
   version: number
+}
+
+/** One source's synthetic value (or absence) for one simulated week —
+ *  mirrors the backend's SimulationSourceSignal exactly, including the
+ *  "reported=false means no report, never a silent 0" distinction. */
+export interface SimulationSourceValue {
+  source_type: string
+  reported: boolean
+  value: number | null
+}
+
+/** The response shape of both POST /simulation/sessions/ (start) and
+ *  POST /simulation/sessions/<id>/advance/ — the backend is the sole
+ *  authority for week/values/status; nothing here is ever computed or
+ *  incremented on the frontend (Phase 3 task §10/§11/§18). */
+export interface SimulationSessionState {
+  session_id: number
+  scenario_id: number
+  scenario_name: string
+  village_code: string
+  village_name: string
+  /** Session lifecycle — the real Phase 2 values: NOT_STARTED / IN_PROGRESS / COMPLETED. */
+  status: string
+  status_display: string
+  week: number
+  total_weeks: number
+  values: {
+    categories: Record<string, number>
+    status_label: string
+    sources: SimulationSourceValue[]
+  }
+  is_complete: boolean
+  /** Phase 4 — one row per pipeline stage for the week just advanced to.
+   *  Empty on the response from `start()` (week 1 has no "previous week" to
+   *  analyse yet); exactly 5 entries, in fixed pipeline order, on every
+   *  `advance()` response. */
+  agent_runs: SimulationAgentRun[]
+}
+
+// --- GramSentinel Intelligence Simulator (Phase 5 — Signal Intelligence) ---
+
+/** One reporting week's actual synthetic value for the session's primary
+ *  signal — `value` is `null` only when that week's category total is
+ *  genuinely absent from the backend record, never a stand-in for 0
+ *  (task §4/§5). `status` is that week's own deterministic trend
+ *  classification (Phase 4's `signal_analysis` output, or `NORMAL` for
+ *  week 1, which has no prior week to compare against). */
+export interface SimulationTimelinePoint {
+  week: number
+  primary_signal: string | null
+  value: number | null
+  status: string
+  sources: SimulationSourceValue[]
+}
+
+/** SUPPORTING / CONFLICTING / INSUFFICIENT — Phase 4's own frozen
+ *  correlation vocabulary (kept as-is rather than the task's illustrative
+ *  "SUPPORTS"/"CONFLICTS" spelling, so the Agent Pipeline view above and
+ *  the Intelligence View below never show two different words for the
+ *  same underlying relationship). */
+export type SimulationRelation = 'SUPPORTING' | 'CONFLICTING' | 'INSUFFICIENT'
+
+export interface SimulationConstellationEntry {
+  source: string
+  relation: SimulationRelation
+  reason: string
+}
+
+export interface SimulationSourceFusionEntry extends SimulationConstellationEntry {
+  reported: boolean | null
+  current_value: number | null
+}
+
+export interface SimulationDataQualitySource {
+  source: string
+  reported_weeks: number
+  expected_weeks: number
+  completeness_pct: number
+}
+
+/** `completeness_pct` = reported_weeks / expected_weeks, both overall and
+ *  per source (task §10) — never an invented confidence figure. `missing`
+ *  lists every `source — Week N` that was not reported, explicitly, rather
+ *  than only implying it through a lower percentage. */
+export interface SimulationDataQuality {
+  expected_weeks: number
+  window_label: string
+  completeness_pct: number
+  missing: string[]
+  sources: SimulationDataQualitySource[]
+  duplicates_checked: boolean
+}
+
+/** Evidence Strength is WEAK / MODERATE / STRONG — a fixed deterministic
+ *  category, never a percentage or "confidence" figure (task §16/§17).
+ *  `safety_status` is always a truthful statement sourced directly from
+ *  the Phase 6 Safety Engine's own safety-stage output — never
+ *  "passed"/"failed"/"approved" wording invented on the frontend. */
+export interface SimulationExplanation {
+  signal: string
+  sources_supporting: string[]
+  sources_conflicting: string[]
+  sources_insufficient: string[]
+  reporting_periods: string
+  data_quality_summary: string
+  evidence_strength: 'WEAK' | 'MODERATE' | 'STRONG'
+  routed_reason: string
+  suggested_verification: string
+  safety_status: string
+}
+
+// --- GramSentinel Intelligence Simulator (Phase 6 — Safety Engine) ---------
+
+export type SimulationSafetyGateResult = 'PASS' | 'BLOCK' | 'INSUFFICIENT'
+
+/** One of the Safety Engine's nine fixed-order deterministic rule results
+ *  (task §5/§6/§7) — `rule` is a stable snake_case name, never reordered,
+ *  never frontend-selected. */
+export interface SimulationSafetyCheckEntry {
+  rule: string
+  result: SimulationSafetyGateResult
+  reason: string
+}
+
+/** `GET /simulation/sessions/<id>/safety/`'s exact shape, and exactly what
+ *  the embedded `intelligence.safety` key also carries (task §19) — the
+ *  same computation either way, never two answers for one session.
+ *  `gate_result` is BLOCK > INSUFFICIENT > PASS over the nine checks
+ *  above; `human_review_required` is always `true` (task §9);
+ *  `evidence_strength` is Phase 5's preliminary WEAK/MODERATE/STRONG,
+ *  downgraded-only by safety, never upgraded. All three come from the
+ *  backend — the frontend never computes any of them (task §21).
+ *
+ *  `gate_result`/`evidence_strength` are `null`, `checks` is empty, and
+ *  `not_evaluated_reason` is set only for a Phase 7 Replay week that has
+ *  no persisted safety result yet (week 1, or a week whose pipeline
+ *  failed) — a truthful "not evaluated" state, never a fabricated PASS. */
+export interface SimulationSafetyResult {
+  checks: SimulationSafetyCheckEntry[]
+  gate_result: SimulationSafetyGateResult | null
+  human_review_required: boolean
+  evidence_strength: 'WEAK' | 'MODERATE' | 'STRONG' | null
+  not_evaluated_reason?: string
+}
+
+/** The one shared object every Intelligence View component reads from —
+ *  `GET /simulation/sessions/<id>/intelligence/`'s exact response shape.
+ *  Frozen per the Phase 5 task (§2/§43): Phase 6 adds a sixth `safety` key
+ *  alongside these five, never restructures them. */
+export interface SimulationIntelligence {
+  timeline: SimulationTimelinePoint[]
+  constellation: SimulationConstellationEntry[]
+  source_fusion: SimulationSourceFusionEntry[]
+  data_quality: SimulationDataQuality
+  explanation: SimulationExplanation
+  safety: SimulationSafetyResult
+  /** The exact same Phase 9/10 `suggested_decision()` the Investigation
+   *  Notebook already computes, reused here — never a second
+   *  recommendation algorithm. `''` while Safety is BLOCK (nothing to
+   *  suggest) — see `backend/simulation/investigation.py`. */
+  suggested_next_step: InvestigationDecisionValue | ''
+}
+
+// --- GramSentinel Intelligence Simulator (Phase 7 — Replay) ----------------
+
+/** `GET /simulation/sessions/<id>/replay/?week=N`'s exact shape — a pure,
+ *  read-only re-display of an already-computed week (task §7: "replay
+ *  does not recompute persisted agent or safety results"). `week` is
+ *  `null` only in the defensive case where nothing has ever been
+ *  revealed for this session. */
+export interface SimulationReplayState {
+  week: number | null
+  min_week: number
+  max_week: number
+  is_first: boolean
+  is_last: boolean
+  intelligence: SimulationIntelligence
+}
+
+export type SimulationReplaySpeed = 0.5 | 1 | 2 | 5
+
+// --- GramSentinel Intelligence Simulator (Phase 7 — What-If) ---------------
+
+export interface SimulationWhatIfSourceValue {
+  value: number | null
+  reported: boolean
+}
+
+/** One stage's raw output from the real Phase 4 pipeline, rerun against
+ *  hypothetical inputs — shown for transparency (the same "view raw
+ *  input/output" idea the live Agent Pipeline card already offers), never
+ *  as a second source of truth for the summary fields above it. */
+export interface SimulationWhatIfPipelineStage {
+  agent: SimulationAgentName
+  status: string
+  output: Record<string, unknown>
+}
+
+export interface SimulationWhatIfOriginal {
+  sources: Record<string, SimulationWhatIfSourceValue>
+  gate_result: SimulationSafetyGateResult | null
+  evidence_strength: 'WEAK' | 'MODERATE' | 'STRONG' | null
+  human_review_required: boolean
+}
+
+export interface SimulationWhatIfHypothetical {
+  sources: Record<string, SimulationWhatIfSourceValue>
+  primary_signal: string | null
+  trend: string | null
+  constellation: SimulationConstellationEntry[]
+  data_quality: SimulationDataQuality
+  pipeline: SimulationWhatIfPipelineStage[]
+  safety: SimulationSafetyResult
+  suggested_next_step: InvestigationDecisionValue | ''
+}
+
+/** `POST /simulation/sessions/<id>/what-if/`'s exact response shape — the
+ *  backend is authoritative for every value in `hypothetical` (task §35):
+ *  the frontend only collects `overrides` and displays this result,
+ *  never computes a trend/relationship/evidence-strength/safety verdict
+ *  itself. */
+export interface SimulationWhatIfResult {
+  week: number
+  is_hypothetical: true
+  original: SimulationWhatIfOriginal
+  hypothetical: SimulationWhatIfHypothetical
+  changed_sources: string[]
+}
+
+// --- GramSentinel Intelligence Simulator (Phase 4 — pipeline execution) ----
+
+/** Canonical stage names, in their permanent, fixed pipeline order. */
+export type SimulationAgentName =
+  | 'ingestion'
+  | 'signal_analysis'
+  | 'correlation'
+  | 'evidence'
+  | 'safety'
+
+export const SIMULATION_STAGE_ORDER: SimulationAgentName[] = [
+  'ingestion',
+  'signal_analysis',
+  'correlation',
+  'evidence',
+  'safety',
+]
+
+/** One `SimulationAgentRun` row exactly as the backend persisted it —
+ *  `input`/`output` are opaque structured JSON, deliberately typed loosely
+ *  here since each stage's shape differs; the UI reads specific known keys
+ *  off `output` defensively rather than assuming a single shared shape. */
+export interface SimulationAgentRun {
+  agent_name: SimulationAgentName
+  /** WAITING (safety stub, or a stage skipped after an earlier failure —
+   *  though skipped stages are actually reported as FAILED, see backend
+   *  docs) / PROCESSING (never observed in a REST response, execution is
+   *  synchronous) / COMPLETE / FAILED. */
+  status: 'WAITING' | 'PROCESSING' | 'COMPLETE' | 'FAILED'
+  status_display: string
+  input: Record<string, unknown>
+  output: Record<string, unknown>
+  duration_ms: number | null
+  started_at: string | null
+  ended_at: string | null
+}
+
+// --- GramSentinel Intelligence Simulator (Phase 8 — Live Streaming) --------
+//
+// The event envelope streamed over `WS /ws/simulation/sessions/<id>/`
+// (`backend/simulation/consumers.py` + `live_runner.py`). Every event
+// carries `type`/`session_id`; the rest of the shape depends on `type`, so
+// this is a loosely-typed envelope (like `SimulationAgentRun.output` above)
+// rather than a full discriminated union — the store only ever reads the
+// few fields each handler actually needs.
+
+export type SimulationLiveEventType =
+  | 'simulation.connected'
+  | 'simulation.started'
+  | 'simulation.week_started'
+  | 'simulation.stage'
+  | 'simulation.week_completed'
+  | 'simulation.completed'
+  | 'simulation.paused'
+  | 'simulation.resumed'
+  | 'simulation.stopped'
+  | 'simulation.error'
+
+export interface SimulationLiveEvent {
+  type: SimulationLiveEventType
+  session_id: number
+  village_id?: number
+  week?: number | null
+  stage?: SimulationAgentName
+  status?: 'PROCESSING' | 'COMPLETE' | 'FAILED'
+  payload?: SimulationAgentRun
+  is_complete?: boolean
+  error?: string
+  // simulation.connected only — a resync snapshot of already-persisted
+  // session state, never a second source of truth for it.
+  status_snapshot?: string
+  live_running?: boolean
+  live_paused?: boolean
+}
+
+/** No connection attempted yet / a fresh page load before Live Mode is
+ *  entered — distinct from DISCONNECTED, which means a connection existed
+ *  and was lost (task's own required connection-state vocabulary). */
+export type SimulationLiveStatus =
+  | 'IDLE'
+  | 'CONNECTING'
+  | 'CONNECTED'
+  | 'DISCONNECTED'
+  | 'RECONNECTING'
+  | 'ERROR'
+
+export type SimulationLiveStageStatus = 'WAITING' | 'PROCESSING' | 'COMPLETE' | 'FAILED'
+
+// --- GramSentinel Intelligence Simulator (Phase 9 — Investigation Notebook)
+
+export type InvestigationStatus =
+  | 'NOT_STARTED'
+  | 'IN_PROGRESS'
+  | 'READY_FOR_DECISION'
+  | 'DECISION_RECORDED'
+  | 'COMPLETED'
+
+/** A next investigative STEP, never a medical/treatment recommendation —
+ *  see `backend/simulation/models.py::InvestigationDecision`'s own
+ *  docstring for why this is its own vocabulary, not a reuse of the
+ *  operational `Feedback.Outcome`. */
+export type InvestigationDecisionValue =
+  | 'CONTINUE_MONITORING'
+  | 'REQUEST_MORE_DATA'
+  | 'VERIFY_WITH_PHC'
+  | 'CONDUCT_FIELD_VERIFICATION'
+  | 'REQUEST_LABORATORY_VERIFICATION'
+  | 'ESCALATE_FOR_HUMAN_REVIEW'
+  | 'CLOSE_AS_INSUFFICIENT_EVIDENCE'
+
+export const INVESTIGATION_DECISION_LABELS: Record<InvestigationDecisionValue, string> = {
+  CONTINUE_MONITORING: 'Continue Monitoring',
+  REQUEST_MORE_DATA: 'Request More Data',
+  VERIFY_WITH_PHC: 'Verify with PHC',
+  CONDUCT_FIELD_VERIFICATION: 'Conduct Field Verification',
+  REQUEST_LABORATORY_VERIFICATION: 'Request Laboratory Verification',
+  ESCALATE_FOR_HUMAN_REVIEW: 'Escalate for Human Review',
+  CLOSE_AS_INSUFFICIENT_EVIDENCE: 'Close as Insufficient Evidence',
+}
+
+export interface InvestigationOverview {
+  investigation_id: number
+  session_id: number
+  village_code: string
+  village_name: string
+  scenario_name: string
+  week: number
+  total_weeks: number
+  status: InvestigationStatus
+  status_display: string
+  primary_signal: string | null
+  trend: string | null
+  evidence_strength: 'WEAK' | 'MODERATE' | 'STRONG' | null
+  investigation_priority: string
+  safety_gate_result: SimulationSafetyGateResult | null
+  sources_supporting: string[]
+  sources_conflicting: string[]
+  sources_insufficient: string[]
+  why_am_i_seeing_this: string | null
+}
+
+export interface InvestigationChecklistItem {
+  key: string
+  label: string
+}
+
+export interface InvestigationChecklistProgress {
+  checked: number
+  total: number
+  percent: number
+}
+
+export interface InvestigationContradiction {
+  source: string
+  relation: SimulationRelation
+  reason: string
+  current_value: number | null
+  reported: boolean | null
+  suggested_verification: string[]
+}
+
+export interface InvestigationCommunityContextEntry {
+  week: number
+  note: string
+}
+
+export interface InvestigationObservation {
+  id: number
+  week: number
+  source: string
+  category: string
+  notes: string
+  created_at: string
+}
+
+export interface InvestigationDecisionState {
+  value: InvestigationDecisionValue | ''
+  value_display: string
+  reason: string
+  decided_by: string | null
+  decided_at: string | null
+}
+
+export interface InvestigationActivityEntry {
+  timestamp: string
+  event_type: string
+  actor: string
+}
+
+/** The one `GET/PATCH .../investigation/` payload shape — everything the
+ *  Investigation Notebook reads, deliberately NOT re-embedding the
+ *  existing `SimulationIntelligence`/safety payloads (those are fetched
+ *  separately, via the existing store fields — task's own "do not
+ *  duplicate the intelligence payload" rule). */
+export interface SimulationInvestigationState {
+  overview: InvestigationOverview
+  checklist: {
+    items: InvestigationChecklistItem[]
+    values: Record<string, boolean>
+    progress: InvestigationChecklistProgress
+  }
+  contradictions: InvestigationContradiction[]
+  community_context: InvestigationCommunityContextEntry[]
+  observations: InvestigationObservation[]
+  notes: string
+  decision: InvestigationDecisionState
+  suggested_decision: InvestigationDecisionValue | ''
+  activity_history: InvestigationActivityEntry[]
+  status: InvestigationStatus
+  status_display: string
+}
+
+// --- GramSentinel Intelligence Simulator (Phase 10 — Feedback + Monitoring)
+
+/** Describes the OFFICER'S EXPERIENCE, never ground truth (task §6) —
+ *  "Officer assessment", not "the signal was correct". */
+export type FeedbackUsefulness = 'VERY_USEFUL' | 'USEFUL' | 'PARTIALLY_USEFUL' | 'NOT_USEFUL'
+export type FeedbackEvidenceSufficiency = 'SUFFICIENT' | 'PARTIALLY_SUFFICIENT' | 'INSUFFICIENT'
+export type FeedbackYesPartiallyNo = 'YES' | 'PARTIALLY' | 'NO'
+export type FeedbackYesNo = 'YES' | 'NO'
+
+export const FEEDBACK_USEFULNESS_LABELS: Record<FeedbackUsefulness, string> = {
+  VERY_USEFUL: 'Very Useful',
+  USEFUL: 'Useful',
+  PARTIALLY_USEFUL: 'Partially Useful',
+  NOT_USEFUL: 'Not Useful',
+}
+
+export const FEEDBACK_EVIDENCE_SUFFICIENCY_LABELS: Record<FeedbackEvidenceSufficiency, string> = {
+  SUFFICIENT: 'Sufficient',
+  PARTIALLY_SUFFICIENT: 'Partially Sufficient',
+  INSUFFICIENT: 'Insufficient',
+}
+
+export const FEEDBACK_YES_PARTIALLY_NO_LABELS: Record<FeedbackYesPartiallyNo, string> = {
+  YES: 'Yes',
+  PARTIALLY: 'Partially',
+  NO: 'No',
+}
+
+export const FEEDBACK_YES_NO_LABELS: Record<FeedbackYesNo, string> = { YES: 'Yes', NO: 'No' }
+
+/** The one `GET/PATCH .../investigation/feedback/` payload shape.
+ *  `submitted: false` is structurally distinct from any real choice —
+ *  "missing" is never coerced into "not useful" (task §23). */
+export interface SimulationFeedbackState {
+  submitted: boolean
+  usefulness: FeedbackUsefulness | ''
+  evidence_sufficiency: FeedbackEvidenceSufficiency | ''
+  recommendation_helpful: FeedbackYesPartiallyNo | ''
+  additional_verification_required: FeedbackYesNo | ''
+  comment: string
+  officer: string | null
+  updated_at: string | null
+}
+
+/** A `{numerator, denominator, percentage, limited_sample}` ratio — every
+ *  monitoring percentage carries its own denominator and a limited-sample
+ *  flag (task §22), never a bare number. */
+export interface MonitoringRatio {
+  numerator: number
+  denominator: number
+  percentage: number | null
+  limited_sample: boolean
+}
+
+export interface MonitoringSourceRelationship {
+  source: string
+  SUPPORTING: number
+  CONFLICTING: number
+  INSUFFICIENT: number
+}
+
+export interface MonitoringDecisionAlignment {
+  aligned: number
+  differed: number
+  no_suggestion: number
+  total: number
+}
+
+/** The one `GET /api/simulation/monitoring/` payload shape — entirely
+ *  backend-aggregated (task §33), village-scoped, never a raw-record dump
+ *  the frontend would have to count itself. */
+export interface SimulationMonitoringReport {
+  scope: { village_code: string; village_name: string }
+  sessions: { total: number; completed: number }
+  investigations: {
+    started: number
+    decisions_recorded: number
+    decision_rate: MonitoringRatio
+  }
+  feedback: {
+    submitted: number
+    response_rate: MonitoringRatio
+    usefulness: Record<FeedbackUsefulness, MonitoringRatio>
+    evidence_sufficiency: Record<FeedbackEvidenceSufficiency, MonitoringRatio>
+    recommendation_helpful: Record<FeedbackYesPartiallyNo, MonitoringRatio>
+    additional_verification_required: Record<FeedbackYesNo, MonitoringRatio>
+  }
+  evidence: { STRONG: number; MODERATE: number; WEAK: number; total: number }
+  safety: { PASS: number; INSUFFICIENT: number; BLOCK: number; total: number }
+  decisions: Record<InvestigationDecisionValue, number>
+  source_relationships: MonitoringSourceRelationship[]
+  missing_data_occurrences: number
+  decision_alignment: MonitoringDecisionAlignment
+  recent_activity: Array<{
+    timestamp: string
+    event_type: string
+    actor: string
+    investigation_id: number
+  }>
+  quality_observations: string[]
 }

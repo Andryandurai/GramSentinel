@@ -33,16 +33,6 @@ class IsHealthOfficer(BasePermission):
         )
 
 
-class IsPatient(BasePermission):
-    message = "This endpoint is restricted to patients."
-
-    def has_permission(self, request, view):
-        user = request.user
-        return bool(
-            user and user.is_authenticated and user.role == User.Role.PATIENT
-        )
-
-
 class IsPlatformAdmin(BasePermission):
     """Platform-level administrator.
 

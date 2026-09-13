@@ -37,3 +37,23 @@ class IsScenarioInOfficerVillage(BasePermission):
         if village_id is None:
             return True
         return obj.village_id == village_id
+
+
+class SessionBelongsToOfficerVillage(BasePermission):
+    """Object-level guard for a single `SimulationSession` — the Phase 3
+    counterpart to `IsScenarioInOfficerVillage` above, same shape, same
+    deliberate HTTP 403 (not 404) on mismatch (Phase 3 task §5).
+
+    This is one of two independent village checks for session access — the
+    other lives in `simulation.services.SimulationEngine` itself. Neither
+    depends on the other; either one alone is enough to block a
+    cross-village request.
+    """
+
+    message = "This simulation session is outside your authorized village."
+
+    def has_object_permission(self, request, view, obj) -> bool:
+        village_id = scoped_village_id(request.user)
+        if village_id is None:
+            return True
+        return obj.village_id == village_id

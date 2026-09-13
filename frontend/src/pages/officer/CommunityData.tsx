@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 
 import { Card, Empty, ErrorNote, Loading, Stat } from '@/components/ui'
+import { RealWorldCommunityProfile } from '@/components/RealWorldCommunityProfile'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import type {
@@ -149,6 +150,8 @@ export default function CommunityDataPage() {
   return (
     <div className="space-y-6">
       {header}
+
+      <RealWorldCommunityProfile profile={data.scope.real_world_profile} />
 
       <p className="text-sm text-ink-600">
         Reported {period.current.start} to {period.current.end}, compared with

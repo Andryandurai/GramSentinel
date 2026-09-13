@@ -60,8 +60,6 @@ export const homeRouteFor = (user: User | null): string => {
   switch (user.role) {
     case 'HEALTH_OFFICER':
       return '/officer/dashboard'
-    case 'PATIENT':
-      return '/patient/dashboard'
     // An administrator still has access to the officer and worker portals
     // (see RequireRole's allowAdmin); the platform overview is simply the
     // more useful landing page now that it exists.

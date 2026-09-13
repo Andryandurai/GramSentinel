@@ -27,6 +27,7 @@ from core.constants import (
     REPORTABLE_CATEGORIES,
     SYSTEM_CATEGORIES,
     SignalCategory,
+    real_world_village_profile,
 )
 from core.trends import (
     DECREASING,
@@ -114,6 +115,7 @@ class OfficerDashboardView(APIView):
                     "village_name": (
                         request.user.village.name if request.user.village else None
                     ),
+                    "real_world_profile": real_world_village_profile(request.user.village),
                     "is_district_wide": scoped_village_id(request.user) is None,
                 },
                 "new_reports": unread_reports,
@@ -572,6 +574,7 @@ class OfficerCommunityDataView(APIView):
                     "village_name": (
                         request.user.village.name if request.user.village else None
                     ),
+                    "real_world_profile": real_world_village_profile(request.user.village),
                     "is_district_wide": scoped_village_id(request.user) is None,
                 },
                 "period": {

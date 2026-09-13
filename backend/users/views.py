@@ -18,8 +18,8 @@ from .serializers import (
     UserSerializer,
 )
 
-#: Roles that have a professional profile. Patients are deliberately excluded:
-#: the patient portal is a personal health record, not a staff directory.
+#: Roles that have a professional profile — the two staff-facing roles the
+#: application has (there is no separate patient role/portal to exclude).
 STAFF_ROLES = (User.Role.CHW_PHC_WORKER, User.Role.HEALTH_OFFICER)
 
 PHOTO_LIMITS = {

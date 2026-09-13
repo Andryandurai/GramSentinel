@@ -15,16 +15,34 @@ Shape of the scenario:
   Kovilur (Village Cluster A)      -> four independent sources rising, plus a
                                       lab confirmation and heavy rainfall.
                                       Expected: PASS, HIGH severity.
-  Ariyanur (Village Cluster A)     -> one source rising only.
+  Manikkampatti (Village Cluster A) -> one source rising only.
                                       Expected: DOWNGRADE, no high-priority
                                       alert. This is the negative control that
                                       shows the corroboration rule working.
 
-Two demonstration villages only (Village A / Kovilur, Village B / Ariyanur).
-A third village (Melur, "Village C") was part of an earlier iteration of this
-demo and has been deliberately removed — see git history for the record of
-what it looked like. Nothing here prevents the platform itself from serving
-more villages; this module just no longer seeds one.
+Two demonstration villages only (Village A / Kovilur, Village B /
+Manikkampatti). A third village (Melur, "Village C") was part of an earlier
+iteration of this demo and has been deliberately removed — see git history
+for the record of what it looked like. Nothing here prevents the platform
+itself from serving more villages; this module just no longer seeds one.
+
+NOTE ON NAMING: the removed "Village C" was itself once named "Melur" — an
+unrelated coincidence with Manikkampatti's real Melur *Taluk* below. Nothing
+here reintroduces a village called Melur; "Melur" only ever appears as the
+`taluk` value on the Manikkampatti village record.
+
+Village B / "ARY" carries a real-world community profile (population,
+households, area, healthcare-access context) researched for Manikkampatti,
+Melur Taluk, Madurai District, Tamil Nadu — this is the ONE place that
+research is transcribed into seed data. It is demographic/geographic
+CONTEXT only: `real_world_profile=True` and the fields below it are real
+research, never synthetic. `cluster`/`block` and every operational
+health-signal value elsewhere in this module (HISTORY, PATIENTS,
+SEED_ENCOUNTERS, ...) remain exactly what they always were — synthetic
+demonstration data for exercising GramSentinel's pipeline — and are not,
+and have never been, a claim about Manikkampatti's actual health
+statistics. See `_seed_villages()` in `seed_demo.py` for how the two are
+written to two structurally different sets of fields on the same row.
 """
 
 from __future__ import annotations
@@ -45,11 +63,32 @@ VILLAGES: list[dict[str, Any]] = [
     },
     {
         "code": "ARY",
-        "name": "Ariyanur",
+        # Real-world identity (researched, not synthetic) — see the module
+        # docstring's "NOTE ON NAMING" and "Village B" paragraphs above.
+        "name": "Manikkampatti",
         "cluster": CLUSTER_A,
-        "block": "Thiruvannamalai North",
-        "district": "Thiruvannamalai",
-        "population": 2600,
+        "block": "Melur",
+        "district": "Madurai",
+        "population": 676,
+        "real_world_profile": True,
+        "state": "Tamil Nadu",
+        "taluk": "Melur",
+        "pin_code": "625122",
+        "census_village_code": "640545",
+        "households": 188,
+        "male_population": 349,
+        "female_population": 327,
+        "children_0_6": 84,
+        "area_hectares": "222.82",
+        "demographic_baseline_year": 2011,
+        #: Provenance-aware: the exact researched value, or "Not reported"
+        #: when our research did not establish reliable village-level
+        #: evidence — never "does not exist" (see module docstring).
+        "asha_chw_status": "Available",
+        "nearby_government_phc_status": "Yes",
+        "health_sub_centre_status": "Not reported",
+        "phc_inside_village_status": "Not reported",
+        "chc_inside_village_status": "Not reported",
     },
 ]
 
@@ -58,9 +97,9 @@ FACILITIES: list[dict[str, Any]] = [
     {"code": "PHR-KVL", "name": "Kovilur Medical Store", "kind": "PHARMACY", "village": "KVL"},
     {"code": "SCH-KVL", "name": "Kovilur Panchayat School", "kind": "SCHOOL", "village": "KVL"},
     {"code": "LAB-KVL", "name": "Block Laboratory (Kovilur catchment)", "kind": "LAB", "village": "KVL"},
-    {"code": "PHC-ARY", "name": "Ariyanur PHC", "kind": "PHC", "village": "ARY"},
-    {"code": "PHR-ARY", "name": "Ariyanur Medical Store", "kind": "PHARMACY", "village": "ARY"},
-    {"code": "SCH-ARY", "name": "Ariyanur Middle School", "kind": "SCHOOL", "village": "ARY"},
+    {"code": "PHC-ARY", "name": "Manikkampatti PHC", "kind": "PHC", "village": "ARY"},
+    {"code": "PHR-ARY", "name": "Manikkampatti Medical Store", "kind": "PHARMACY", "village": "ARY"},
+    {"code": "SCH-ARY", "name": "Manikkampatti Middle School", "kind": "SCHOOL", "village": "ARY"},
 ]
 
 #: (code, name, kind, channel, village) — `channel` records how the source
@@ -73,12 +112,12 @@ DATA_SOURCES: list[dict[str, Any]] = [
     {"code": "SCH-SIG-KVL", "name": "Kovilur school absenteeism", "kind": "SCHOOL", "channel": "PORTAL", "village": "KVL", "facility": "SCH-KVL"},
     {"code": "WTH-SIG-KVL", "name": "Rainfall feed — Kovilur", "kind": "WEATHER", "channel": "PUBLIC_FEED", "village": "KVL"},
     {"code": "LAB-SIG-KVL", "name": "Block laboratory confirmations", "kind": "LAB", "channel": "API", "village": "KVL", "facility": "LAB-KVL"},
-    # Ariyanur — single-source control
-    {"code": "CHW-ARY", "name": "CHW reports — Ariyanur", "kind": "CHW", "channel": "PORTAL", "village": "ARY"},
-    {"code": "PHC-SIG-ARY", "name": "Ariyanur PHC aggregate trends", "kind": "PHC", "channel": "API", "village": "ARY", "facility": "PHC-ARY"},
-    {"code": "PHR-SIG-ARY", "name": "Ariyanur pharmacy category trends", "kind": "PHARMACY", "channel": "EXPORT", "village": "ARY", "facility": "PHR-ARY"},
-    {"code": "SCH-SIG-ARY", "name": "Ariyanur school absenteeism", "kind": "SCHOOL", "channel": "PORTAL", "village": "ARY", "facility": "SCH-ARY"},
-    {"code": "WTH-SIG-ARY", "name": "Rainfall feed — Ariyanur", "kind": "WEATHER", "channel": "PUBLIC_FEED", "village": "ARY"},
+    # Manikkampatti — single-source control
+    {"code": "CHW-ARY", "name": "CHW reports — Manikkampatti", "kind": "CHW", "channel": "PORTAL", "village": "ARY"},
+    {"code": "PHC-SIG-ARY", "name": "Manikkampatti PHC aggregate trends", "kind": "PHC", "channel": "API", "village": "ARY", "facility": "PHC-ARY"},
+    {"code": "PHR-SIG-ARY", "name": "Manikkampatti pharmacy category trends", "kind": "PHARMACY", "channel": "EXPORT", "village": "ARY", "facility": "PHR-ARY"},
+    {"code": "SCH-SIG-ARY", "name": "Manikkampatti school absenteeism", "kind": "SCHOOL", "channel": "PORTAL", "village": "ARY", "facility": "SCH-ARY"},
+    {"code": "WTH-SIG-ARY", "name": "Rainfall feed — Manikkampatti", "kind": "WEATHER", "channel": "PUBLIC_FEED", "village": "ARY"},
 ]
 
 #: Historical weeks that establish each source's own baseline, then the
@@ -120,7 +159,7 @@ HISTORY: dict[str, list[dict[str, Any]]] = {
         {"weeks_ago": 1, "chw": 5, "phc": 19, "pharmacy": 202, "school": 6.0, "weather": 130, "lab": 0},
         {"weeks_ago": 0, "chw": 14, "phc": 31, "pharmacy": 310, "school": 14.0, "weather": 240, "lab": 1},
     ],
-    # Ariyanur: only the pharmacy moves at week 0. One source cannot carry an
+    # Manikkampatti: only the pharmacy moves at week 0. One source cannot carry an
     # alert. Week weeks_ago=2 (2026-W35) plants the opposite demonstration:
     # PHC alone rises while CHW, PHARMACY and SCHOOL stay flat — a clean
     # single-source-disagrees-with-everything scenario for Evidence
@@ -181,7 +220,7 @@ SEED_FOLLOWUPS: list[dict[str, Any]] = [
      "notes": "Older adult, fever for five days. Home visit planned."},
     {"patient": "KVL-P-008", "days": -8, "status": "COMPLETED",
      "notes": "Diarrhoea settled. Oral fluids advised; no further concern."},
-    # --- Village B — Ariyanur ------------------------------------------
+    # --- Village B — Manikkampatti ---------------------------------------
     {"patient": "ARY-P-002", "days": -1, "status": "PENDING",
      "notes": "Cough persisting beyond a week. Review and consider PHC referral."},
     {"patient": "ARY-P-001", "days": 1, "status": "PENDING",
@@ -236,7 +275,7 @@ SEED_HISTORY_ENCOUNTERS: list[dict[str, Any]] = [
     {"patient": "KVL-P-006", "symptoms": ["fever", "fatigue"], "duration_days": 2, "temperature_c": 37.9, "weeks_ago": 1, "day_offset": 3},
     {"patient": "KVL-P-007", "symptoms": ["cough"], "duration_days": 4, "weeks_ago": 1, "day_offset": 2},
     {"patient": "KVL-P-004", "symptoms": ["diarrhoea", "abdominal_pain"], "duration_days": 2, "weeks_ago": 1, "day_offset": 5},
-    # --- Ariyanur: 1 fever-related, 1 respiratory each week ----------------
+    # --- Manikkampatti: 1 fever-related, 1 respiratory each week -----------
     {"patient": "ARY-P-001", "symptoms": ["fever"], "duration_days": 2, "temperature_c": 38.0, "weeks_ago": 2, "day_offset": 2},
     {"patient": "ARY-P-002", "symptoms": ["cough", "sore_throat"], "duration_days": 3, "weeks_ago": 2, "day_offset": 4},
     {"patient": "ARY-P-002", "symptoms": ["fever", "body_pain"], "duration_days": 2, "temperature_c": 38.3, "weeks_ago": 1, "day_offset": 2},
@@ -283,12 +322,12 @@ DEMO_USERS: list[dict[str, Any]] = [
         "qualification": "MBBS, MD (Community Medicine)",
         "experience_years": 12,
     },
-    # --- Village B — Ariyanur ------------------------------------------
+    # --- Village B — Manikkampatti ---------------------------------------
     {
         "username": "worker.b",
         "password": "demo1234",
         "role": "CHW_PHC_WORKER",
-        "full_name": "R. Suresh (PHC, Ariyanur)",
+        "full_name": "R. Suresh (PHC, Manikkampatti)",
         "village": "ARY",
         "facility": "PHC-ARY",
         "email": "suresh.phc@example.invalid",
@@ -301,9 +340,9 @@ DEMO_USERS: list[dict[str, Any]] = [
         "username": "officer.b",
         "password": "demo1234",
         "role": "HEALTH_OFFICER",
-        "full_name": "Dr. S. Lakshmi (Health Officer, Ariyanur)",
+        "full_name": "Dr. S. Lakshmi (Health Officer, Manikkampatti)",
         "village": "ARY",
-        "district": "Thiruvannamalai",
+        "district": "Madurai",
         "email": "lakshmi.pho@example.invalid",
         "phone_number": "+91 99999 20002",
         "staff_id": "HO-ARY-003",
@@ -340,17 +379,6 @@ DEMO_USERS: list[dict[str, Any]] = [
         "experience_years": 12,
     },
     {
-        "username": "patient",
-        "password": "demo1234",
-        "role": "PATIENT",
-        "full_name": "Demo Patient 001",
-        "village": "KVL",
-        # Linked to a synthetic patient record so the portal has something to
-        # show. The patient sees only this record — never another patient,
-        # never community alerts, never agent reasoning.
-        "linked_patient": "KVL-P-001",
-    },
-    {
         "username": "admin",
         "password": "demo1234",
         "role": "ADMIN",
@@ -361,13 +389,16 @@ DEMO_USERS: list[dict[str, Any]] = [
 ]
 
 #: Accounts surfaced on the login screen: two villages × (worker + officer),
-#: plus the preserved patient and administrator logins.
+#: plus the preserved administrator login. There is no Patient Portal login
+#: — the individual layer (`Patient`, `PatientAssessment`, ...) is RuralCare
+#: domain data used by the Health Worker workflow, not a separate
+#: authenticated portal (see `users.models.User.Role`, which has no PATIENT
+#: value).
 PRIMARY_DEMO_USERNAMES = (
     "worker.a",
     "officer.a",
     "worker.b",
     "officer.b",
-    "patient",
     "admin",
 )
 
@@ -415,9 +446,9 @@ VILLAGE_REPORT_ENTRIES: dict[str, list[dict[str, Any]]] = {
 #: Each village tells a different story on purpose — identical trends would
 #: make the per-village dashboards impossible to tell apart:
 #:
-#:   Village A (Kovilur)  fever climbs steadily across the weeks
-#:   Village B (Ariyanur) respiratory holds steady with one temporary spike;
-#:                        a skin/eye concern emerges late
+#:   Village A (Kovilur)       fever climbs steadily across the weeks
+#:   Village B (Manikkampatti) respiratory holds steady with one temporary
+#:                             spike; a skin/eye concern emerges late
 #:
 #: `weeks_ago = 0` is the current week.
 HISTORICAL_REPORTS: dict[str, list[dict[str, Any]]] = {

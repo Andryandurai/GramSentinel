@@ -126,10 +126,6 @@ export function TriageSupportPanel({ support }: { support: Support }) {
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-red-700">
-              This escalation is applied by a fixed rule and cannot be
-              overridden by the AI.
-            </p>
           </>
         ) : (
           <p className="mt-1.5 text-sm text-ink-700">

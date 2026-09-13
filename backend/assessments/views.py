@@ -23,7 +23,7 @@ from rest_framework.views import APIView
 from agents.orchestration import RuralCareOrchestrator
 from community.aggregation import aggregate_village_week, week_label_for
 from config.exceptions import AgentFailure
-from core.constants import DATA_NOTICE, MEDICAL_DISCLAIMER
+from core.constants import DATA_NOTICE, MEDICAL_DISCLAIMER, real_world_village_profile
 from patients.models import Patient
 from users.permissions import IsWorker
 
@@ -382,6 +382,7 @@ class WorkerDashboardView(APIView):
                         "code": village.code,
                         "name": village.name,
                         "cluster": village.cluster,
+                        "real_world_profile": real_world_village_profile(village),
                     }
                     if village
                     else None

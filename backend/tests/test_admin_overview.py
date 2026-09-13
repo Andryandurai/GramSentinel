@@ -33,12 +33,16 @@ def areas(db):
     demo-removal task: the architecture must keep supporting more villages
     even though the demo data no longer does).
 
-    "MLR"/"Village C" here has no relationship to the old demo's Village C
-    account (`worker.c`/`officer.c`, now removed) — it is a fresh row in
-    this test's own transaction, named "Village C" directly (not through
-    `core.constants.DEMO_VILLAGE_LABELS`, which no longer has an "MLR"
-    entry) purely so this file's existing "Village C" assertions keep
-    reading naturally.
+    "ARY"/"Village B" and "MLR"/"Village C" are both named directly here
+    (not through `core.constants.DEMO_VILLAGE_LABELS`, which now has
+    neither an "ARY" nor an "MLR" entry — "ARY" lost its override when the
+    real seed's own Village B became Manikkampatti, a real village with its
+    own real name, so the production label map no longer needs to invent
+    one). This fixture is a fresh row in this test's own isolated
+    transaction, unrelated to the real seed's Manikkampatti village or the
+    old demo's removed Village C account (`worker.c`/`officer.c`) — purely
+    so this file's own generic "does cross-village aggregation scale past
+    two villages" assertions keep reading naturally with plain labels.
     """
 
     return {
@@ -47,7 +51,7 @@ def areas(db):
         )
         for code, name, cluster in (
             ("KVL", "Kovilur", "Village Cluster A"),
-            ("ARY", "Ariyanur", "Village Cluster A"),
+            ("ARY", "Village B", "Village Cluster A"),
             ("MLR", "Village C", "Village Cluster B"),
         )
     }
@@ -141,7 +145,7 @@ def test_overview_requires_authentication():
 
 
 @pytest.mark.parametrize(
-    "role", [User.Role.CHW_PHC_WORKER, User.Role.HEALTH_OFFICER, User.Role.PATIENT]
+    "role", [User.Role.CHW_PHC_WORKER, User.Role.HEALTH_OFFICER]
 )
 def test_non_admin_roles_cannot_read_the_overview(db, areas, role):
     user = User.objects.create_user(

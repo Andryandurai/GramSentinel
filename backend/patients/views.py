@@ -2,20 +2,14 @@ from django.db.models import Count
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from assessments import followups as followup_rules
 from assessments.models import FollowUp
 from assessments.serializers import FollowUpSerializer, PatientAssessmentSerializer
-from core.constants import MEDICAL_DISCLAIMER
-from users.permissions import IsPatient, IsWorker
+from users.permissions import IsWorker
 
 from .models import Patient
-from .serializers import (
-    PatientCreateSerializer,
-    PatientSerializer,
-    PatientSelfAssessmentSerializer,
-)
+from .serializers import PatientCreateSerializer, PatientSerializer
 
 
 class PatientListCreateView(generics.ListCreateAPIView):
@@ -112,74 +106,5 @@ class PatientDetailView(generics.RetrieveAPIView):
                     ),
                     "empty_message": "No follow-ups recorded for this patient.",
                 },
-            }
-        )
-
-
-class PatientPortalView(APIView):
-    """The optional, secondary patient portal.
-
-    A patient sees only their own records, follow-ups and general guidance.
-    Everything else is structurally out of reach: this view resolves the
-    patient from `request.user.patient_profile` and never accepts an id, so
-    there is no parameter to tamper with. It exposes no community alert, no
-    other patient, no surveillance data and no internal agent reasoning.
-    """
-
-    permission_classes = (IsPatient,)
-
-    def get(self, request):
-        patient = getattr(request.user, "patient_profile", None)
-        if patient is None:
-            return Response(
-                {
-                    "detail": (
-                        "No patient record is linked to this account. Ask your "
-                        "health worker to link it."
-                    )
-                },
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        assessments = (
-            patient.assessments.filter(is_draft=False)
-            .order_by("-encounter_date", "-created_at")[:20]
-        )
-        followups = patient.followups.filter(
-            status=FollowUp.Status.PENDING
-        ).order_by("due_date")
-
-        return Response(
-            {
-                "patient": {
-                    "patient_code": patient.patient_code,
-                    "display_name": patient.display_name,
-                    "age_years": patient.age_years,
-                    "village_name": patient.village.name,
-                },
-                "records": PatientSelfAssessmentSerializer(
-                    assessments, many=True
-                ).data,
-                "followups": [
-                    {
-                        "id": f.id,
-                        "due_date": f.due_date,
-                        "status": f.status,
-                        "notes": f.notes,
-                    }
-                    for f in followups
-                ],
-                "guidance": [
-                    "Attend any follow-up visit your health worker has scheduled.",
-                    "Return sooner if symptoms worsen or new symptoms appear.",
-                    "Keep taking fluids and rest while you are unwell.",
-                    "This system does not replace a doctor. For anything urgent, "
-                    "contact your PHC or health worker directly.",
-                ],
-                "scope_note": (
-                    "You are seeing only your own health information. Community "
-                    "monitoring is handled separately by district health staff."
-                ),
-                "disclaimer": MEDICAL_DISCLAIMER,
             }
         )

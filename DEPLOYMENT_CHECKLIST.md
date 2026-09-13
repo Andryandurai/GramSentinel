@@ -101,8 +101,6 @@ quick pre-flight/post-flight list.
       data
 - [ ] `officer.a` / `demo1234` logs in, Officer Portal + Community Data +
       Alerts all load
-- [ ] `patient` / `demo1234` logs in, Patient Portal loads, shows only
-      that patient's own data
 - [ ] `admin` / `demo1234` logs in, Admin Portal loads with the
       platform-wide overview and village filter
 - [ ] Submitting a new assessment shows triage support, agent handoffs,

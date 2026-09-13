@@ -1,7 +1,5 @@
 from rest_framework import serializers
 
-from assessments.models import PatientAssessment
-
 from .models import Patient
 
 
@@ -26,28 +24,6 @@ class PatientSerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = ("id", "created_at")
-
-
-class PatientSelfAssessmentSerializer(serializers.ModelSerializer):
-    """What a patient may see of their own encounter.
-
-    Deliberately narrower than the worker view: no triage score, no agent
-    trace, no internal reasoning, no red-flag rule internals. A plain-language
-    outcome and what to do next.
-    """
-
-    class Meta:
-        model = PatientAssessment
-        fields = (
-            "id",
-            "encounter_date",
-            "symptoms",
-            "duration_days",
-            "triage_level",
-            "referral_recommendation",
-            "followup_interval_days",
-        )
-        read_only_fields = fields
 
 
 class PatientCreateSerializer(serializers.ModelSerializer):

@@ -19,6 +19,8 @@ import {
   SeverityPill,
   Stat,
 } from '@/components/ui'
+import { CommunityMap } from '@/components/CommunityMap'
+import { RealWorldCommunityProfile } from '@/components/RealWorldCommunityProfile'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import type { OfficerDashboard, TrendDirection } from '@/types'
@@ -80,6 +82,9 @@ export default function OfficerDashboardPage() {
           <span className="ml-auto text-sm text-sentinel-700">Review →</span>
         </Link>
       )}
+
+      <RealWorldCommunityProfile profile={data.scope?.real_world_profile ?? null} />
+      <CommunityMap profile={data.scope?.real_world_profile ?? null} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Stat

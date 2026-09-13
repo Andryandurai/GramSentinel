@@ -74,9 +74,7 @@ export function SafetyPanel({
       ) : null}
 
       <p className="text-xs text-ink-400 border-t border-ink-200 pt-3">
-        The safety engine is ordinary Python running after all AI reasoning. No
-        prompt or model output can bypass, disable or soften a rule. Human
-        review is required regardless of the verdict.
+        Human review is required regardless of the verdict.
       </p>
     </div>
   )

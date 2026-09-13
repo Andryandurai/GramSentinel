@@ -20,6 +20,7 @@ import {
   SeverityPill,
   Stat,
 } from '@/components/ui'
+import { RealWorldCommunityProfile } from '@/components/RealWorldCommunityProfile'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import type { AdminOverview } from '@/types'
@@ -167,6 +168,10 @@ export default function AdminDashboard() {
           </span>
         )}
       </div>
+
+      {!isAll && (
+        <RealWorldCommunityProfile profile={data.scope.village?.real_world_profile ?? null} />
+      )}
 
       {data.is_empty ? (
         <Card title="No activity">

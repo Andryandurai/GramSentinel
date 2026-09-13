@@ -14,8 +14,8 @@ const AREAS = [
     ],
   },
   {
-    area: 'Village B',
-    place: 'Ariyanur',
+    area: 'Manikkampatti',
+    place: 'Melur, Madurai, Tamil Nadu',
     accounts: [
       { username: 'worker.b', role: 'CHW / PHC Worker' },
       { username: 'officer.b', role: 'Health Officer' },
@@ -23,10 +23,7 @@ const AREAS = [
   },
 ]
 
-const OTHER_ACCOUNTS = [
-  { username: 'patient', role: 'Patient' },
-  { username: 'admin', role: 'Administrator' },
-]
+const OTHER_ACCOUNTS = [{ username: 'admin', role: 'Administrator' }]
 
 const DEMO_PASSWORD = 'demo1234'
 

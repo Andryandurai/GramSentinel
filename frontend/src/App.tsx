@@ -5,7 +5,6 @@ import { Loading } from '@/components/ui'
 import {
   ADMIN_NAV,
   OFFICER_NAV,
-  PATIENT_NAV,
   PortalLayout,
   WORKER_NAV,
 } from '@/layouts/PortalLayout'
@@ -18,9 +17,10 @@ import CommunityDataPage from '@/pages/officer/CommunityData'
 import OfficerCommunityReports from '@/pages/officer/CommunityReports'
 import OfficerDashboardPage from '@/pages/officer/Dashboard'
 import EvidenceView from '@/pages/officer/EvidenceView'
+import InvestigationNotebookPage from '@/pages/officer/InvestigationNotebook'
 import SimulationLabPage from '@/pages/officer/SimulationLab'
+import SimulationMonitoringPage from '@/pages/officer/SimulationMonitoring'
 import OfficerTeamPage from '@/pages/officer/Team'
-import PatientDashboard from '@/pages/patient/Dashboard'
 import CommunityReportPage from '@/pages/worker/CommunityReport'
 import WorkerDashboardPage from '@/pages/worker/Dashboard'
 import LocalSignalsPage from '@/pages/worker/LocalSignals'
@@ -40,8 +40,9 @@ function RequireRole({
   children,
 }: {
   roles: Role[]
-  /** The patient portal is scoped to one person's own record, so an
-   *  administrator is redirected away rather than shown an empty 403. */
+  /** Set false for a route scoped to one person's own record, where an
+   *  administrator should be redirected away rather than shown an empty
+   *  view for someone else's account. */
   allowAdmin?: boolean
   children: React.ReactNode
 }) {
@@ -129,9 +130,39 @@ export default function App() {
           element={<OfficerCommunityReports />}
         />
         <Route path="/officer/history" element={<AlertHistory />} />
-        <Route path="/officer/simulation" element={<SimulationLabPage />} />
         <Route path="/officer/team" element={<OfficerTeamPage />} />
         <Route path="/officer/profile" element={<MyProfilePage />} />
+      </Route>
+
+      {/* GramSentinel — Simulation Lab and its sub-pages. Same portal, own
+          layout instance: the Simulation workspace already labels itself
+          as synthetic throughout (SyntheticBadge, per-panel disclaimers),
+          so the long shared footer disclaimer is redundant here — the same
+          "already carries its own inline disclaimer" reasoning
+          `hideFooterDisclaimer` already documents for the Worker portal.
+          `wide` widens the shell for this sub-tree's own three-column
+          workspace — every other officer route below keeps the standard
+          `max-w-7xl` container unchanged. */}
+      <Route
+        element={
+          <RequireRole roles={['HEALTH_OFFICER']}>
+            <PortalLayout
+              portal="Community Intelligence"
+              subtitle="Community early warning · Officer Portal"
+              accent="sentinel"
+              nav={OFFICER_NAV}
+              hideFooterDisclaimer
+              wide
+            />
+          </RequireRole>
+        }
+      >
+        <Route path="/officer/simulation" element={<SimulationLabPage />} />
+        <Route
+          path="/officer/simulation/investigation/:sessionId"
+          element={<InvestigationNotebookPage />}
+        />
+        <Route path="/officer/simulation/monitoring" element={<SimulationMonitoringPage />} />
       </Route>
 
       {/* Administrator — platform-level view across all villages. */}
@@ -148,22 +179,6 @@ export default function App() {
         }
       >
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
-      </Route>
-
-      {/* Patient — optional, secondary module. Own records only. */}
-      <Route
-        element={
-          <RequireRole roles={['PATIENT']} allowAdmin={false}>
-            <PortalLayout
-              portal="My Health"
-              subtitle="Your own records · Patient Portal"
-              accent="care"
-              nav={PATIENT_NAV}
-            />
-          </RequireRole>
-        }
-      >
-        <Route path="/patient/dashboard" element={<PatientDashboard />} />
       </Route>
 
       <Route path="*" element={<Navigate to={homeRouteFor(user)} replace />} />

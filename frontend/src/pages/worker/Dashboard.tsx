@@ -10,6 +10,8 @@ import {
   Stat,
   TriagePill,
 } from '@/components/ui'
+import { CommunityMap } from '@/components/CommunityMap'
+import { RealWorldCommunityProfile } from '@/components/RealWorldCommunityProfile'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import type { SymptomSummary, WorkerDashboard } from '@/types'
@@ -206,6 +208,9 @@ export default function WorkerDashboardPage() {
           {period.empty_message || 'No activity recorded for this week.'}
         </p>
       )}
+
+      <RealWorldCommunityProfile profile={data.village?.real_world_profile ?? null} />
+      <CommunityMap profile={data.village?.real_world_profile ?? null} />
 
       {allWeeks ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

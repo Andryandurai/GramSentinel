@@ -61,13 +61,12 @@ Two areas, each with its own worker and officer:
 | Area | Village | Worker | Health Officer |
 |------|---------|--------|----------------|
 | **Village A** | Kovilur | `worker.a` | `officer.a` |
-| **Village B** | Ariyanur | `worker.b` | `officer.b` |
+| **Village B** | Manikkampatti (Melur, Madurai, Tamil Nadu) | `worker.b` | `officer.b` |
 
 Plus:
 
 | Username | Role | Scope |
 |----------|------|-------|
-| `patient` | Patient | Own record only |
 | `admin` | Administrator | All villages + Django admin at `/admin/` |
 | `worker` | CHW (original account, preserved) | Kovilur |
 | `officer` | Health Officer (original account, preserved) | District-wide |
@@ -223,11 +222,11 @@ The anomaly arithmetic is genuine; only the inputs are fixed.
 | Village | Cluster | What happens | Expected result |
 |---------|---------|--------------|-----------------|
 | **Kovilur** | A | CHW +180%, PHC +63%, pharmacy +55%, school +8pp, 1 lab confirmation, heavy rainfall | **PASS · HIGH** · 5 corroborating sources |
-| **Ariyanur** | A | Pharmacy rises alone | **DOWNGRADE · LOW** — one source cannot carry an alert |
+| **Manikkampatti** | A | Pharmacy rises alone | **DOWNGRADE · LOW** — one source cannot carry an alert |
 
 The second row matters as much as the first: it is the negative control that
 shows the corroboration rule actually doing something (a single moving
-source cannot, on its own, carry a high-priority alert). Ariyanur's school
+source cannot, on its own, carry a high-priority alert). Manikkampatti's school
 also did not submit data for the earliest seeded week (2026-W31), which is
 where "missing data is shown as missing, never as zero" is visible in this
 two-village demo.
@@ -245,7 +244,7 @@ count crossed into community monitoring.
 CONCERNING; the red-flag rule set forces URGENT and says so on screen.
 
 **Person 2 — Health Officer.** Sign in as `officer` → Dashboard shows the
-Kovilur alert (HIGH, safety PASS, 5 sources) and the Ariyanur one (LOW,
+Kovilur alert (HIGH, safety PASS, 5 sources) and the Manikkampatti one (LOW,
 DOWNGRADE, 1 source) → open the alert → **Evidence view**: six source cards
 side by side, the Cross-Level verdict, all eight safety rules with pass/fail and
 the reason for each, and the nine recorded agent invocations → **Mark under

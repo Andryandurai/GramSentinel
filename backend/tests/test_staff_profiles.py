@@ -193,16 +193,6 @@ def test_the_profile_endpoint_cannot_change_credentials_or_assignment(
     assert worker.check_password("demo1234")
 
 
-def test_a_patient_has_no_staff_profile_endpoint(api, db, village):
-    patient_user = User.objects.create_user(
-        username="patient", password="demo1234", role=User.Role.PATIENT, village=village
-    )
-    api.force_authenticate(user=patient_user)
-
-    assert api.get(PROFILE).status_code == 403
-    assert api.get(DIRECTORY).status_code == 403
-
-
 # ---------------------------------------------------------------------------
 # Visibility
 # ---------------------------------------------------------------------------

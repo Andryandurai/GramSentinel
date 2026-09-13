@@ -21,6 +21,10 @@ whitenoise==6.7.0
 dj-database-url==2.2.0
 psycopg[binary]==3.2.3
 
+# Investigation report export (Phase 9) — deterministic PDF generation,
+# pure Python, no headless browser / system binary dependency.
+reportlab==4.2.2
+
 # Testing
 pytest==8.2.2
 pytest-django==4.8.0

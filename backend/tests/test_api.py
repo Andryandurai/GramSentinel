@@ -455,114 +455,17 @@ def test_feedback_rejects_an_unknown_outcome(officer_api, village, sources):
 
 
 # ---------------------------------------------------------------------------
-# Patient portal — optional, secondary, and strictly self-scoped
+# The Patient Portal (a separate, patient-facing login and dashboard) has
+# been removed from the application — see `users.models.User.Role` (no
+# PATIENT value) and `patients/urls.py` (no `patient/me/` route). The
+# RuralCare domain `Patient`/`PatientAssessment` records the tests above
+# already exercise are unaffected: they are Health Worker workflow data,
+# never a second authenticated role. `test_old_patient_portal_endpoint_is_gone`
+# below is the regression test confirming the removed route stays removed.
 # ---------------------------------------------------------------------------
-@pytest.fixture
-def patient_user(db, patient):
-    from django.contrib.auth import get_user_model
-
-    User = get_user_model()
-    user = User.objects.create_user(
-        username="patient",
-        password="demo1234",
-        role=User.Role.PATIENT,
-        full_name="Demo Patient 001",
-    )
-    patient.linked_user = user
-    patient.save(update_fields=["linked_user"])
-    return user
-
-
-@pytest.fixture
-def patient_api(api, patient_user):
-    api.force_authenticate(user=patient_user)
-    return api
-
-
-def test_patient_sees_only_their_own_record(patient_api, patient, village, worker):
-    from assessments.models import PatientAssessment
-    from patients.models import Patient
-
-    other = Patient.objects.create(
-        patient_code="KVL-P-999", age_years=40, village=village
-    )
-    PatientAssessment.objects.create(
-        patient=other,
-        village=village,
-        symptoms=["fever"],
-        primary_category=SignalCategory.FEVER,
-        triage_level="URGENT",
-        is_draft=False,
-        encounter_date="2026-08-05",
-    )
-    PatientAssessment.objects.create(
-        patient=patient,
-        village=village,
-        symptoms=["headache"],
-        primary_category=SignalCategory.OTHER,
-        triage_level="ROUTINE",
-        is_draft=False,
-        encounter_date="2026-08-05",
-    )
-
-    response = patient_api.get("/api/patient/me/")
-
-    assert response.status_code == 200
-    assert response.data["patient"]["patient_code"] == patient.patient_code
-    assert len(response.data["records"]) == 1
-    assert other.patient_code not in str(response.data)
-
-
-def test_patient_record_omits_internal_agent_reasoning(patient_api, patient, village):
-    from assessments.models import PatientAssessment
-
-    PatientAssessment.objects.create(
-        patient=patient,
-        village=village,
-        symptoms=["fever"],
-        primary_category=SignalCategory.FEVER,
-        triage_level="CONCERNING",
-        triage_score=4.0,
-        reasoning_summary="internal reasoning text",
-        agent_trace=[{"agent": "RiskTriageAgent"}],
-        is_draft=False,
-        encounter_date="2026-08-05",
-    )
-
-    record = patient_api.get("/api/patient/me/").data["records"][0]
-
-    assert "agent_trace" not in record
-    assert "triage_score" not in record
-    assert "reasoning_summary" not in record
-
-
-def test_patient_cannot_reach_worker_or_officer_endpoints(patient_api, village, sources):
-    alert = seed_alert(village, sources)
-
-    assert patient_api.get("/api/worker/dashboard/").status_code == 403
-    assert patient_api.get("/api/officer/dashboard/").status_code == 403
-    assert patient_api.get("/api/patients/").status_code == 403
-    assert patient_api.get("/api/local-signals/").status_code == 403
-    assert patient_api.get(f"/api/alerts/{alert.id}/evidence/").status_code == 403
-
-
-def test_worker_and_officer_cannot_use_the_patient_portal(worker_api, officer_api):
-    assert worker_api.get("/api/patient/me/").status_code == 403
-    assert officer_api.get("/api/patient/me/").status_code == 403
-
-
-def test_unlinked_patient_account_gets_a_clear_message(api, db):
-    from django.contrib.auth import get_user_model
-
-    User = get_user_model()
-    orphan = User.objects.create_user(
-        username="orphan", password="demo1234", role=User.Role.PATIENT
-    )
-    api.force_authenticate(user=orphan)
-
-    response = api.get("/api/patient/me/")
-    assert response.status_code == 404
-    assert "No patient record is linked" in str(response.data)
+def test_old_patient_portal_endpoint_is_gone(worker_api, officer_api):
+    assert worker_api.get("/api/patient/me/").status_code == 404
+    assert officer_api.get("/api/patient/me/").status_code == 404
 
 
 # ---------------------------------------------------------------------------

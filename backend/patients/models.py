@@ -42,7 +42,9 @@ class Patient(models.Model):
         null=True,
         blank=True,
         related_name="patient_profile",
-        help_text="Set only when the optional patient portal is used.",
+        help_text="Legacy field: linked a patient record to its own login "
+        "for the optional patient portal, which has been removed from the "
+        "application. No code path sets this any more.",
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

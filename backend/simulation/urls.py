@@ -1,6 +1,21 @@
 from django.urls import path
 
-from .views import SimulationScenarioDetailView, SimulationScenarioListView
+from .views import (
+    SimulationInvestigationDecisionView,
+    SimulationInvestigationFeedbackView,
+    SimulationInvestigationObservationView,
+    SimulationInvestigationReportView,
+    SimulationInvestigationView,
+    SimulationMonitoringView,
+    SimulationScenarioDetailView,
+    SimulationScenarioListView,
+    SimulationSessionAdvanceView,
+    SimulationSessionIntelligenceView,
+    SimulationSessionReplayView,
+    SimulationSessionSafetyView,
+    SimulationSessionStartView,
+    SimulationSessionWhatIfView,
+)
 
 urlpatterns = [
     path(
@@ -12,5 +27,65 @@ urlpatterns = [
         "simulation/scenarios/<int:pk>/",
         SimulationScenarioDetailView.as_view(),
         name="simulation-scenario-detail",
+    ),
+    path(
+        "simulation/sessions/",
+        SimulationSessionStartView.as_view(),
+        name="simulation-session-start",
+    ),
+    path(
+        "simulation/sessions/<int:pk>/advance/",
+        SimulationSessionAdvanceView.as_view(),
+        name="simulation-session-advance",
+    ),
+    path(
+        "simulation/sessions/<int:pk>/intelligence/",
+        SimulationSessionIntelligenceView.as_view(),
+        name="simulation-session-intelligence",
+    ),
+    path(
+        "simulation/sessions/<int:pk>/safety/",
+        SimulationSessionSafetyView.as_view(),
+        name="simulation-session-safety",
+    ),
+    path(
+        "simulation/sessions/<int:pk>/replay/",
+        SimulationSessionReplayView.as_view(),
+        name="simulation-session-replay",
+    ),
+    path(
+        "simulation/sessions/<int:pk>/what-if/",
+        SimulationSessionWhatIfView.as_view(),
+        name="simulation-session-what-if",
+    ),
+    path(
+        "simulation/sessions/<int:pk>/investigation/",
+        SimulationInvestigationView.as_view(),
+        name="simulation-investigation",
+    ),
+    path(
+        "simulation/sessions/<int:pk>/investigation/decision/",
+        SimulationInvestigationDecisionView.as_view(),
+        name="simulation-investigation-decision",
+    ),
+    path(
+        "simulation/sessions/<int:pk>/investigation/observations/",
+        SimulationInvestigationObservationView.as_view(),
+        name="simulation-investigation-observations",
+    ),
+    path(
+        "simulation/sessions/<int:pk>/investigation/report/",
+        SimulationInvestigationReportView.as_view(),
+        name="simulation-investigation-report",
+    ),
+    path(
+        "simulation/sessions/<int:pk>/investigation/feedback/",
+        SimulationInvestigationFeedbackView.as_view(),
+        name="simulation-investigation-feedback",
+    ),
+    path(
+        "simulation/monitoring/",
+        SimulationMonitoringView.as_view(),
+        name="simulation-monitoring",
     ),
 ]

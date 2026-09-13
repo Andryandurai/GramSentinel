@@ -5,7 +5,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from rest_framework import serializers
 
-from core.constants import village_label
+from core.constants import real_world_village_profile, village_label
 
 from .models import User
 from .photos import PhotoError, validate_photo
@@ -18,6 +18,10 @@ class UserSerializer(serializers.ModelSerializer):
     village_cluster = serializers.CharField(
         source="village.cluster", default=None, read_only=True
     )
+    #: Populated only for a village with a researched real-world profile
+    #: (currently Manikkampatti / "ARY") — `None` for every other village,
+    #: including Village A, which has never had one.
+    village_profile = serializers.SerializerMethodField()
     facility_name = serializers.CharField(
         source="facility.name", default=None, read_only=True
     )
@@ -36,10 +40,14 @@ class UserSerializer(serializers.ModelSerializer):
             "village_name",
             "village_code",
             "village_cluster",
+            "village_profile",
             "facility",
             "facility_name",
         )
         read_only_fields = fields
+
+    def get_village_profile(self, obj) -> dict | None:
+        return real_world_village_profile(getattr(obj, "village", None))
 
 
 class StaffProfileSerializer(serializers.ModelSerializer):

@@ -31,7 +31,13 @@ from community.models import (
     CommunityReportEntry,
     CommunitySignal,
 )
-from core.constants import DATA_NOTICE, SYSTEM_CATEGORIES, SignalCategory, village_label
+from core.constants import (
+    DATA_NOTICE,
+    SYSTEM_CATEGORIES,
+    SignalCategory,
+    real_world_village_profile,
+    village_label,
+)
 from core.models import Village
 from patients.models import Patient
 from users.models import User
@@ -79,6 +85,7 @@ def _village_payload(village: Village) -> dict[str, Any]:
         "label": village_label(village.code, village.name),
         "name": village.name,
         "cluster": village.cluster,
+        "real_world_profile": real_world_village_profile(village),
     }
 
 

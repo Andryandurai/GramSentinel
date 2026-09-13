@@ -703,16 +703,14 @@ Action: Rewrite
     with Village A data.
 22. Sign in as `officer.a` / `demo1234` → confirm the Officer Portal,
     Community Data tab, and Alerts all load.
-23. Sign in as `patient` / `demo1234` → confirm the Patient Portal loads
-    and shows only that patient's own data.
-24. Sign in as `admin` / `demo1234` → confirm the Admin Portal loads with
+23. Sign in as `admin` / `demo1234` → confirm the Admin Portal loads with
     the platform-wide overview and village filter.
-25. Confirm AI/agent functionality: submit a new assessment as a worker
+24. Confirm AI/agent functionality: submit a new assessment as a worker
     and confirm the triage support, agent handoffs, and safety-check
     sections render (this exercises the full six-stage pipeline).
-26. `curl https://<backend>.onrender.com/api/health/` → confirm `200`
+25. `curl https://<backend>.onrender.com/api/health/` → confirm `200`
     and `"status": "ok"`.
-27. Record both final Render URLs for future reference.
+26. Record both final Render URLs for future reference.
 
 ---
 

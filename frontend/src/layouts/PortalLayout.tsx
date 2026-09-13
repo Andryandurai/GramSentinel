@@ -21,15 +21,21 @@ export function PortalLayout({
   accent,
   nav,
   hideFooterDisclaimer = false,
+  wide = false,
 }: {
   portal: string
   subtitle: string
   accent: 'care' | 'sentinel'
   nav: NavItem[]
-  /** Worker Portal only — its dashboard and community-report pages already
-   *  carry their own shorter disclaimer inline, so the long shared footer
-   *  would be redundant there. */
+  /** Worker Portal, and the Officer Portal's Simulation Lab sub-tree — both
+   *  already carry their own inline synthetic-data labeling, so the long
+   *  shared footer disclaimer would be redundant there. */
   hideFooterDisclaimer?: boolean
+  /** Opt-in wider shell (currently only the Simulation Lab sub-tree, whose
+   *  three-column workspace is cramped at the standard `max-w-7xl` every
+   *  other officer page keeps unchanged) — default `false` preserves the
+   *  exact existing container width for every page that doesn't pass it. */
+  wide?: boolean
 }) {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
@@ -39,11 +45,12 @@ export function PortalLayout({
     accent === 'care'
       ? 'border-care-600 text-care-700'
       : 'border-sentinel-600 text-sentinel-700'
+  const containerWidth = wide ? 'max-w-[1600px]' : 'max-w-7xl'
 
   return (
     <div className="min-h-screen flex flex-col">
       <header className={`${bar} text-white`}>
-        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center gap-4">
+        <div className={`mx-auto ${containerWidth} px-4 py-3 flex items-center gap-4`}>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-semibold tracking-tight">GramSentinel</span>
@@ -76,7 +83,7 @@ export function PortalLayout({
       </header>
 
       <nav className="bg-white border-b border-ink-200 sticky top-0 z-10">
-        <div className="mx-auto max-w-7xl px-4 flex items-center gap-1 overflow-x-auto">
+        <div className={`mx-auto ${containerWidth} px-4 flex items-center gap-1 overflow-x-auto`}>
           {nav.map((item) => (
             <NavLink
               key={item.to}
@@ -98,13 +105,13 @@ export function PortalLayout({
         </div>
       </nav>
 
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-6">
+      <main className={`flex-1 mx-auto w-full ${containerWidth} px-4 py-6`}>
         <Outlet />
       </main>
 
       {!hideFooterDisclaimer && (
         <footer className="border-t border-ink-200 bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-3 text-xs text-ink-400">
+          <div className={`mx-auto ${containerWidth} px-4 py-3 text-xs text-ink-400`}>
             Decision-support and early-warning prototype. It does not diagnose,
             prescribe, or declare outbreaks, and it does not replace healthcare
             professionals or official public-health surveillance. All data is
@@ -130,12 +137,9 @@ export const OFFICER_NAV: NavItem[] = [
   { to: '/officer/community-reports', label: 'Community reports' },
   { to: '/officer/history', label: 'Alert history' },
   { to: '/officer/simulation', label: 'Simulation Lab' },
+  { to: '/officer/simulation/monitoring', label: 'Intelligence Monitoring' },
   { to: '/officer/team', label: 'Health team' },
   { to: '/officer/profile', label: 'My profile' },
-]
-
-export const PATIENT_NAV: NavItem[] = [
-  { to: '/patient/dashboard', label: 'My health' },
 ]
 
 //: An administrator keeps their existing access to the officer and worker

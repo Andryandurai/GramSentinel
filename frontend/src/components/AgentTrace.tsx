@@ -29,8 +29,6 @@ export function AgentTrace({ trace }: { trace: AgentTraceEntry[] }) {
     )
   }
 
-  const safetyStep = trace.find((entry) => entry.stage === 'SAFETY_VERIFICATION')
-
   return (
     <div>
       <ol className="relative">
@@ -116,14 +114,6 @@ export function AgentTrace({ trace }: { trace: AgentTraceEntry[] }) {
           )
         })}
       </ol>
-
-      <p className="mt-3 border-t border-ink-200 pt-3 text-xs text-ink-400">
-        {trace.length} steps ran in sequence, each passing its result to the
-        next.
-        {safetyStep
-          ? ' The final step is deterministic rule checking, not AI — it runs after all AI reasoning and can override it.'
-          : ''}
-      </p>
     </div>
   )
 }
