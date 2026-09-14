@@ -13,13 +13,11 @@ export function SafetyPanel({
   status,
   rules,
   reasons,
-  engineVersion,
 }: {
   verdict: SafetyVerdict
   status: string
   rules: SafetyRule[]
   reasons?: string[]
-  engineVersion?: string
 }) {
   const failed = rules.filter((r) => !r.passed)
 
@@ -31,7 +29,7 @@ export function SafetyPanel({
           {status.replace(/_/g, ' ').toLowerCase()}
         </span>
         <span className="ml-auto text-xs text-ink-400">
-          Deterministic engine v{engineVersion ?? '1.0.0'} · non-LLM
+          Rule-based · not AI-generated
         </span>
       </div>
 

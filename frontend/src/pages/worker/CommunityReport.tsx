@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
-import { Card, Disclaimer, ErrorNote, Loading } from '@/components/ui'
+import { Card, ErrorNote, Loading } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import { useAuth } from '@/store/auth'
@@ -404,7 +404,6 @@ export default function CommunityReportPage() {
             <button type="submit" className="btn-care w-full" disabled={busy}>
               {busy ? 'Submitting…' : 'Submit report'}
             </button>
-            <Disclaimer />
           </form>
         </Card>
 

@@ -226,16 +226,6 @@ export function Empty({ children }: { children: ReactNode }) {
   )
 }
 
-/** The disclaimer is required on every human-facing surface. */
-export function Disclaimer({ className = '' }: { className?: string }) {
-  return (
-    <p className={`text-xs text-ink-400 ${className}`}>
-      Decision-support only. Does not replace professional medical care. Human
-      approval required. All data shown is synthetic.
-    </p>
-  )
-}
-
 export function SyntheticBadge() {
   return (
     <span className="pill bg-ink-100 text-ink-600 font-medium">

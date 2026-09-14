@@ -15,7 +15,6 @@ import type {
   SimulationLiveEvent,
   SimulationLiveStageStatus,
   SimulationLiveStatus,
-  SimulationMonitoringReport,
   SimulationReplaySpeed,
   SimulationReplayState,
   SimulationScenario,
@@ -132,6 +131,12 @@ interface SimulationState {
   whatIfError: string | null
   whatIfResult: SimulationWhatIfResult | null
 
+  // Counterfactual Investigation — Village A only, a structured UI over the
+  // exact same What-If pipeline/response shape (see `runCounterfactual`).
+  counterfactualLoading: boolean
+  counterfactualError: string | null
+  counterfactualResult: SimulationWhatIfResult | null
+
   // Phase 8 — Live Streaming
   liveStatus: SimulationLiveStatus
   liveRunning: boolean
@@ -151,15 +156,11 @@ interface SimulationState {
   investigationReportLoading: boolean
   investigationSection: string
 
-  // Phase 10 — Feedback + Monitoring
+  // Phase 10 — Feedback
   feedback: SimulationFeedbackState | null
   feedbackLoading: boolean
   feedbackSaving: boolean
   feedbackError: string | null
-
-  monitoring: SimulationMonitoringReport | null
-  monitoringLoading: boolean
-  monitoringError: string | null
 
   setScenarios: (scenarios: SimulationScenario[]) => void
   selectScenario: (scenario: SimulationScenario | null) => void
@@ -177,6 +178,9 @@ interface SimulationState {
 
   runWhatIf: (overrides: Record<string, number | null>) => Promise<void>
   resetWhatIf: () => void
+
+  runCounterfactual: (overrides: Record<string, number | null>) => Promise<void>
+  resetCounterfactual: () => void
 
   connectLive: () => void
   disconnectLive: () => void
@@ -207,8 +211,6 @@ interface SimulationState {
     additional_verification_required?: FeedbackYesNo
     comment?: string
   }) => Promise<void>
-
-  loadMonitoring: () => Promise<void>
 }
 
 function applySessionState(
@@ -468,6 +470,10 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   whatIfError: null,
   whatIfResult: null,
 
+  counterfactualLoading: false,
+  counterfactualError: null,
+  counterfactualResult: null,
+
   liveStatus: 'IDLE',
   liveRunning: false,
   livePaused: false,
@@ -489,10 +495,6 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   feedbackLoading: false,
   feedbackSaving: false,
   feedbackError: null,
-
-  monitoring: null,
-  monitoringLoading: false,
-  monitoringError: null,
 
   setScenarios: (scenarios) => set({ availableScenarios: scenarios }),
   selectScenario: (scenario) => set({ selectedScenario: scenario }),
@@ -565,6 +567,9 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       whatIfLoading: false,
       whatIfError: null,
       whatIfResult: null,
+      counterfactualLoading: false,
+      counterfactualError: null,
+      counterfactualResult: null,
     })
   },
 
@@ -629,6 +634,31 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   },
 
   resetWhatIf: () => set({ whatIfResult: null, whatIfError: null, whatIfLoading: false }),
+
+  async runCounterfactual(overrides) {
+    const { activeSession } = get()
+    if (!activeSession) return
+    set({ counterfactualLoading: true, counterfactualError: null })
+    try {
+      const result = await api.post<SimulationWhatIfResult>(
+        `/simulation/sessions/${activeSession.session_id}/counterfactual/`,
+        { overrides },
+      )
+      set({ counterfactualResult: result, counterfactualLoading: false, counterfactualError: null })
+    } catch (error) {
+      set({
+        counterfactualLoading: false,
+        counterfactualError:
+          error instanceof Error
+            ? error.message
+            : 'Unable to run this counterfactual investigation.',
+      })
+      throw error
+    }
+  },
+
+  resetCounterfactual: () =>
+    set({ counterfactualResult: null, counterfactualError: null, counterfactualLoading: false }),
 
   connectLive() {
     const sessionId = get().sessionId
@@ -852,20 +882,6 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         feedbackError: error instanceof Error ? error.message : 'Unable to save feedback.',
       })
       throw error
-    }
-  },
-
-  async loadMonitoring() {
-    set({ monitoringLoading: true, monitoringError: null })
-    try {
-      const monitoring = await api.get<SimulationMonitoringReport>('/simulation/monitoring/')
-      set({ monitoring, monitoringLoading: false, monitoringError: null })
-    } catch (error) {
-      set({
-        monitoringLoading: false,
-        monitoringError:
-          error instanceof Error ? error.message : 'Unable to load Intelligence Monitoring.',
-      })
     }
   },
 }))

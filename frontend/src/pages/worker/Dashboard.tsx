@@ -98,7 +98,6 @@ function SymptomSummaryCard({
           <button className="btn-ghost mt-4 w-full" onClick={onCreateReport}>
             Create community report →
           </button>
-          <p className="mt-2 text-xs text-ink-400">{summary.note}</p>
         </>
       )}
     </Card>

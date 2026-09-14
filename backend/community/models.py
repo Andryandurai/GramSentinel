@@ -190,3 +190,74 @@ class CommunitySignal(models.Model):
         if self.baseline in (None, 0):
             return None
         return (self.value - self.baseline) / self.baseline * 100.0
+
+
+class LocalSignalReport(models.Model):
+    """A Health Worker's own flag that a specific signal on their Local
+    Signals page deserves the Health Officer's attention.
+
+    Distinct from `CommunityReport` (a worker's whole-week submission across
+    every category) and from `alerts.Alert` (the system-generated, safety-
+    gated GramSentinel signal): this is a lightweight human "please look at
+    this" note layered on a `CommunitySignal` the worker is already looking
+    at. It never creates or feeds an `Alert` — raising one still goes
+    through the existing evidence/safety pipeline untouched.
+
+    Display fields are denormalised from the signal at report time (the
+    same "every model carries its own explicit reference, never a join"
+    convention `SimulationFeedback`/`AlertEvidence` already use elsewhere in
+    this codebase), so the report stays meaningful even if the underlying
+    signal is later superseded. `signal` itself is kept for traceability
+    only and is nullable so a signal's own deletion never deletes the human
+    record of having reported it.
+    """
+
+    signal = models.ForeignKey(
+        CommunitySignal,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="worker_reports",
+    )
+    worker = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="local_signal_reports",
+    )
+    village = models.ForeignKey(
+        "core.Village", on_delete=models.PROTECT, related_name="local_signal_reports"
+    )
+
+    category = models.CharField(max_length=32, choices=SignalCategory.choices)
+    source_kind = models.CharField(max_length=32, choices=SourceKind.choices)
+    week_label = models.CharField(max_length=16)
+    baseline = models.FloatField(null=True, blank=True)
+    value = models.FloatField(null=True, blank=True)
+    unit = models.CharField(max_length=32, blank=True)
+    change_pct = models.FloatField(null=True, blank=True)
+
+    note = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    acknowledged_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Set when a health officer has opened this report.",
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["village", "-created_at"])]
+        constraints = [
+            # Same signal, same worker: a double-click, refresh or retry
+            # must not create a second row. A later reporting period is
+            # always a different `signal` (CommunitySignal's own uniqueness
+            # is per source/category/week), so it is never blocked by this.
+            models.UniqueConstraint(
+                fields=["worker", "signal"], name="unique_local_signal_report_per_worker_signal"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Local signal report: {self.category} {self.week_label} ({self.village.code})"

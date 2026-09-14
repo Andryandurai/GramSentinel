@@ -329,7 +329,7 @@ function TimelineSection() {
         </div>
         {replayWeek !== null && (
           <p className="mt-2 text-xs text-amber-800">
-            ◷ Viewing historical week {replayWeek} — read-only replay, nothing is recomputed.
+            ◷ Viewing historical week {replayWeek} — read-only replay, nothing changes.
           </p>
         )}
       </Card>
@@ -699,8 +699,7 @@ function DecisionSection() {
             <p className="font-semibold">SAFETY BLOCK</p>
             <p className="mt-1">
               This investigation cannot be finalized while the Safety Gate result is BLOCK. Review
-              the Safety Gate section to see which deterministic check failed, and resolve it before
-              recording a decision.
+              the Safety Gate section to see what failed, and resolve it before recording a decision.
             </p>
           </div>
         ) : (
@@ -1026,8 +1025,7 @@ export default function InvestigationNotebookPage() {
   if (!investigation) {
     return (
       <Empty>
-        Open this investigation from the Simulation Lab — the underlying session data isn't loaded
-        in this browser session.
+        Open this investigation from the Simulation Lab to load it here.
       </Empty>
     )
   }

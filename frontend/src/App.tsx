@@ -19,7 +19,6 @@ import OfficerDashboardPage from '@/pages/officer/Dashboard'
 import EvidenceView from '@/pages/officer/EvidenceView'
 import InvestigationNotebookPage from '@/pages/officer/InvestigationNotebook'
 import SimulationLabPage from '@/pages/officer/SimulationLab'
-import SimulationMonitoringPage from '@/pages/officer/SimulationMonitoring'
 import OfficerTeamPage from '@/pages/officer/Team'
 import CommunityReportPage from '@/pages/worker/CommunityReport'
 import WorkerDashboardPage from '@/pages/worker/Dashboard'
@@ -89,7 +88,6 @@ export default function App() {
               subtitle="Individual patient support · Worker Portal"
               accent="care"
               nav={WORKER_NAV}
-              hideFooterDisclaimer
             />
           </RequireRole>
         }
@@ -135,14 +133,9 @@ export default function App() {
       </Route>
 
       {/* GramSentinel — Simulation Lab and its sub-pages. Same portal, own
-          layout instance: the Simulation workspace already labels itself
-          as synthetic throughout (SyntheticBadge, per-panel disclaimers),
-          so the long shared footer disclaimer is redundant here — the same
-          "already carries its own inline disclaimer" reasoning
-          `hideFooterDisclaimer` already documents for the Worker portal.
-          `wide` widens the shell for this sub-tree's own three-column
-          workspace — every other officer route below keeps the standard
-          `max-w-7xl` container unchanged. */}
+          layout instance: `wide` widens the shell for this sub-tree's own
+          three-column workspace — every other officer route below keeps
+          the standard `max-w-7xl` container unchanged. */}
       <Route
         element={
           <RequireRole roles={['HEALTH_OFFICER']}>
@@ -151,7 +144,6 @@ export default function App() {
               subtitle="Community early warning · Officer Portal"
               accent="sentinel"
               nav={OFFICER_NAV}
-              hideFooterDisclaimer
               wide
             />
           </RequireRole>
@@ -162,7 +154,6 @@ export default function App() {
           path="/officer/simulation/investigation/:sessionId"
           element={<InvestigationNotebookPage />}
         />
-        <Route path="/officer/simulation/monitoring" element={<SimulationMonitoringPage />} />
       </Route>
 
       {/* Administrator — platform-level view across all villages. */}

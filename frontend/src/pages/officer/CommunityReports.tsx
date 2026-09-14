@@ -1,10 +1,11 @@
-import { Card, Empty, ErrorNote, Loading } from '@/components/ui'
+import { Card, Delta, Empty, ErrorNote, Loading } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
-import type { OfficerCommunityReport } from '@/types'
+import type { LocalSignalReport, OfficerCommunityReport } from '@/types'
 
 interface Payload {
   reports: OfficerCommunityReport[]
+  local_signal_reports: LocalSignalReport[]
   scope: { village_name: string | null; is_district_wide: boolean }
   note: string
 }
@@ -52,6 +53,69 @@ export default function OfficerCommunityReports() {
           Refresh
         </button>
       </div>
+
+      <Card title={`High local signal reports (${data.local_signal_reports.length})`}>
+        {data.local_signal_reports.length === 0 ? (
+          <Empty>No local signals have been flagged for your area.</Empty>
+        ) : (
+          <ul className="space-y-3">
+            {data.local_signal_reports.map((report) => (
+              <li
+                key={report.id}
+                className={`rounded-lg border p-4 ${
+                  report.acknowledged
+                    ? 'border-ink-200'
+                    : 'border-amber-300 bg-amber-50/40'
+                }`}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  {!report.acknowledged && (
+                    <span className="pill bg-amber-600 text-white">New report</span>
+                  )}
+                  <span className="text-sm font-semibold">{report.label}</span>
+                  <span className="pill bg-amber-100 text-amber-800">above baseline</span>
+                  <span className="ml-auto text-xs text-ink-400 font-mono">
+                    {report.week_label}
+                  </span>
+                </div>
+
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-600">
+                  <span>{report.village_name}</span>
+                  <span>Reported by {report.worker_name}</span>
+                  <span>{formatWhen(report.created_at)}</span>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 rounded-md border border-ink-200 bg-white px-3 py-2 text-sm">
+                  <span className="text-ink-600">
+                    Source: <span className="font-medium text-ink-800">{report.source_label}</span>
+                  </span>
+                  <span className="text-ink-600">
+                    Baseline: <span className="font-mono">{report.baseline ?? '—'}</span>
+                  </span>
+                  <span className="text-ink-600">
+                    Reported:{' '}
+                    <span className="font-mono">
+                      {report.value} {report.unit}
+                    </span>
+                  </span>
+                  <span className="text-ink-600 flex items-center gap-1">
+                    Change: <Delta value={report.change_pct} />
+                  </span>
+                </div>
+
+                {report.note && (
+                  <p className="mt-3 text-sm text-ink-600 border-t border-ink-100 pt-2">
+                    <span className="text-xs font-medium text-ink-400">
+                      Worker note:{' '}
+                    </span>
+                    “{report.note}”
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       <Card title={`Submitted reports (${data.reports.length})`}>
         {data.reports.length === 0 ? (

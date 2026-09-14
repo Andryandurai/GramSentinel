@@ -1,9 +1,8 @@
 import { type FormEvent, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { AgentTrace } from '@/components/AgentTrace'
 import { TriageSupportPanel } from '@/components/TriageSupport'
-import { Card, Disclaimer, ErrorNote, Loading } from '@/components/ui'
+import { Card, ErrorNote, Loading } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import { useAuth } from '@/store/auth'
@@ -70,7 +69,6 @@ const EMPTY_ASSESSMENT: AssessmentForm = {
 
 const EMPTY_PATIENT = {
   display_name: '',
-  patient_code: '',
   age_years: '',
   age_months: '',
   sex: 'U',
@@ -183,7 +181,6 @@ export default function NewAssessment() {
     try {
       const created = await api.post<Patient>('/patients/', {
         display_name: newPatient.display_name.trim(),
-        patient_code: newPatient.patient_code.trim(),
         age_years: newPatient.age_years ? Number(newPatient.age_years) : null,
         age_months: newPatient.age_months ? Number(newPatient.age_months) : null,
         sex: newPatient.sex,
@@ -398,21 +395,6 @@ export default function NewAssessment() {
             <p className="text-xs text-ink-400 -mt-2">
               Age in years, or in months for infants.
             </p>
-
-            <div>
-              <label className="label" htmlFor="code">
-                Patient identifier
-              </label>
-              <input
-                id="code"
-                className="input"
-                placeholder="Leave blank to generate automatically"
-                value={newPatient.patient_code}
-                onChange={(e) =>
-                  setNewPatient((p) => ({ ...p, patient_code: e.target.value }))
-                }
-              />
-            </div>
 
             <div className="rounded-md bg-ink-50 border border-ink-200 px-3 py-2 text-xs text-ink-600">
               Village: <span className="font-medium">{user?.village_name}</span>{' '}
@@ -693,7 +675,6 @@ export default function NewAssessment() {
                   >
                     {busy === 'preview' ? 'Processing…' : 'Get AI suggestion'}
                   </button>
-                  <Disclaimer />
                 </form>
               </Card>
             )}
@@ -709,40 +690,44 @@ export default function NewAssessment() {
                 </p>
               </Card>
             ) : (
-              <>
-                <Card title="Triage support">
-                  <TriageSupportPanel support={support} />
+              <Card title="Triage support">
+                <TriageSupportPanel
+                  support={support}
+                  vitals={{
+                    temperature_c: form.temperature_c,
+                    pulse_bpm: form.pulse_bpm,
+                    respiratory_rate: form.respiratory_rate,
+                    systolic_bp: form.systolic_bp,
+                    diastolic_bp: form.diastolic_bp,
+                    spo2: form.spo2,
+                  }}
+                />
 
-                  {saved ? (
-                    <div className="mt-5 rounded-md border border-care-200 bg-care-50 px-3 py-2 text-sm text-care-700">
-                      {saved}
-                    </div>
-                  ) : (
-                    <div className="mt-5 flex gap-2">
-                      <button
-                        className="btn-care flex-1"
-                        onClick={submit}
-                        disabled={busy !== null}
-                      >
-                        {busy === 'submit'
-                          ? 'Saving…'
-                          : 'Accept and record assessment'}
-                      </button>
-                      <button
-                        className="btn-ghost"
-                        onClick={() => setSupport(null)}
-                        disabled={busy !== null}
-                      >
-                        Revise
-                      </button>
-                    </div>
-                  )}
-                </Card>
-
-                <Card title="How this was processed">
-                  <AgentTrace trace={support.agent_trace} />
-                </Card>
-              </>
+                {saved ? (
+                  <div className="mt-5 rounded-md border border-care-200 bg-care-50 px-3 py-2 text-sm text-care-700">
+                    {saved}
+                  </div>
+                ) : (
+                  <div className="mt-5 flex gap-2">
+                    <button
+                      className="btn-care flex-1"
+                      onClick={submit}
+                      disabled={busy !== null}
+                    >
+                      {busy === 'submit'
+                        ? 'Saving…'
+                        : 'Accept & Record Assessment'}
+                    </button>
+                    <button
+                      className="btn-ghost"
+                      onClick={() => setSupport(null)}
+                      disabled={busy !== null}
+                    >
+                      Revise Assessment
+                    </button>
+                  </div>
+                )}
+              </Card>
             )}
           </div>
         </div>

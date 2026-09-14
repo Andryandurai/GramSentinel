@@ -28,7 +28,9 @@ import {
   type SimulationSafetyResult,
   type SimulationScenario,
   type SimulationSourceFusionEntry,
+  type SimulationSourceValue,
   type SimulationTimelinePoint,
+  type SimulationWhatIfResult,
 } from '@/types'
 
 /**
@@ -53,9 +55,7 @@ function CurrentScopeBanner() {
         {user?.village_name ?? 'No village assigned'}
       </p>
       <p className="text-xs text-sentinel-800 mt-1">
-        Fixed to your own assigned area. There is no option to switch village
-        here — the same server-side scoping used everywhere else in your
-        portal applies to the Simulation Lab.
+        Fixed to your own assigned area. There is no option to switch village here.
       </p>
     </div>
   )
@@ -310,7 +310,7 @@ function StageDetails({
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
         <span className={`pill ${gateResultPillClass(gateResult)}`}>{gateResult}</span>
         <span className="text-ink-500">
-          {checks} deterministic checks · human review required
+          {checks} checks · human review required
         </span>
       </div>
     )
@@ -390,15 +390,6 @@ function AgentStageCard({
       ) : null}
 
       {!failed && <StageDetails name={name} output={run.output} />}
-
-      <details className="mt-2">
-        <summary className="cursor-pointer text-[11px] text-ink-400 hover:text-ink-600">
-          View raw input / output
-        </summary>
-        <pre className="mt-1 overflow-x-auto rounded bg-ink-900 p-2 text-[11px] leading-relaxed text-ink-100">
-          {JSON.stringify({ input: run.input, output: run.output }, null, 2)}
-        </pre>
-      </details>
     </div>
   )
 }
@@ -817,10 +808,9 @@ export function WhyAmISeeingThisPanel({ explanation }: { explanation: Simulation
             </dl>
 
             <p className="mt-4 border-t border-ink-200 pt-3 text-xs text-ink-400">
-              This is a synthetic simulation. Evidence shown here reflects reported data
-              only — it is not a diagnosis and not a confirmed outbreak. A completed,
-              deterministic safety verification always still requires human review before
-              any action is taken.
+              This is a synthetic simulation. Evidence reflects reported data only — not
+              a diagnosis, not a confirmed outbreak. Safety verification always requires
+              human review before any action is taken.
             </p>
           </div>
         </div>
@@ -848,7 +838,7 @@ const SAFETY_BANNER: Record<
   PASS: {
     headline: 'PASS — Human Review Required',
     detail:
-      'All nine deterministic safety checks passed. The signal still requires authorized officer review.',
+      'All nine safety checks passed. The signal still requires authorized officer review.',
     className: 'border-care-200 bg-care-50 text-care-800',
     icon: '✓',
   },
@@ -861,7 +851,7 @@ const SAFETY_BANNER: Record<
   },
   BLOCK: {
     headline: 'BLOCK — Safety conditions not satisfied',
-    detail: 'One or more deterministic safety checks failed. This signal cannot proceed as-is.',
+    detail: 'One or more safety checks failed. This signal cannot proceed as-is.',
     className: 'border-red-200 bg-red-50 text-red-800',
     icon: '✕',
   },
@@ -1560,8 +1550,8 @@ function WhatIfResultView() {
           <div className="rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800">
             <p className="font-semibold">HYPOTHETICAL SIMULATION</p>
             <p className="mt-1 text-xs">
-              Synthetic inputs only. Does not modify operational records. Does not create a real
-              alert. Does not represent a confirmed outbreak.
+              Hypothetical scenario — does not create a real alert or represent a confirmed
+              outbreak.
             </p>
           </div>
 
@@ -1584,6 +1574,546 @@ function WhatIfResultView() {
         </div>
       )}
     </section>
+  )
+}
+
+// ===========================================================================
+// COUNTERFACTUAL INVESTIGATION — Village A only. A structured "what would
+// strengthen/weaken this signal?" layer over the exact same Phase 7
+// What-If pipeline above: `runCounterfactual`/`resetCounterfactual` call
+// `POST .../counterfactual/`, a thin village-gated wrapper around the
+// identical `WhatIfEngine.run()` `WhatIfControls` already uses (see
+// `simulation/views.py::SimulationCounterfactualView`). No second
+// orchestrator, correlation, evidence, or safety algorithm exists here —
+// every figure below is read straight off that same response shape, just
+// with a few already-derivable comparison fields (supporting/conflicting/
+// missing counts, trend) added server-side the same way Replay already
+// reads an already-computed week.
+// ===========================================================================
+
+const COUNTERFACTUAL_VILLAGE_CODE = 'KVL'
+
+interface CounterfactualOption {
+  key: string
+  sourceType: string
+  group: 'strengthen' | 'weaken'
+  label: string
+  defaultValue: number | null
+}
+
+/** Built entirely from this session's own real current-week sources —
+ *  never a hard-coded source list (task §22). A currently-reported source
+ *  offers both an "increases" (strengthen) and a "remains stable" (weaken)
+ *  option; a source that is not currently reported can only strengthen the
+ *  signal by beginning to report — there is no sensible "stays not
+ *  reported" counterfactual to offer for it (task §4: "only show options
+ *  that make sense for the actual sources available"). "Remains stable"
+ *  defaults to the previous week's own real value where one exists, so it
+ *  is a genuine "no change" hypothesis, not an arbitrary number. */
+function buildCounterfactualOptions(
+  sources: SimulationSourceValue[],
+  previousWeek: SimulationTimelinePoint | undefined,
+): CounterfactualOption[] {
+  const options: CounterfactualOption[] = []
+  for (const source of sources) {
+    const label = source.source_type.replace(/_/g, ' ')
+    if (source.reported) {
+      const current = source.value ?? 0
+      options.push({
+        key: `${source.source_type}-increase`,
+        sourceType: source.source_type,
+        group: 'strengthen',
+        label: `${label} increases`,
+        defaultValue: Math.max(current + 2, Math.round(current * 1.5)),
+      })
+      const previousValue = previousWeek?.sources.find(
+        (s) => s.source_type === source.source_type,
+      )?.value
+      options.push({
+        key: `${source.source_type}-stable`,
+        sourceType: source.source_type,
+        group: 'weaken',
+        label: `${label} remains stable`,
+        defaultValue: previousValue ?? current,
+      })
+    } else {
+      options.push({
+        key: `${source.source_type}-begins`,
+        sourceType: source.source_type,
+        group: 'strengthen',
+        label: `${label} begins reporting`,
+        defaultValue: 2,
+      })
+    }
+  }
+  return options
+}
+
+/** Compact +/- list of the actual original-vs-hypothetical differences —
+ *  every line is a real figure from the response, nothing inferred. */
+function counterfactualDiffLines(result: SimulationWhatIfResult): string[] {
+  const { original, hypothetical } = result
+  const lines: string[] = []
+  const delta = (label: string, before: number, after: number) => {
+    if (before === after) return
+    const sign = after > before ? '+' : ''
+    lines.push(`${label}: ${before} → ${after} (${sign}${after - before})`)
+  }
+  delta('Supporting sources', original.supporting_count, hypothetical.supporting_count)
+  delta('Conflicting sources', original.conflicting_count, hypothetical.conflicting_count)
+  delta('Missing sources', original.missing_count, hypothetical.missing_count)
+  if (hypothetical.safety.evidence_strength !== original.evidence_strength) {
+    lines.push(
+      `Evidence: ${original.evidence_strength ?? '—'} → ${hypothetical.safety.evidence_strength ?? '—'}`,
+    )
+  }
+  if (hypothetical.safety.gate_result !== original.gate_result) {
+    lines.push(`Safety: ${original.gate_result ?? '—'} → ${hypothetical.safety.gate_result ?? '—'}`)
+  }
+  return lines
+}
+
+/** Deterministic, template-only sentences built from the actual
+ *  original-vs-hypothetical differences — never an LLM call, and never
+ *  anything beyond what the backend already computed (task §10: "do not
+ *  allow the LLM to invent facts about the result"). */
+function counterfactualExplanation(result: SimulationWhatIfResult): string {
+  const { original, hypothetical, changed_sources: changedSources } = result
+  if (changedSources.length === 0) {
+    return 'No hypothetical change was applied, so the assessment is unchanged.'
+  }
+
+  const supportingDelta = hypothetical.supporting_count - original.supporting_count
+  const missingDelta = hypothetical.missing_count - original.missing_count
+  const conflictingDelta = hypothetical.conflicting_count - original.conflicting_count
+  const sentences: string[] = []
+
+  if (supportingDelta > 0) {
+    sentences.push(
+      `The hypothetical change adds ${supportingDelta} more supporting source(s), so the ` +
+        'signal is corroborated by more independent sources.',
+    )
+  } else if (supportingDelta < 0) {
+    sentences.push(
+      `The hypothetical change removes ${Math.abs(supportingDelta)} supporting source(s), so ` +
+        'the signal has less independent corroboration.',
+    )
+  }
+  if (conflictingDelta > 0) {
+    sentences.push(
+      'A hypothetical source now conflicts with the trend, reducing the strength of the evidence.',
+    )
+  }
+  if (missingDelta > 0) {
+    sentences.push(
+      'A previously reported source is hypothetically missing, weakening reporting completeness.',
+    )
+  } else if (missingDelta < 0) {
+    sentences.push(
+      'A previously missing source hypothetically reports now, improving reporting completeness.',
+    )
+  }
+  if (sentences.length === 0) {
+    sentences.push(
+      'Keeping the selected source(s) at their hypothetical value provides no additional ' +
+        'supporting evidence, so the assessment remains the same.',
+    )
+  }
+  if (hypothetical.safety.gate_result !== original.gate_result) {
+    sentences.push(
+      `Safety moved from ${original.gate_result ?? '—'} to ${hypothetical.safety.gate_result ?? '—'} ` +
+        'based on this hypothetical evidence.',
+    )
+  }
+  return sentences.join(' ')
+}
+
+/** One Original-vs-Hypothetical row. `—` for a null value, never a
+ *  fabricated placeholder. */
+function ComparisonRow({
+  label,
+  original,
+  hypothetical,
+}: {
+  label: string
+  original: React.ReactNode
+  hypothetical: React.ReactNode
+}) {
+  return (
+    <tr>
+      <td className="table-cell text-ink-600">{label}</td>
+      <td className="table-cell font-mono">{original}</td>
+      <td className="table-cell font-mono">{hypothetical}</td>
+    </tr>
+  )
+}
+
+function CounterfactualResult({ result }: { result: SimulationWhatIfResult }) {
+  const { original, hypothetical } = result
+  const diffLines = counterfactualDiffLines(result)
+
+  return (
+    <div className="mt-3 space-y-4">
+      <div className="rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800">
+        <p className="font-semibold">HYPOTHETICAL / SIMULATION ONLY</p>
+        <p className="mt-1 text-xs">
+          Scenario simulation — does not create a real alert and is never shown as an
+          operational signal.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[420px]">
+          <thead>
+            <tr>
+              <th className="table-head">Result</th>
+              <th className="table-head">Original</th>
+              <th className="table-head">Hypothetical</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ComparisonRow label="Trend" original={original.trend ?? '—'} hypothetical={hypothetical.trend ?? '—'} />
+            <ComparisonRow
+              label="Supporting sources"
+              original={original.supporting_count}
+              hypothetical={hypothetical.supporting_count}
+            />
+            <ComparisonRow
+              label="Conflicting sources"
+              original={original.conflicting_count}
+              hypothetical={hypothetical.conflicting_count}
+            />
+            <ComparisonRow
+              label="Missing sources"
+              original={original.missing_count}
+              hypothetical={hypothetical.missing_count}
+            />
+            <ComparisonRow
+              label="Evidence"
+              original={
+                <span className={`pill ${evidenceStrengthPillClass(original.evidence_strength ?? '')}`}>
+                  {original.evidence_strength ?? '—'}
+                </span>
+              }
+              hypothetical={
+                <span
+                  className={`pill ${evidenceStrengthPillClass(hypothetical.safety.evidence_strength ?? '')}`}
+                >
+                  {hypothetical.safety.evidence_strength ?? '—'}
+                </span>
+              }
+            />
+            <ComparisonRow
+              label="Safety"
+              original={
+                <span className={`pill ${gateResultPillClass(original.gate_result ?? '')}`}>
+                  {original.gate_result ?? '—'}
+                </span>
+              }
+              hypothetical={
+                <span className={`pill ${gateResultPillClass(hypothetical.safety.gate_result ?? '')}`}>
+                  {hypothetical.safety.gate_result ?? '—'}
+                </span>
+              }
+            />
+            <ComparisonRow
+              label="Human review"
+              original={original.human_review_required ? 'Required' : '—'}
+              hypothetical={hypothetical.safety.human_review_required ? 'Required' : '—'}
+            />
+          </tbody>
+        </table>
+      </div>
+
+      <section>
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-500">
+          Why did the assessment change?
+        </h4>
+        <p className="mt-1 text-sm text-ink-800">{counterfactualExplanation(result)}</p>
+      </section>
+
+      {diffLines.length > 0 && (
+        <section>
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-500">
+            What changed?
+          </h4>
+          <ul className="mt-1 space-y-0.5 text-xs text-ink-700">
+            {diffLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <details className="border-t border-ink-200 pt-3">
+        <summary className="label cursor-pointer select-none">Safety detail</summary>
+        <div className="mt-2">
+          <SafetyGatePanel safety={hypothetical.safety} />
+        </div>
+      </details>
+    </div>
+  )
+}
+
+function CounterfactualControls({ options }: { options: CounterfactualOption[] }) {
+  const { activeSession, currentWeek, counterfactualLoading, runCounterfactual, resetCounterfactual } =
+    useSimulationStore()
+  const [selected, setSelected] = useState<Record<string, boolean>>({})
+  const [values, setValues] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    setSelected({})
+    const nextValues: Record<string, string> = {}
+    for (const option of options) nextValues[option.key] = String(option.defaultValue ?? '')
+    setValues(nextValues)
+    resetCounterfactual()
+    // Re-initialise exactly when the officer moves to a different session
+    // or week — not on every re-render, and not merely because a new
+    // option object was recreated with the same underlying sources.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSession?.session_id, currentWeek])
+
+  function toggle(option: CounterfactualOption) {
+    setSelected((prev) => {
+      const next = { ...prev, [option.key]: !prev[option.key] }
+      // A source can be hypothetically strengthened OR weakened, never
+      // both at once — checking one clears the other option for the same
+      // source rather than leaving an ambiguous combined override.
+      if (next[option.key]) {
+        for (const other of options) {
+          if (other.sourceType === option.sourceType && other.key !== option.key) {
+            next[other.key] = false
+          }
+        }
+      }
+      return next
+    })
+  }
+
+  function handleRun() {
+    const overrides: Record<string, number | null> = {}
+    for (const option of options) {
+      if (!selected[option.key]) continue
+      const raw = values[option.key]
+      const parsed = raw === '' || raw === undefined ? NaN : Number(raw)
+      overrides[option.sourceType] = Number.isNaN(parsed) ? null : parsed
+    }
+    void runCounterfactual(overrides)
+  }
+
+  function handleReset() {
+    setSelected({})
+    resetCounterfactual()
+  }
+
+  const strengthenOptions = options.filter((o) => o.group === 'strengthen')
+  const weakenOptions = options.filter((o) => o.group === 'weaken')
+  const anySelected = options.some((o) => selected[o.key])
+
+  function renderOption(option: CounterfactualOption) {
+    const checked = selected[option.key] ?? false
+    return (
+      <li key={option.key} className="flex flex-wrap items-center gap-2">
+        <label className="flex flex-1 min-w-[160px] items-center gap-1.5 text-xs text-ink-700">
+          <input type="checkbox" checked={checked} onChange={() => toggle(option)} />
+          {option.label}
+        </label>
+        {checked && (
+          <label className="flex items-center gap-1 text-[11px] text-ink-500">
+            Hypothetical value
+            <input
+              type="number"
+              className="input w-20 py-1 text-xs"
+              value={values[option.key] ?? ''}
+              onChange={(event) =>
+                setValues((prev) => ({ ...prev, [option.key]: event.target.value }))
+              }
+            />
+          </label>
+        )}
+      </li>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <div className="label">What could strengthen this signal?</div>
+        {strengthenOptions.length === 0 ? (
+          <p className="text-xs text-ink-400">No sources available to strengthen this week.</p>
+        ) : (
+          <ul className="mt-1 space-y-1.5">{strengthenOptions.map(renderOption)}</ul>
+        )}
+      </div>
+      <div>
+        <div className="label">What could weaken this signal?</div>
+        {weakenOptions.length === 0 ? (
+          <p className="text-xs text-ink-400">No sources available to weaken this week.</p>
+        ) : (
+          <ul className="mt-1 space-y-1.5">{weakenOptions.map(renderOption)}</ul>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-2 pt-1">
+        <button
+          type="button"
+          className="btn-sentinel py-1.5 text-xs"
+          disabled={!anySelected || counterfactualLoading}
+          onClick={handleRun}
+        >
+          {counterfactualLoading ? 'Running…' : 'Run Counterfactual'}
+        </button>
+        <button type="button" className="btn-ghost py-1.5 text-xs" onClick={handleReset}>
+          Reset Counterfactual
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Village A only (task §3) — a deliberate product-scoping decision, not a
+ * technical one: the underlying pipeline is identical for every village.
+ * Gated on the session's own `village_code`, never a frontend village
+ * selector, and backed by the same gate `SimulationCounterfactualView`
+ * enforces server-side (task §3/§20). Renders nothing at all for any other
+ * village, rather than a disabled placeholder — Village B officers should
+ * see no trace of this feature.
+ *
+ * Disabled (with a concise reason, never silently) while browsing Replay
+ * (task §17 — the endpoint always targets the session's real current week,
+ * never an arbitrary replayed one, exactly like What-If above) or while
+ * Live Emergence is actively streaming (task §18).
+ */
+function CounterfactualInvestigationSection() {
+  const { activeSession, currentValues, intelligence, replayWeek, liveStatus, counterfactualError } =
+    useSimulationStore()
+
+  if (!activeSession || activeSession.village_code !== COUNTERFACTUAL_VILLAGE_CODE) return null
+  if (!currentValues) return null
+
+  const disabledReason =
+    replayWeek !== null
+      ? 'Exit Replay to run a counterfactual investigation on the current week.'
+      : liveStatus !== 'IDLE'
+        ? 'Pause or stop Live Emergence to run a counterfactual investigation.'
+        : null
+
+  const realSources = currentValues.sources
+  const previousWeek =
+    intelligence && intelligence.timeline.length > 1
+      ? intelligence.timeline[intelligence.timeline.length - 2]
+      : undefined
+  const options = buildCounterfactualOptions(realSources, previousWeek)
+
+  const supporting = intelligence?.explanation.sources_supporting ?? []
+  const conflicting = intelligence?.explanation.sources_conflicting ?? []
+
+  return (
+    <section className="border-t border-ink-200 pt-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-ink-800">Counterfactual Investigation</h3>
+        <SyntheticBadge />
+      </div>
+      <p className="mt-1 text-xs text-ink-500">
+        What could change the evidence for this signal?
+      </p>
+
+      <div className="mt-3 rounded-md border border-ink-200 bg-ink-50 px-3 py-2">
+        <div className="label">Current evidence</div>
+        <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-ink-700">
+          <span>
+            Supporting: <span className="font-medium">{supporting.join(', ') || 'None'}</span>
+          </span>
+          <span>
+            Conflicting: <span className="font-medium">{conflicting.join(', ') || 'None'}</span>
+          </span>
+        </div>
+      </div>
+
+      {disabledReason ? (
+        <p className="mt-3 text-xs text-ink-500">{disabledReason}</p>
+      ) : (
+        <div className="mt-3">
+          <CounterfactualControls options={options} />
+        </div>
+      )}
+
+      {counterfactualError && (
+        <div className="mt-2">
+          <ErrorNote message={counterfactualError} />
+        </div>
+      )}
+
+      <CounterfactualResultSection />
+    </section>
+  )
+}
+
+function CounterfactualResultSection() {
+  const { counterfactualResult } = useSimulationStore()
+  const sectionRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (counterfactualResult) {
+      sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [counterfactualResult])
+
+  if (!counterfactualResult) return null
+
+  return (
+    <div ref={sectionRef}>
+      <CounterfactualResult result={counterfactualResult} />
+    </div>
+  )
+}
+
+/**
+ * Right panel — a compact pointer to the detailed result in the center
+ * viewport (task §21: "do not duplicate the full comparison in both").
+ * Renders nothing when no counterfactual has been run.
+ */
+function CounterfactualSummaryPanel() {
+  const { counterfactualResult } = useSimulationStore()
+  if (!counterfactualResult) return null
+
+  const { original, hypothetical } = counterfactualResult
+  const diffLines = counterfactualDiffLines(counterfactualResult)
+
+  return (
+    <details className="border-t border-ink-200 pt-3" open>
+      <summary className="label cursor-pointer select-none">Counterfactual</summary>
+      <div className="mt-2 space-y-1.5 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="text-ink-500">Original</span>
+          <span className={`pill ${evidenceStrengthPillClass(original.evidence_strength ?? '')}`}>
+            {original.evidence_strength ?? '—'}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-ink-500">Hypothetical</span>
+          <span
+            className={`pill ${evidenceStrengthPillClass(hypothetical.safety.evidence_strength ?? '')}`}
+          >
+            {hypothetical.safety.evidence_strength ?? '—'}
+          </span>
+        </div>
+        <p className="text-ink-600">Changed because: {diffLines[0] ?? 'No change applied.'}</p>
+        <div className="flex items-center justify-between">
+          <span className="text-ink-500">Safety</span>
+          <span className={`pill ${gateResultPillClass(hypothetical.safety.gate_result ?? '')}`}>
+            {hypothetical.safety.gate_result ?? '—'}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-ink-500">Human review</span>
+          <span className="text-ink-800">
+            {hypothetical.safety.human_review_required ? 'Required' : '—'}
+          </span>
+        </div>
+      </div>
+    </details>
   )
 }
 
@@ -2098,6 +2628,8 @@ function SimulationAlertPanel() {
         </div>
       </details>
 
+      <CounterfactualSummaryPanel />
+
       <RecommendedNextStep
         suggestedNextStep={displayed.suggested_next_step}
         gateResult={safety.gate_result}
@@ -2189,7 +2721,7 @@ function SimulationAlertPanel() {
  *  Replay wins visually over Live when both happen to be non-idle, matching
  *  the store's own "never mixed" rule (opening Replay disconnects Live). */
 function ModeIndicator() {
-  const { replayWeek, liveStatus, whatIfResult } = useSimulationStore()
+  const { replayWeek, liveStatus, whatIfResult, counterfactualResult } = useSimulationStore()
 
   if (replayWeek !== null) {
     return <span className="pill bg-amber-100 text-amber-800 font-semibold">◷ REPLAY</span>
@@ -2210,6 +2742,9 @@ function ModeIndicator() {
         {label}
       </span>
     )
+  }
+  if (counterfactualResult) {
+    return <span className="pill bg-violet-100 text-violet-700 font-semibold">◆ COUNTERFACTUAL</span>
   }
   if (whatIfResult) {
     return <span className="pill bg-ink-100 text-ink-600 font-semibold">◆ WHAT-IF</span>
@@ -2263,6 +2798,7 @@ function SessionRunnerPanel() {
             <AgentPipelineViewSection />
             <IntelligenceViewSection />
             <WhatIfResultView />
+            <CounterfactualInvestigationSection />
           </div>
         </main>
 

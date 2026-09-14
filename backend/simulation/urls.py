@@ -1,12 +1,12 @@
 from django.urls import path
 
 from .views import (
+    SimulationCounterfactualView,
     SimulationInvestigationDecisionView,
     SimulationInvestigationFeedbackView,
     SimulationInvestigationObservationView,
     SimulationInvestigationReportView,
     SimulationInvestigationView,
-    SimulationMonitoringView,
     SimulationScenarioDetailView,
     SimulationScenarioListView,
     SimulationSessionAdvanceView,
@@ -59,6 +59,11 @@ urlpatterns = [
         name="simulation-session-what-if",
     ),
     path(
+        "simulation/sessions/<int:pk>/counterfactual/",
+        SimulationCounterfactualView.as_view(),
+        name="simulation-session-counterfactual",
+    ),
+    path(
         "simulation/sessions/<int:pk>/investigation/",
         SimulationInvestigationView.as_view(),
         name="simulation-investigation",
@@ -82,10 +87,5 @@ urlpatterns = [
         "simulation/sessions/<int:pk>/investigation/feedback/",
         SimulationInvestigationFeedbackView.as_view(),
         name="simulation-investigation-feedback",
-    ),
-    path(
-        "simulation/monitoring/",
-        SimulationMonitoringView.as_view(),
-        name="simulation-monitoring",
     ),
 ]

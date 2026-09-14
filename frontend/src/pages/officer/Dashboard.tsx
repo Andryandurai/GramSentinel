@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   CartesianGrid,
   Legend,
@@ -12,6 +13,7 @@ import {
 
 import {
   Card,
+  Delta,
   Empty,
   ErrorNote,
   Loading,
@@ -23,7 +25,7 @@ import { CommunityMap } from '@/components/CommunityMap'
 import { RealWorldCommunityProfile } from '@/components/RealWorldCommunityProfile'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
-import type { OfficerDashboard, TrendDirection } from '@/types'
+import type { LocalSignalReport, OfficerDashboard, TrendDirection } from '@/types'
 
 /** One colour per health-signal category line — same palette as the
  *  Community Data page's chart, so the two views read as one visual
@@ -37,10 +39,139 @@ const TREND_CHIP: Record<TrendDirection, { arrow: string; chip: string }> = {
   INSUFFICIENT_DATA: { arrow: '–', chip: 'bg-ink-100 text-ink-400' },
 }
 
+/**
+ * Shown once, when the dashboard first loads with an unread local signal
+ * report waiting — a worker's own flag that a specific above-baseline
+ * signal deserves attention, distinct from the active-alerts list below
+ * (which is the system-generated, safety-gated GramSentinel signal).
+ *
+ * "View Report(s)" navigates to Community reports, whose own load already
+ * marks these acknowledged (same rule the sibling community-report banner
+ * below already relies on). "Dismiss" only closes this dialog — the report
+ * stays unread and the persistent indicator further down the page still
+ * shows it.
+ */
+function NewLocalSignalReportDialog({
+  reports,
+  count,
+  onDismiss,
+}: {
+  reports: LocalSignalReport[]
+  count: number
+  onDismiss: () => void
+}) {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onDismiss()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onDismiss])
+
+  const single = count === 1 ? reports[0] : null
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 px-4"
+      onClick={onDismiss}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-local-signal-heading"
+        className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-amber-600" aria-hidden="true">
+            ⚠
+          </span>
+          <h2 id="new-local-signal-heading" className="text-base font-semibold text-ink-900">
+            {count === 1 ? 'New local signal report' : `${count} new local signal reports`}
+          </h2>
+        </div>
+
+        {single ? (
+          <div className="mt-3 space-y-3 text-sm">
+            <p className="text-ink-700">
+              {single.village_name} Health Worker has reported an above-baseline local
+              signal.
+            </p>
+            <dl className="rounded-md border border-ink-200 bg-ink-50 px-3 py-2 space-y-1.5">
+              <div className="flex justify-between">
+                <dt className="text-ink-500">Signal</dt>
+                <dd className="font-medium text-ink-800">{single.label}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink-500">Reported</dt>
+                <dd className="font-mono text-ink-800">
+                  {single.value} {single.unit}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink-500">Baseline</dt>
+                <dd className="font-mono text-ink-800">{single.baseline ?? '—'}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink-500">Change</dt>
+                <dd>
+                  <Delta value={single.change_pct} />
+                </dd>
+              </div>
+            </dl>
+          </div>
+        ) : (
+          <ul className="mt-3 space-y-1.5 text-sm">
+            {reports.map((report) => (
+              <li
+                key={report.id}
+                className="flex items-center justify-between gap-3 rounded-md border border-ink-200 px-3 py-1.5"
+              >
+                <span className="text-ink-700 min-w-0 truncate">
+                  {report.label} · {report.village_name}
+                </span>
+                <Delta value={report.change_pct} />
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-4 flex gap-2">
+          <button
+            className="btn-care flex-1"
+            onClick={() => {
+              onDismiss()
+              navigate('/officer/community-reports')
+            }}
+          >
+            {count === 1 ? 'View Report' : 'View Reports'}
+          </button>
+          <button className="btn-ghost" onClick={onDismiss}>
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function OfficerDashboardPage() {
   const { data, loading, error, reload } = useAsync<OfficerDashboard>(() =>
     api.get('/officer/dashboard/'),
   )
+  const [showSignalPopup, setShowSignalPopup] = useState(false)
+  const popupShownRef = useRef(false)
+
+  // Appears once per visit to this page, not on every manual Refresh —
+  // opening the dashboard is the trigger, not a poll.
+  useEffect(() => {
+    if (data && !popupShownRef.current && data.new_local_signal_reports > 0) {
+      setShowSignalPopup(true)
+      popupShownRef.current = true
+    }
+  }, [data])
 
   if (loading) return <Loading label="Loading community intelligence…" />
   if (error) return <ErrorNote message={error} onRetry={reload} />
@@ -81,6 +212,29 @@ export default function OfficerDashboardPage() {
           </span>
           <span className="ml-auto text-sm text-sentinel-700">Review →</span>
         </Link>
+      )}
+
+      {data.new_local_signal_reports > 0 && (
+        <Link
+          to="/officer/community-reports"
+          className="flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 hover:bg-amber-100/60 transition-colors"
+        >
+          <span className="pill bg-amber-600 text-white">⚠ {data.new_local_signal_reports} new</span>
+          <span className="text-sm text-amber-900">
+            {data.new_local_signal_reports === 1
+              ? 'New local signal report from a Health Worker in your area.'
+              : `${data.new_local_signal_reports} new local signal reports from Health Workers in your area.`}
+          </span>
+          <span className="ml-auto text-sm text-amber-700">Review →</span>
+        </Link>
+      )}
+
+      {showSignalPopup && (
+        <NewLocalSignalReportDialog
+          reports={data.recent_local_signal_reports}
+          count={data.new_local_signal_reports}
+          onDismiss={() => setShowSignalPopup(false)}
+        />
       )}
 
       <RealWorldCommunityProfile profile={data.scope?.real_world_profile ?? null} />
@@ -191,10 +345,6 @@ export default function OfficerDashboardPage() {
                 {trend.weeks_covered === 1 ? '' : 's'}
               </span>
             </div>
-            <p className="mt-2 text-xs text-ink-400">
-              Reported counts, not confirmed diagnoses. Showing the busiest
-              health signals for your monitored area.
-            </p>
           </>
         )}
       </Card>
@@ -257,11 +407,6 @@ export default function OfficerDashboardPage() {
             ))}
           </ul>
         )}
-        <p className="text-xs text-ink-400 mt-4 border-t border-ink-200 pt-3">
-          Every alert is a request for human attention with its evidence
-          attached — never a conclusion, and never an outbreak declaration. No
-          automated action has been taken.
-        </p>
       </Card>
     </div>
   )

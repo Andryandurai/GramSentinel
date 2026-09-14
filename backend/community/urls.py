@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     CommunityReportListCreateView,
     DataSourceListView,
+    LocalSignalReportCreateView,
     LocalSignalsView,
     ReportCategoryListView,
 )
@@ -19,5 +20,10 @@ urlpatterns = [
         name="report-category-list",
     ),
     path("local-signals/", LocalSignalsView.as_view(), name="local-signals"),
+    path(
+        "local-signal-reports/",
+        LocalSignalReportCreateView.as_view(),
+        name="local-signal-report-create",
+    ),
     path("data-sources/", DataSourceListView.as_view(), name="data-source-list"),
 ]

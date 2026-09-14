@@ -82,9 +82,6 @@ export default function Login() {
           <div className="card mt-6">
             <div className="px-6 py-5">
               <h2 className="text-sm font-semibold text-ink-800">Secure login</h2>
-              <p className="text-xs text-ink-400 mt-0.5">
-                Your role determines which portal opens.
-              </p>
 
               <form onSubmit={handleSubmit} className="mt-5 space-y-4">
                 <div>
@@ -230,11 +227,6 @@ export default function Login() {
               )}
             </div>
           </div>
-
-          <p className="mt-5 text-center text-xs text-ink-400 leading-relaxed">
-            Decision-support and early-warning prototype. Synthetic data only —
-            no real patient records.
-          </p>
         </div>
       </main>
     </div>

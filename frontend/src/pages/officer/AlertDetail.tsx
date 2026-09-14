@@ -21,7 +21,7 @@ const OUTCOMES: Array<{ value: Outcome; label: string; help: string }> = [
   {
     value: 'FALSE_ALERT',
     label: 'False alert',
-    help: 'Investigation found no meaningful underlying pattern. Reviewed for threshold or data-quality adjustment.',
+    help: 'Investigation found no meaningful underlying pattern.',
   },
   {
     value: 'RESOLVED',

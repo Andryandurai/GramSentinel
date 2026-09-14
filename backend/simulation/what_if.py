@@ -40,7 +40,7 @@ from typing import Any
 from django.db import transaction
 from rest_framework.exceptions import APIException
 
-from .intelligence import _compute_data_quality, _evidence_strength
+from .intelligence import _compute_data_quality, _evidence_strength, build_intelligence
 from .investigation import suggested_decision
 from .models import (
     EvidenceStrength,
@@ -238,8 +238,31 @@ class WhatIfEngine:
             transaction.set_rollback(True)
 
         original_safety = _persisted_safety_for_week(session, current_week)
+
+        # Original-side comparison figures — read the SAME way Replay reads
+        # any already-computed week (`build_intelligence(as_of_week=...)`,
+        # this module's own import above), never recomputed: the real
+        # week's constellation/timeline are already fully determined by
+        # what `advance()` persisted, exactly as Replay already treats them
+        # (task §9: "use actual values produced by the existing pipeline").
+        original_intelligence = build_intelligence(session, as_of_week=current_week)
+        original_constellation = original_intelligence["constellation"]
+        original_week_entry = next(
+            (w for w in original_intelligence["timeline"] if w["week"] == current_week), None
+        )
         original_payload = {
             "sources": _reshape_sources(real_rows),
+            "trend": original_week_entry["status"] if original_week_entry else None,
+            "constellation": original_constellation,
+            "supporting_count": sum(
+                1 for c in original_constellation if c["relation"] == RELATIONSHIP_SUPPORTING
+            ),
+            "conflicting_count": sum(
+                1 for c in original_constellation if c["relation"] == RELATIONSHIP_CONFLICTING
+            ),
+            "missing_count": sum(
+                1 for row in real_rows if not row.reported
+            ),
             "gate_result": original_safety.get("gate_result") if original_safety else None,
             "evidence_strength": original_safety.get("evidence_strength") if original_safety else None,
             "human_review_required": True,
@@ -250,6 +273,11 @@ class WhatIfEngine:
             "primary_signal": signal_output.get("primary_signal"),
             "trend": trend,
             "constellation": constellation,
+            "supporting_count": supporting,
+            "conflicting_count": conflicting,
+            "missing_count": sum(
+                1 for source in hypothetical_sources.values() if not source["reported"]
+            ),
             "data_quality": data_quality,
             "pipeline": [
                 {

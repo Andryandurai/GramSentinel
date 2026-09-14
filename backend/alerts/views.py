@@ -20,7 +20,9 @@ from community.models import (
     CommunityReport,
     CommunityReportEntry,
     CommunitySignal,
+    LocalSignalReport,
 )
+from community.serializers import LocalSignalReportSerializer
 from core.constants import (
     DATA_NOTICE,
     MEDICAL_DISCLAIMER,
@@ -79,6 +81,18 @@ class OfficerDashboardView(APIView):
             request.user,
         ).order_by("-submitted_at")
         unread_reports = reports.filter(acknowledged_at__isnull=True).count()
+
+        # Worker-flagged high local signals from this officer's area — a
+        # separate human-report domain from the community reports above
+        # (see LocalSignalReport), read the same way: unread = not yet
+        # acknowledged, opening the persistent list is the acknowledgement.
+        local_signal_reports = scope_queryset(
+            LocalSignalReport.objects.select_related("village", "worker"),
+            request.user,
+        ).order_by("-created_at")
+        unread_local_signal_reports = local_signal_reports.filter(
+            acknowledged_at__isnull=True
+        ).count()
 
         # "Villages monitored" — distinct villages with any reported community
         # signal this officer can see. Unrelated to the trend chart below.
@@ -145,6 +159,11 @@ class OfficerDashboardView(APIView):
                     }
                     for report in reports[:8]
                 ],
+                "new_local_signal_reports": unread_local_signal_reports,
+                "recent_local_signal_reports": LocalSignalReportSerializer(
+                    local_signal_reports.filter(acknowledged_at__isnull=True)[:5],
+                    many=True,
+                ).data,
                 "summary": {
                     "active_alerts": active.count(),
                     "under_investigation": alerts.filter(
@@ -830,12 +849,17 @@ class OfficerCommunityDataView(APIView):
 
 
 class OfficerCommunityReportsView(APIView):
-    """Community reports submitted by workers in this officer's area.
+    """Community reports submitted by workers in this officer's area — plus,
+    separately, workers' high-local-signal reports (see LocalSignalReport).
 
     Reuses the existing CommunityReport records rather than introducing a
     parallel notification store: 'new' simply means not yet acknowledged.
     Opening the list marks them acknowledged, which is what clears the
-    indicator on the dashboard.
+    indicator on the dashboard. The local-signal-report list right below it
+    follows the exact same rule, kept as its own list rather than merged
+    into `reports` — a whole-week submission and a single flagged signal
+    are different shapes and should read as two distinguishable things, not
+    one conflated list.
     """
 
     permission_classes = (IsHealthOfficer,)
@@ -880,15 +904,28 @@ class OfficerCommunityReportsView(APIView):
             for report in reports[:60]
         ]
 
-        # Opening the list is the acknowledgement. Done after building the
-        # payload so the caller still sees which ones were new.
+        local_signal_reports = scope_queryset(
+            LocalSignalReport.objects.select_related("village", "worker"),
+            request.user,
+        ).order_by("-created_at")[:30]
+        local_signal_payload = LocalSignalReportSerializer(
+            local_signal_reports, many=True
+        ).data
+
+        # Opening the list is the acknowledgement for both lists — done
+        # after building each payload so the caller still sees which ones
+        # were new.
         reports.filter(acknowledged_at__isnull=True).update(
             acknowledged_at=timezone.now()
         )
+        LocalSignalReport.objects.filter(
+            id__in=[r["id"] for r in local_signal_payload], acknowledged_at__isnull=True
+        ).update(acknowledged_at=timezone.now())
 
         return Response(
             {
                 "reports": payload,
+                "local_signal_reports": local_signal_payload,
                 "scope": {
                     "village_name": (
                         request.user.village.name if request.user.village else None

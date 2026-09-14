@@ -416,7 +416,6 @@ export default function CommunityDataPage() {
                 </>
               )}
             </div>
-            <p className="mt-2 text-xs text-ink-400">{data.filters?.note}</p>
           </Card>
 
           {/* Workers' own words */}
@@ -455,16 +454,6 @@ export default function CommunityDataPage() {
               </ul>
             </Card>
           )}
-
-          {/* How this relates to alerts */}
-          <div className="rounded-lg border border-sentinel-200 bg-sentinel-50 px-4 py-3">
-            <div className="text-sm font-semibold text-sentinel-700">
-              Community data and alerts
-            </div>
-            <p className="mt-1 text-sm text-sentinel-900">
-              {data.relationship_note}
-            </p>
-          </div>
         </>
       )}
     </div>

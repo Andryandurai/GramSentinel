@@ -132,11 +132,6 @@ export default function OfficerTeamPage() {
           </Card>
         ))
       )}
-
-      <p className="text-xs text-ink-400">
-        {data.note} Profiles are maintained by each member of staff and are
-        visible only within their assigned area and to the administrator.
-      </p>
     </div>
   )
 }

@@ -2,7 +2,6 @@ import { Link, useParams } from 'react-router-dom'
 
 import {
   Card,
-  Disclaimer,
   Empty,
   ErrorNote,
   FollowUpPill,
@@ -216,7 +215,6 @@ export default function PatientDetail() {
             ))}
           </ol>
         )}
-        <Disclaimer className="mt-5" />
       </Card>
     </div>
   )

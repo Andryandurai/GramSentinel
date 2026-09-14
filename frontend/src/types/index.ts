@@ -514,6 +514,8 @@ export interface OfficerDashboard {
       description: string
     }>
   }>
+  new_local_signal_reports: number
+  recent_local_signal_reports: LocalSignalReport[]
   summary: {
     active_alerts: number
     under_investigation: number
@@ -562,6 +564,28 @@ export interface LocalSignals {
   grouped: LocalSignalGroup[]
   scope_note: string
   signal_note: string
+}
+
+/** A worker's "Report to Health Officer" flag on one above-baseline local
+ *  signal — see backend `community.models.LocalSignalReport`. Separate from
+ *  `OfficerCommunityReport` (a worker's whole-week submission). */
+export interface LocalSignalReport {
+  id: number
+  village_name: string
+  village_code: string
+  worker_name: string
+  category: string
+  label: string
+  source_kind: string
+  source_label: string
+  week_label: string
+  baseline: number | null
+  value: number | null
+  unit: string
+  change_pct: number | null
+  note: string
+  created_at: string
+  acknowledged: boolean
 }
 
 export interface VillageRef {
@@ -1015,6 +1039,15 @@ export interface SimulationWhatIfPipelineStage {
 
 export interface SimulationWhatIfOriginal {
   sources: Record<string, SimulationWhatIfSourceValue>
+  /** Added for Counterfactual Investigation's Original-vs-Hypothetical
+   *  comparison — derived the same way Replay already reads an
+   *  already-computed week (`build_intelligence(as_of_week=...)`), never a
+   *  second computation. */
+  trend: string | null
+  constellation: SimulationConstellationEntry[]
+  supporting_count: number
+  conflicting_count: number
+  missing_count: number
   gate_result: SimulationSafetyGateResult | null
   evidence_strength: 'WEAK' | 'MODERATE' | 'STRONG' | null
   human_review_required: boolean
@@ -1025,6 +1058,9 @@ export interface SimulationWhatIfHypothetical {
   primary_signal: string | null
   trend: string | null
   constellation: SimulationConstellationEntry[]
+  supporting_count: number
+  conflicting_count: number
+  missing_count: number
   data_quality: SimulationDataQuality
   pipeline: SimulationWhatIfPipelineStage[]
   safety: SimulationSafetyResult
@@ -1256,7 +1292,7 @@ export interface SimulationInvestigationState {
   status_display: string
 }
 
-// --- GramSentinel Intelligence Simulator (Phase 10 — Feedback + Monitoring)
+// --- GramSentinel Intelligence Simulator (Phase 10 — Feedback)
 
 /** Describes the OFFICER'S EXPERIENCE, never ground truth (task §6) —
  *  "Officer assessment", not "the signal was correct". */
@@ -1298,62 +1334,4 @@ export interface SimulationFeedbackState {
   comment: string
   officer: string | null
   updated_at: string | null
-}
-
-/** A `{numerator, denominator, percentage, limited_sample}` ratio — every
- *  monitoring percentage carries its own denominator and a limited-sample
- *  flag (task §22), never a bare number. */
-export interface MonitoringRatio {
-  numerator: number
-  denominator: number
-  percentage: number | null
-  limited_sample: boolean
-}
-
-export interface MonitoringSourceRelationship {
-  source: string
-  SUPPORTING: number
-  CONFLICTING: number
-  INSUFFICIENT: number
-}
-
-export interface MonitoringDecisionAlignment {
-  aligned: number
-  differed: number
-  no_suggestion: number
-  total: number
-}
-
-/** The one `GET /api/simulation/monitoring/` payload shape — entirely
- *  backend-aggregated (task §33), village-scoped, never a raw-record dump
- *  the frontend would have to count itself. */
-export interface SimulationMonitoringReport {
-  scope: { village_code: string; village_name: string }
-  sessions: { total: number; completed: number }
-  investigations: {
-    started: number
-    decisions_recorded: number
-    decision_rate: MonitoringRatio
-  }
-  feedback: {
-    submitted: number
-    response_rate: MonitoringRatio
-    usefulness: Record<FeedbackUsefulness, MonitoringRatio>
-    evidence_sufficiency: Record<FeedbackEvidenceSufficiency, MonitoringRatio>
-    recommendation_helpful: Record<FeedbackYesPartiallyNo, MonitoringRatio>
-    additional_verification_required: Record<FeedbackYesNo, MonitoringRatio>
-  }
-  evidence: { STRONG: number; MODERATE: number; WEAK: number; total: number }
-  safety: { PASS: number; INSUFFICIENT: number; BLOCK: number; total: number }
-  decisions: Record<InvestigationDecisionValue, number>
-  source_relationships: MonitoringSourceRelationship[]
-  missing_data_occurrences: number
-  decision_alignment: MonitoringDecisionAlignment
-  recent_activity: Array<{
-    timestamp: string
-    event_type: string
-    actor: string
-    investigation_id: number
-  }>
-  quality_observations: string[]
 }

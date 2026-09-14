@@ -309,14 +309,13 @@ export default function EvidenceView() {
           </p>
         </Card>
 
-        <Card title="Deterministic Safety Engine">
+        <Card title="Safety Gate">
           {safety ? (
             <SafetyPanel
               verdict={safety.verdict}
               status={safety.status}
               rules={safety.rules}
               reasons={safety.reasons}
-              engineVersion={safety.engine_version}
             />
           ) : (
             <p className="text-sm text-ink-400">No safety check recorded.</p>

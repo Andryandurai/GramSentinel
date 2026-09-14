@@ -3,19 +3,176 @@ import { useState } from 'react'
 import { Card, Delta, Empty, ErrorNote, Loading } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
-import type { LocalSignals } from '@/types'
+import { useAuth } from '@/store/auth'
+import type { LocalSignalRow, LocalSignals } from '@/types'
+
+/** A signal reads as "above baseline" at this change — matches the
+ *  backend's own `RISING_CHANGE_PCT_THRESHOLD`, so the button only ever
+ *  appears for, and only ever succeeds for, a signal already shown that way. */
+const RISING_THRESHOLD = 30
+
+function isAboveBaseline(signal: LocalSignalRow): boolean {
+  return signal.is_reported && signal.change_pct !== null && signal.change_pct >= RISING_THRESHOLD
+}
+
+interface ReportTarget {
+  signal: LocalSignalRow
+  categoryLabel: string
+}
+
+/** Confirmation dialog for "Report to Health Officer" — same dependency-free
+ *  overlay style used elsewhere in this app (no shared modal component
+ *  exists to reuse): closeable by Cancel, a backdrop click, or Escape. */
+function ReportToOfficerDialog({
+  target,
+  villageName,
+  workerName,
+  onCancel,
+  onSent,
+}: {
+  target: ReportTarget
+  villageName: string
+  workerName: string
+  onCancel: () => void
+  onSent: () => void
+}) {
+  const [note, setNote] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { signal, categoryLabel } = target
+
+  async function send() {
+    setSending(true)
+    setError(null)
+    try {
+      await api.post('/local-signal-reports/', { signal: signal.id, note: note.trim() })
+      onSent()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send the report.')
+      setSending(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 px-4"
+      onClick={onCancel}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="report-to-officer-heading"
+        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-5 shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2 id="report-to-officer-heading" className="text-base font-semibold text-ink-900">
+          Report to Health Officer
+        </h2>
+        <p className="mt-1 text-xs text-ink-500">You are reporting this local signal:</p>
+
+        <dl className="mt-3 space-y-2 text-sm">
+          <div>
+            <dt className="label">Signal</dt>
+            <dd className="text-ink-800">{categoryLabel}</dd>
+          </div>
+          <div>
+            <dt className="label">Status</dt>
+            <dd>
+              <span className="pill bg-amber-100 text-amber-800">above baseline</span>
+            </dd>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <dt className="label">Source</dt>
+              <dd className="text-ink-800">{signal.source_kind}</dd>
+            </div>
+            <div>
+              <dt className="label">Reporting week</dt>
+              <dd className="font-mono text-xs text-ink-800">{signal.week_label}</dd>
+            </div>
+            <div>
+              <dt className="label">Baseline</dt>
+              <dd className="font-mono text-ink-800">{signal.baseline ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="label">Reported</dt>
+              <dd className="font-mono text-ink-800">
+                {signal.value} {signal.unit}
+              </dd>
+            </div>
+          </div>
+          <div>
+            <dt className="label">Change</dt>
+            <dd>
+              <Delta value={signal.change_pct} />
+            </dd>
+          </div>
+          <div className="rounded-md bg-ink-50 border border-ink-200 px-3 py-2">
+            <dt className="label">Destination</dt>
+            <dd className="text-ink-800">
+              Health Officer <span className="text-ink-400">·</span> {villageName}
+            </dd>
+            <dd className="mt-0.5 text-xs text-ink-400">Reported by {workerName}</dd>
+          </div>
+        </dl>
+
+        <div className="mt-4">
+          <label className="label" htmlFor="report-note">
+            Optional note
+          </label>
+          <textarea
+            id="report-note"
+            rows={2}
+            className="input"
+            placeholder="Anything the officer should know before reviewing this."
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={1000}
+          />
+        </div>
+
+        {error && (
+          <div className="mt-3">
+            <ErrorNote message={error} />
+          </div>
+        )}
+
+        <div className="mt-4 flex gap-2">
+          <button className="btn-care flex-1" onClick={send} disabled={sending}>
+            {sending ? 'Sending…' : 'Send Report'}
+          </button>
+          <button className="btn-ghost" onClick={onCancel} disabled={sending}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function LocalSignalsPage() {
+  const { user } = useAuth()
   const { data, loading, error, reload } = useAsync<LocalSignals>(() =>
     api.get('/local-signals/'),
   )
   const [openCategory, setOpenCategory] = useState<string | null>(null)
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null)
+  const [reportedIds, setReportedIds] = useState<Set<number>>(new Set())
+  const [confirmation, setConfirmation] = useState<string | null>(null)
 
   if (loading) return <Loading label="Loading local signals…" />
   if (error) return <ErrorNote message={error} onRetry={reload} />
   if (!data) return null
 
   const groups = data.grouped ?? []
+
+  function handleSent() {
+    if (!reportTarget) return
+    setReportedIds((prev) => new Set(prev).add(reportTarget.signal.id))
+    setReportTarget(null)
+    setConfirmation('Report sent to the Health Officer.')
+    window.setTimeout(() => setConfirmation(null), 4000)
+  }
 
   return (
     <div className="space-y-6">
@@ -26,15 +183,13 @@ export default function LocalSignalsPage() {
             ? `${data.village.name} · ${data.village.cluster}`
             : 'No village assigned'}
         </p>
-        <p className="text-xs text-ink-400 mt-2 max-w-2xl">
-          Aggregated signals reported for your own village only — not
-          individual diagnoses or confirmed disease cases. A category shown
-          as above baseline means recent reported counts are higher than that
-          source&apos;s own recent average, which may be worth a closer look.
-          Use this to help notice unusual local patterns and decide whether
-          further review or reporting is needed.
-        </p>
       </div>
+
+      {confirmation && (
+        <div className="rounded-lg border border-care-200 bg-care-50 px-4 py-3 text-sm text-care-700">
+          {confirmation}
+        </div>
+      )}
 
       <div
         className={`rounded-lg border px-4 py-3 ${
@@ -105,34 +260,59 @@ export default function LocalSignalsPage() {
                             <th className="table-head">Baseline</th>
                             <th className="table-head">Reported</th>
                             <th className="table-head">Change</th>
+                            <th className="table-head" />
                           </tr>
                         </thead>
                         <tbody>
-                          {group.signals.map((signal) => (
-                            <tr key={signal.id}>
-                              <td className="table-cell font-medium">
-                                {signal.source_kind}
-                              </td>
-                              <td className="table-cell font-mono text-xs">
-                                {signal.week_label}
-                              </td>
-                              <td className="table-cell font-mono">
-                                {signal.baseline ?? '—'}
-                              </td>
-                              <td className="table-cell font-mono">
-                                {signal.is_reported ? (
-                                  `${signal.value} ${signal.unit}`
-                                ) : (
-                                  <span className="text-ink-400 italic">
-                                    not submitted
-                                  </span>
-                                )}
-                              </td>
-                              <td className="table-cell">
-                                <Delta value={signal.change_pct} />
-                              </td>
-                            </tr>
-                          ))}
+                          {group.signals.map((signal) => {
+                            const rising = isAboveBaseline(signal)
+                            const reported = reportedIds.has(signal.id)
+                            return (
+                              <tr key={signal.id}>
+                                <td className="table-cell font-medium">
+                                  {signal.source_kind}
+                                </td>
+                                <td className="table-cell font-mono text-xs">
+                                  {signal.week_label}
+                                </td>
+                                <td className="table-cell font-mono">
+                                  {signal.baseline ?? '—'}
+                                </td>
+                                <td className="table-cell font-mono">
+                                  {signal.is_reported ? (
+                                    `${signal.value} ${signal.unit}`
+                                  ) : (
+                                    <span className="text-ink-400 italic">
+                                      not submitted
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="table-cell">
+                                  <Delta value={signal.change_pct} />
+                                </td>
+                                <td className="table-cell text-right">
+                                  {rising &&
+                                    (reported ? (
+                                      <span className="text-xs text-care-700">
+                                        Reported ✓
+                                      </span>
+                                    ) : (
+                                      <button
+                                        className="btn-ghost py-1 px-2 text-xs whitespace-nowrap"
+                                        onClick={() =>
+                                          setReportTarget({
+                                            signal,
+                                            categoryLabel: group.label,
+                                          })
+                                        }
+                                      >
+                                        Report to Health Officer
+                                      </button>
+                                    ))}
+                                </td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -151,6 +331,16 @@ export default function LocalSignalsPage() {
           </p>
         </div>
       </Card>
+
+      {reportTarget && data.village && (
+        <ReportToOfficerDialog
+          target={reportTarget}
+          villageName={data.village.name}
+          workerName={user?.display_name ?? 'You'}
+          onCancel={() => setReportTarget(null)}
+          onSent={handleSent}
+        />
+      )}
     </div>
   )
 }

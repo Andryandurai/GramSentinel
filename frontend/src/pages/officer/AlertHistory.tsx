@@ -33,8 +33,7 @@ export default function AlertHistory() {
       <div>
         <h1 className="text-xl font-semibold tracking-tight">Alert history</h1>
         <p className="text-sm text-ink-600 mt-0.5">
-          Past alerts with their recorded investigation outcomes — the basis for
-          evaluating thresholds honestly.
+          Past alerts with their recorded investigation outcomes.
         </p>
       </div>
 
@@ -101,12 +100,6 @@ export default function AlertHistory() {
             </table>
           </div>
         )}
-
-        <p className="text-xs text-ink-400 mt-4 border-t border-ink-200 pt-3">
-          “Valid signal” means a human confirmed the alert was worth raising. It
-          does not mean the system diagnosed a disease, confirmed an outbreak,
-          or identified a pathogen.
-        </p>
       </Card>
     </div>
   )

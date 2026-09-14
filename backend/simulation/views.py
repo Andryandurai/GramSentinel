@@ -25,9 +25,8 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.models import Village
 from users.permissions import IsHealthOfficer
-from users.scoping import scope_queryset, scoped_village_id
+from users.scoping import scope_queryset
 
 from .intelligence import SimulationIntelligenceSerializer, with_safety
 from .investigation import (
@@ -50,7 +49,6 @@ from .models import (
     SimulationScenario,
     SimulationSession,
 )
-from .monitoring import build_monitoring_report
 from .permissions import IsScenarioInOfficerVillage, SessionBelongsToOfficerVillage
 from .replay import build_replay_state
 from .safety import SafetyEngine
@@ -336,6 +334,68 @@ class SimulationSessionWhatIfView(APIView):
         # Object-level check #3 — WhatIfEngine re-derives and re-verifies
         # the officer's village against this exact session before running
         # anything, independent of the two checks above.
+        result = WhatIfEngine.run(session, request.user, serializer.validated_data["overrides"])
+        return Response(result, status=status.HTTP_200_OK)
+
+
+#: This particular UI ("Counterfactual Investigation" — structured
+#: strengthen/weaken options rather than raw What-If value entry) is a
+#: deliberate product-scoping decision for Village A only, not a technical
+#: restriction: the underlying pipeline is identical for every village.
+#: Kept local to this view rather than in `core.constants` because nothing
+#: else needs it — the plain existing What-If endpoint above remains
+#: available to every village, unrestricted, exactly as before.
+COUNTERFACTUAL_VILLAGE_CODE = "KVL"
+
+
+class SimulationCounterfactualView(APIView):
+    """POST /api/simulation/sessions/<id>/counterfactual/ — Counterfactual
+    Investigation. A thin, Village-A-only wrapper around the exact same
+    `WhatIfEngine.run()` the plain What-If endpoint above calls — no second
+    orchestrator, correlation, evidence, or safety implementation exists
+    here. The only thing this view adds beyond `SimulationSessionWhatIfView`
+    is the village gate; the computation, isolation guarantee (rollback),
+    and village/officer re-verification are entirely `WhatIfEngine`'s own.
+    """
+
+    permission_classes = (IsHealthOfficer, SessionBelongsToOfficerVillage)
+
+    def post(self, request, pk: int):
+        session = generics.get_object_or_404(
+            SimulationSession.objects.select_related("scenario", "village"),
+            pk=pk,
+        )
+        # Object-level check #1 (DRF permission).
+        self.check_object_permissions(request, session)
+
+        # Object-level check #2 (service layer) — same rule as every other
+        # session endpoint, checked again independently here.
+        if not officer_may_access_village(session.village_id, request.user):
+            raise SimulationVillageMismatch()
+
+        # Object-level check #3 — the feature-specific village gate. Checked
+        # against the session's own village, never the caller-supplied
+        # officer, so a district-wide officer cannot reach it for a
+        # non-Village-A session either.
+        if session.village.code != COUNTERFACTUAL_VILLAGE_CODE:
+            return Response(
+                {
+                    "error": True,
+                    "detail": (
+                        "Counterfactual Investigation is currently available for "
+                        "Village A only."
+                    ),
+                    "status_code": status.HTTP_403_FORBIDDEN,
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = WhatIfInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Object-level check #4 — WhatIfEngine re-derives and re-verifies
+        # the officer's village against this exact session before running
+        # anything, independent of the checks above.
         result = WhatIfEngine.run(session, request.user, serializer.validated_data["overrides"])
         return Response(result, status=status.HTTP_200_OK)
 
@@ -635,39 +695,3 @@ class SimulationInvestigationFeedbackView(APIView):
         investigation.save(update_fields=["activity_history", "updated_at"])
 
         return Response(feedback_payload(feedback), status=status.HTTP_200_OK)
-
-
-class SimulationMonitoringView(APIView):
-    """GET /api/simulation/monitoring/ — Phase 10's Intelligence Quality
-    Monitoring dashboard data (task §12/§32). Village-scoped at the
-    QUERYSET level (`simulation.monitoring.build_monitoring_report`),
-    exactly like `SimulationScenarioListView` already scopes scenarios —
-    not an object-level permission, since there is no single object here,
-    only an aggregate over the officer's own village.
-
-    A district-wide officer (no village) gets an explicit, honest 400
-    rather than a silently wrong cross-village aggregate — task §31:
-    "do not implement district-level access now" is a decision NOT to
-    build this, not a bug to work around.
-    """
-
-    permission_classes = (IsHealthOfficer,)
-
-    def get(self, request):
-        village_id = scoped_village_id(request.user)
-        if village_id is None:
-            return Response(
-                {
-                    "error": True,
-                    "detail": (
-                        "Intelligence Monitoring is currently village-scoped only — a "
-                        "district-wide account has no single village to aggregate."
-                    ),
-                    "status_code": status.HTTP_400_BAD_REQUEST,
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        village = generics.get_object_or_404(Village, pk=village_id)
-        report = build_monitoring_report(village)
-        return Response(report, status=status.HTTP_200_OK)

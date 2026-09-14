@@ -33,18 +33,28 @@ from .models import (
     CommunityReportEntry,
     CommunitySignal,
     DataSource,
+    LocalSignalReport,
 )
 from .serializers import (
     CommunityReportCreateSerializer,
     CommunityReportSerializer,
     CommunitySignalSerializer,
     DataSourceSerializer,
+    LocalSignalReportCreateSerializer,
+    LocalSignalReportSerializer,
 )
 
 logger = logging.getLogger("gramsentinel.community")
 
 #: Preserved name — the original four categories that have dedicated columns.
 REPORT_FIELD_TO_CATEGORY = LEGACY_REPORT_FIELDS
+
+#: A signal is presented as "above baseline" (Local Signals page) at this
+#: change — the same threshold `LocalSignalsView` already uses to decide
+#: `is_rising`/`rising_categories`, reused here so "Report to Health
+#: Officer" is only ever offered for, and only ever accepts, a signal the
+#: worker was actually shown as above baseline.
+RISING_CHANGE_PCT_THRESHOLD = 30.0
 
 
 def chw_source_for(village: Village) -> DataSource:
@@ -295,7 +305,9 @@ class LocalSignalsView(APIView):
             signals = [s for s in signals if s.category == category_filter]
 
         rising = [
-            s for s in signals if s.change_pct is not None and s.change_pct >= 30.0
+            s
+            for s in signals
+            if s.change_pct is not None and s.change_pct >= RISING_CHANGE_PCT_THRESHOLD
         ]
         if rising:
             labels = sorted({s.get_category_display() for s in rising})
@@ -324,7 +336,10 @@ class LocalSignalsView(APIView):
                 },
             )
             bucket["signals"].append(CommunitySignalSerializer(signal).data)
-            if signal.change_pct is not None and signal.change_pct >= 30.0:
+            if (
+                signal.change_pct is not None
+                and signal.change_pct >= RISING_CHANGE_PCT_THRESHOLD
+            ):
                 bucket["is_rising"] = True
 
         return Response(
@@ -354,6 +369,73 @@ class LocalSignalsView(APIView):
                 ),
                 "data_notice": DATA_NOTICE,
             }
+        )
+
+
+class LocalSignalReportCreateView(APIView):
+    """POST /api/local-signal-reports/ — "Report to Health Officer" from the
+    worker's own Local Signals page.
+
+    The worker names a `signal` (a `CommunitySignal` id) they are already
+    looking at; every other field is read off that row server-side. The
+    destination officer is never chosen by the worker — it is whichever
+    account is scoped to the signal's own village, exactly the same rule
+    `scope_queryset` applies to every officer-facing read in this project.
+
+    Deliberately does not touch `CommunityReport`, the Integration Layer, or
+    `run_community_pipeline` — this is a human flagging a signal already on
+    screen, not a new data submission, and it must not itself create or
+    influence an `Alert`.
+    """
+
+    permission_classes = (IsWorker,)
+
+    def post(self, request):
+        serializer = LocalSignalReportCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        signal: CommunitySignal = serializer.validated_data["signal"]
+        note = serializer.validated_data["note"].strip()
+
+        if not request.user.village_id or signal.village_id != request.user.village_id:
+            return Response(
+                {"detail": "You may only report a signal for your own village."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if not signal.is_reported or (signal.change_pct or 0) < RISING_CHANGE_PCT_THRESHOLD:
+            return Response(
+                {
+                    "detail": (
+                        "This signal is not currently above baseline, so there is "
+                        "nothing to report."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        report, created = LocalSignalReport.objects.get_or_create(
+            worker=request.user,
+            signal=signal,
+            defaults={
+                "village": signal.village,
+                "category": signal.category,
+                "source_kind": signal.source.kind,
+                "week_label": signal.week_label,
+                "baseline": signal.baseline,
+                "value": signal.value,
+                "unit": signal.unit,
+                "change_pct": signal.change_pct,
+                "note": note,
+            },
+        )
+
+        return Response(
+            {
+                "report": LocalSignalReportSerializer(report).data,
+                "created": created,
+                "message": "Report sent to the Health Officer.",
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
 

@@ -12,6 +12,7 @@ from .models import (
     CommunityReportEntry,
     CommunitySignal,
     DataSource,
+    LocalSignalReport,
 )
 
 
@@ -182,6 +183,56 @@ class CommunitySignalSerializer(serializers.ModelSerializer):
             "data_quality",
         )
         read_only_fields = fields
+
+
+class LocalSignalReportCreateSerializer(serializers.Serializer):
+    """What the worker submits: which signal, and an optional note.
+
+    Everything else — village, worker, category, source, baseline, value,
+    change — is read off the signal itself on the server, never re-entered
+    or accepted from the client.
+    """
+
+    signal = serializers.PrimaryKeyRelatedField(queryset=CommunitySignal.objects.all())
+    note = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=1000
+    )
+
+
+class LocalSignalReportSerializer(serializers.ModelSerializer):
+    village_name = serializers.CharField(source="village.name", read_only=True)
+    village_code = serializers.CharField(source="village.code", read_only=True)
+    worker_name = serializers.CharField(
+        source="worker.display_name", read_only=True, default=""
+    )
+    label = serializers.CharField(source="get_category_display", read_only=True)
+    source_label = serializers.CharField(source="get_source_kind_display", read_only=True)
+    acknowledged = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LocalSignalReport
+        fields = (
+            "id",
+            "village_name",
+            "village_code",
+            "worker_name",
+            "category",
+            "label",
+            "source_kind",
+            "source_label",
+            "week_label",
+            "baseline",
+            "value",
+            "unit",
+            "change_pct",
+            "note",
+            "created_at",
+            "acknowledged",
+        )
+        read_only_fields = fields
+
+    def get_acknowledged(self, obj) -> bool:
+        return obj.acknowledged_at is not None
 
 
 class DataSourceSerializer(serializers.ModelSerializer):

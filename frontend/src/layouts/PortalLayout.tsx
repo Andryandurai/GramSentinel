@@ -12,25 +12,19 @@ interface NavItem {
  * Shared chrome for both portals.
  *
  * RuralCare and GramSentinel are visually distinct (teal vs indigo) but share
- * the header, the disclaimer and the shell — because they are one platform,
- * not two products.
+ * the header and the shell — because they are one platform, not two products.
  */
 export function PortalLayout({
   portal,
   subtitle,
   accent,
   nav,
-  hideFooterDisclaimer = false,
   wide = false,
 }: {
   portal: string
   subtitle: string
   accent: 'care' | 'sentinel'
   nav: NavItem[]
-  /** Worker Portal, and the Officer Portal's Simulation Lab sub-tree — both
-   *  already carry their own inline synthetic-data labeling, so the long
-   *  shared footer disclaimer would be redundant there. */
-  hideFooterDisclaimer?: boolean
   /** Opt-in wider shell (currently only the Simulation Lab sub-tree, whose
    *  three-column workspace is cramped at the standard `max-w-7xl` every
    *  other officer page keeps unchanged) — default `false` preserves the
@@ -108,17 +102,6 @@ export function PortalLayout({
       <main className={`flex-1 mx-auto w-full ${containerWidth} px-4 py-6`}>
         <Outlet />
       </main>
-
-      {!hideFooterDisclaimer && (
-        <footer className="border-t border-ink-200 bg-white">
-          <div className={`mx-auto ${containerWidth} px-4 py-3 text-xs text-ink-400`}>
-            Decision-support and early-warning prototype. It does not diagnose,
-            prescribe, or declare outbreaks, and it does not replace healthcare
-            professionals or official public-health surveillance. All data is
-            synthetic, public or anonymised — no real patient data.
-          </div>
-        </footer>
-      )}
     </div>
   )
 }
@@ -137,7 +120,6 @@ export const OFFICER_NAV: NavItem[] = [
   { to: '/officer/community-reports', label: 'Community reports' },
   { to: '/officer/history', label: 'Alert history' },
   { to: '/officer/simulation', label: 'Simulation Lab' },
-  { to: '/officer/simulation/monitoring', label: 'Intelligence Monitoring' },
   { to: '/officer/team', label: 'Health team' },
   { to: '/officer/profile', label: 'My profile' },
 ]

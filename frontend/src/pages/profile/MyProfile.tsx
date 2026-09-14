@@ -3,7 +3,6 @@ import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from 'r
 import {
   Avatar,
   Card,
-  Disclaimer,
   ErrorNote,
   Loading,
 } from '@/components/ui'
@@ -376,7 +375,6 @@ export default function MyProfilePage() {
             </div>
 
             <p className="text-xs text-ink-400">{data.note}</p>
-            <Disclaimer />
           </form>
         </Card>
       </div>
