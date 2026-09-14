@@ -59,6 +59,18 @@ class AssessmentInputSerializer(serializers.Serializer):
     spo2 = serializers.IntegerField(
         required=False, allow_null=True, min_value=40, max_value=100
     )
+    # A data-storage sanity range, not a clinical threshold — wide enough
+    # that a genuine extreme reading is never rejected, narrow enough to
+    # catch an obvious data-entry mistake.
+    sugar_mg_dl = serializers.IntegerField(
+        required=False, allow_null=True, min_value=10, max_value=1000
+    )
+    blood_sugar_measurement_type = serializers.ChoiceField(
+        choices=PatientAssessment.BloodSugarMeasurementType.choices,
+        required=False,
+        allow_blank=True,
+        default="",
+    )
     history = serializers.ListField(
         child=serializers.CharField(), required=False, default=list
     )
@@ -112,6 +124,31 @@ class AssessmentInputSerializer(serializers.Serializer):
                     )
                 }
             )
+
+        # Sugar and its measurement type are recorded together or not at
+        # all — an explicit rejection rather than silently guessing one
+        # from the other (task's own "prefer explicit validation over
+        # accepting contradictory data").
+        has_sugar = attrs.get("sugar_mg_dl") is not None
+        measurement_type = attrs.get("blood_sugar_measurement_type", "")
+        if has_sugar and not measurement_type:
+            raise serializers.ValidationError(
+                {
+                    "blood_sugar_measurement_type": (
+                        "Select when this blood sugar reading was taken "
+                        "(fasting, random, or 2-hour post-meal)."
+                    )
+                }
+            )
+        if measurement_type and not has_sugar:
+            raise serializers.ValidationError(
+                {
+                    "sugar_mg_dl": (
+                        "Enter the blood sugar reading, or clear the "
+                        "measurement type."
+                    )
+                }
+            )
         return attrs
 
 
@@ -144,6 +181,8 @@ class PatientAssessmentSerializer(serializers.ModelSerializer):
             "systolic_bp",
             "diastolic_bp",
             "spo2",
+            "sugar_mg_dl",
+            "blood_sugar_measurement_type",
             "notes",
             "primary_category",
             "triage_level",

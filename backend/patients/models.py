@@ -33,6 +33,28 @@ class Patient(models.Model):
         help_text="Used for infants; the red-flag rule set treats <2 months specially.",
     )
     sex = models.CharField(max_length=1, choices=Sex.choices, default=Sex.UNKNOWN)
+
+    # --- Patient details (persist across every assessment, never stored
+    # per-encounter) — a worker may leave any of these blank, and none of
+    # them is read by triage/safety logic; they exist only to keep a more
+    # complete patient record. ------------------------------------------
+    height_cm = models.FloatField(
+        null=True, blank=True, help_text="Height in centimetres, if recorded."
+    )
+    weight_kg = models.FloatField(
+        null=True, blank=True, help_text="Weight in kilograms, if recorded."
+    )
+    phone_number = models.CharField(max_length=32, blank=True)
+    house_location = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text=(
+            "A local reference for finding the household (e.g. 'Near the "
+            "temple', 'House 24') — never GPS coordinates or a formal "
+            "postal address."
+        ),
+    )
+
     village = models.ForeignKey(
         "core.Village", on_delete=models.PROTECT, related_name="patients"
     )

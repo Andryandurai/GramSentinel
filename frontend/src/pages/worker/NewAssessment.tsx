@@ -1,12 +1,24 @@
-import { type FormEvent, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { TriageSupportPanel } from '@/components/TriageSupport'
-import { Card, ErrorNote, Loading } from '@/components/ui'
+import { Card, Empty, ErrorNote, Loading, TriagePill } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import { useAuth } from '@/store/auth'
-import type { Patient, TriageSupport } from '@/types'
+import type { Assessment, BloodSugarMeasurementType, Patient, TriageSupport } from '@/types'
+
+/** Machine value -> label, reused for both the entry form's radio group and
+ *  the Previous Assessments history display, so the two can never drift. */
+const SUGAR_MEASUREMENT_LABELS: Record<BloodSugarMeasurementType, string> = {
+  fasting: 'Fasting',
+  random: 'Random',
+  '2_hour_post_meal': '2-hour post-meal',
+}
+const SUGAR_MEASUREMENT_OPTIONS = Object.entries(SUGAR_MEASUREMENT_LABELS) as [
+  BloodSugarMeasurementType,
+  string,
+][]
 
 const SYMPTOM_OPTIONS = [
   'fever',
@@ -48,6 +60,9 @@ interface AssessmentForm {
   systolic_bp: string
   diastolic_bp: string
   spo2: string
+  sugar_mg_dl: string
+  /** '' whenever sugar_mg_dl is '' — the two are cleared together. */
+  blood_sugar_measurement_type: BloodSugarMeasurementType | ''
   notes: string
 }
 
@@ -64,6 +79,8 @@ const EMPTY_ASSESSMENT: AssessmentForm = {
   systolic_bp: '',
   diastolic_bp: '',
   spo2: '',
+  sugar_mg_dl: '',
+  blood_sugar_measurement_type: '',
   notes: '',
 }
 
@@ -72,6 +89,130 @@ const EMPTY_PATIENT = {
   age_years: '',
   age_months: '',
   sex: 'U',
+  height_cm: '',
+  weight_kg: '',
+  phone_number: '',
+  house_location: '',
+}
+
+/** Patient details — persist on the patient record, editable whenever a
+ *  patient (new or existing) is on screen, and always sent as plain
+ *  strings from form inputs. */
+interface PatientDetailsForm {
+  height_cm: string
+  weight_kg: string
+  phone_number: string
+  house_location: string
+}
+
+const EMPTY_PATIENT_DETAILS: PatientDetailsForm = {
+  height_cm: '',
+  weight_kg: '',
+  phone_number: '',
+  house_location: '',
+}
+
+function patientDetailsOf(patient: Patient): PatientDetailsForm {
+  return {
+    height_cm: patient.height_cm != null ? String(patient.height_cm) : '',
+    weight_kg: patient.weight_kg != null ? String(patient.weight_kg) : '',
+    phone_number: patient.phone_number ?? '',
+    house_location: patient.house_location ?? '',
+  }
+}
+
+interface PatientDetailResponse {
+  patient: Patient
+  assessments: Assessment[]
+}
+
+function formatEncounterDate(value: string): string {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+/** Compact, scannable read of a patient's already-saved assessments — the
+ *  same fields the worker just entered, shown the way they will read back
+ *  later. Never the current, unsaved form (that only exists client-side
+ *  until "Accept & Record Assessment" actually persists it). */
+function PreviousAssessmentsList({ assessments }: { assessments: Assessment[] }) {
+  if (assessments.length === 0) {
+    return <Empty>No previous assessments recorded.</Empty>
+  }
+
+  return (
+    <ul className="max-h-[28rem] space-y-3 overflow-y-auto pr-1">
+      {assessments.map((assessment) => (
+        <li key={assessment.id} className="rounded-md border border-ink-200 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-ink-800">
+              {formatEncounterDate(assessment.encounter_date)}
+            </span>
+            <TriagePill level={assessment.triage_level} />
+          </div>
+
+          {(assessment.symptoms.length > 0 || assessment.other_symptom_text) && (
+            <p className="mt-1.5 text-xs text-ink-600">
+              <span className="font-medium text-ink-700">Symptoms: </span>
+              {[
+                ...assessment.symptoms.map((s) => s.replace(/_/g, ' ')),
+                assessment.other_symptom_text,
+              ]
+                .filter(Boolean)
+                .join(', ')}
+            </p>
+          )}
+
+          <p className="mt-1 text-xs text-ink-600">
+            <span className="font-medium text-ink-700">Duration: </span>
+            {assessment.duration_days} day{assessment.duration_days === 1 ? '' : 's'}
+          </p>
+
+          {(assessment.temperature_c != null ||
+            assessment.pulse_bpm != null ||
+            assessment.respiratory_rate != null ||
+            assessment.systolic_bp != null ||
+            assessment.diastolic_bp != null ||
+            assessment.spo2 != null) && (
+            <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-ink-600 sm:grid-cols-3">
+              {assessment.temperature_c != null && <span>Temp {assessment.temperature_c} °C</span>}
+              {assessment.pulse_bpm != null && <span>Pulse {assessment.pulse_bpm} /min</span>}
+              {assessment.respiratory_rate != null && (
+                <span>Resp {assessment.respiratory_rate} /min</span>
+              )}
+              {(assessment.systolic_bp != null || assessment.diastolic_bp != null) && (
+                <span>
+                  BP {assessment.systolic_bp ?? '—'}/{assessment.diastolic_bp ?? '—'}
+                </span>
+              )}
+              {assessment.spo2 != null && <span>SpO₂ {assessment.spo2}%</span>}
+            </div>
+          )}
+
+          {assessment.sugar_mg_dl != null && (
+            <p className="mt-1.5 text-xs text-ink-600">
+              <span className="font-medium text-ink-700">Blood Sugar: </span>
+              {assessment.sugar_mg_dl} mg/dL
+              <br />
+              <span className="font-medium text-ink-700">Measurement: </span>
+              {assessment.blood_sugar_measurement_type
+                ? SUGAR_MEASUREMENT_LABELS[assessment.blood_sugar_measurement_type]
+                : 'Not recorded'}
+            </p>
+          )}
+
+          {assessment.notes && (
+            <p className="mt-1.5 text-xs text-ink-600">
+              <span className="font-medium text-ink-700">Notes: </span>
+              {assessment.notes}
+            </p>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 /** Only the days the worker actually filled in are sent. */
@@ -98,6 +239,8 @@ function toPayload(patientId: number, form: AssessmentForm) {
     systolic_bp: num(form.systolic_bp),
     diastolic_bp: num(form.diastolic_bp),
     spo2: num(form.spo2),
+    sugar_mg_dl: num(form.sugar_mg_dl),
+    blood_sugar_measurement_type: form.blood_sugar_measurement_type,
     notes: form.notes,
   }
 }
@@ -114,6 +257,13 @@ export default function NewAssessment() {
   const [newPatient, setNewPatient] = useState({ ...EMPTY_PATIENT })
   const [creating, setCreating] = useState(false)
   const [patientError, setPatientError] = useState<string | null>(null)
+
+  // Patient details shown/editable once a patient (new or existing) is on
+  // screen for the assessment step — pre-filled from the stored record,
+  // blank where nothing has been recorded yet.
+  const [patientDetails, setPatientDetails] = useState<PatientDetailsForm>({
+    ...EMPTY_PATIENT_DETAILS,
+  })
 
   const [form, setForm] = useState<AssessmentForm>({ ...EMPTY_ASSESSMENT })
   const [support, setSupport] = useState<TriageSupport | null>(null)
@@ -132,8 +282,44 @@ export default function NewAssessment() {
     )
   }, [patients.data, search])
 
+  // The selected patient's own saved encounter history — the same
+  // village-scoped read `/worker/patient/:id` already uses, reused here
+  // rather than a second history endpoint. Resolves to `null` (no
+  // request) while no patient is selected.
+  const history = useAsync<PatientDetailResponse | null>(
+    () => (patient ? api.get(`/patients/${patient.id}/`) : Promise.resolve(null)),
+    [patient?.id],
+  )
+  // Guards against ever rendering a stale patient's history for the
+  // newly-selected one, regardless of exactly when the fetch above
+  // resolves relative to this render.
+  const historyReady = Boolean(patient && history.data && history.data.patient.id === patient.id)
+
+  // Pre-fill patient details from whichever patient is now on screen — a
+  // just-registered one (its own values, just entered) or one selected
+  // from search (its stored values, blank where never recorded). Re-runs
+  // only when the patient itself changes, so the worker's own edits are
+  // never overwritten mid-edit.
+  useEffect(() => {
+    setPatientDetails(patient ? patientDetailsOf(patient) : { ...EMPTY_PATIENT_DETAILS })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patient?.id])
+
   const set = (key: keyof AssessmentForm, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }))
+
+  /** Clearing the sugar reading clears its measurement type with it — the
+   *  two are recorded together or not at all. */
+  function setSugar(value: string) {
+    setForm((prev) => ({
+      ...prev,
+      sugar_mg_dl: value,
+      blood_sugar_measurement_type: value.trim() === '' ? '' : prev.blood_sugar_measurement_type,
+    }))
+  }
+
+  const setPatientDetail = (key: keyof PatientDetailsForm, value: string) =>
+    setPatientDetails((prev) => ({ ...prev, [key]: value }))
 
   function toggleSymptom(symptom: string) {
     setSupport(null)
@@ -184,6 +370,10 @@ export default function NewAssessment() {
         age_years: newPatient.age_years ? Number(newPatient.age_years) : null,
         age_months: newPatient.age_months ? Number(newPatient.age_months) : null,
         sex: newPatient.sex,
+        height_cm: newPatient.height_cm.trim() === '' ? null : Number(newPatient.height_cm),
+        weight_kg: newPatient.weight_kg.trim() === '' ? null : Number(newPatient.weight_kg),
+        phone_number: newPatient.phone_number.trim(),
+        house_location: newPatient.house_location.trim(),
         village: user?.village ?? null,
       })
       setPatient(created)
@@ -218,11 +408,39 @@ export default function NewAssessment() {
     }
   }
 
+  /** True only when the worker actually changed a patient-detail field from
+   *  what was pre-filled — so accepting an assessment for an unchanged
+   *  patient never issues a needless write. */
+  function patientDetailsChanged(): boolean {
+    if (!patient) return false
+    const original = patientDetailsOf(patient)
+    return (
+      patientDetails.height_cm !== original.height_cm ||
+      patientDetails.weight_kg !== original.weight_kg ||
+      patientDetails.phone_number.trim() !== original.phone_number ||
+      patientDetails.house_location.trim() !== original.house_location
+    )
+  }
+
   async function submit() {
     if (!patient) return
     setBusy('submit')
     setError(null)
     try {
+      if (patientDetailsChanged()) {
+        await api.patch<Patient>(`/patients/${patient.id}/`, {
+          height_cm:
+            patientDetails.height_cm.trim() === ''
+              ? null
+              : Number(patientDetails.height_cm),
+          weight_kg:
+            patientDetails.weight_kg.trim() === ''
+              ? null
+              : Number(patientDetails.weight_kg),
+          phone_number: patientDetails.phone_number.trim(),
+          house_location: patientDetails.house_location.trim(),
+        })
+      }
       const response = await api.post<{
         assessment: { id: number; patient: number }
         aggregation: { message: string; week_label: string }
@@ -245,7 +463,13 @@ export default function NewAssessment() {
   const otherMissingText = form.other_selected && form.other_text.trim() === ''
   const hasSomethingRecorded =
     form.symptoms.length > 0 || (form.other_selected && !otherMissingText)
-  const canRun = patient !== null && hasSomethingRecorded && !otherMissingText
+  // A sugar reading without its measurement type is an incomplete entry —
+  // same "refused before submission, not just at the server" pattern as
+  // the "Other" symptom above.
+  const sugarMissingMeasurement =
+    form.sugar_mg_dl.trim() !== '' && form.blood_sugar_measurement_type === ''
+  const canRun =
+    patient !== null && hasSomethingRecorded && !otherMissingText && !sugarMissingMeasurement
 
   return (
     <div className="space-y-6">
@@ -396,6 +620,71 @@ export default function NewAssessment() {
               Age in years, or in months for infants.
             </p>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label" htmlFor="height_cm">
+                  Height (cm)
+                </label>
+                <input
+                  id="height_cm"
+                  type="number"
+                  min={0}
+                  step="0.1"
+                  className="input"
+                  value={newPatient.height_cm}
+                  onChange={(e) =>
+                    setNewPatient((p) => ({ ...p, height_cm: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="label" htmlFor="weight_kg">
+                  Weight (kg)
+                </label>
+                <input
+                  id="weight_kg"
+                  type="number"
+                  min={0}
+                  step="0.1"
+                  className="input"
+                  value={newPatient.weight_kg}
+                  onChange={(e) =>
+                    setNewPatient((p) => ({ ...p, weight_kg: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="label" htmlFor="phone_number">
+                Phone number
+              </label>
+              <input
+                id="phone_number"
+                className="input"
+                inputMode="tel"
+                value={newPatient.phone_number}
+                onChange={(e) =>
+                  setNewPatient((p) => ({ ...p, phone_number: e.target.value }))
+                }
+              />
+            </div>
+
+            <div>
+              <label className="label" htmlFor="house_location">
+                House location
+              </label>
+              <input
+                id="house_location"
+                className="input"
+                placeholder="e.g. Near temple / House 24 / North Street"
+                value={newPatient.house_location}
+                onChange={(e) =>
+                  setNewPatient((p) => ({ ...p, house_location: e.target.value }))
+                }
+              />
+            </div>
+
             <div className="rounded-md bg-ink-50 border border-ink-200 px-3 py-2 text-xs text-ink-600">
               Village: <span className="font-medium">{user?.village_name}</span>{' '}
               — patients you register belong to your own area.
@@ -491,6 +780,64 @@ export default function NewAssessment() {
                 }
               >
                 <form onSubmit={runAgents} className="space-y-5">
+                  <fieldset>
+                    <legend className="label">Patient details</legend>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="label" htmlFor="pd_height">
+                          Height (cm)
+                        </label>
+                        <input
+                          id="pd_height"
+                          type="number"
+                          min={0}
+                          step="0.1"
+                          className="input"
+                          value={patientDetails.height_cm}
+                          onChange={(e) => setPatientDetail('height_cm', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="label" htmlFor="pd_weight">
+                          Weight (kg)
+                        </label>
+                        <input
+                          id="pd_weight"
+                          type="number"
+                          min={0}
+                          step="0.1"
+                          className="input"
+                          value={patientDetails.weight_kg}
+                          onChange={(e) => setPatientDetail('weight_kg', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="label" htmlFor="pd_phone">
+                          Phone number
+                        </label>
+                        <input
+                          id="pd_phone"
+                          className="input"
+                          inputMode="tel"
+                          value={patientDetails.phone_number}
+                          onChange={(e) => setPatientDetail('phone_number', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="label" htmlFor="pd_location">
+                          House location
+                        </label>
+                        <input
+                          id="pd_location"
+                          className="input"
+                          placeholder="e.g. Near temple / House 24"
+                          value={patientDetails.house_location}
+                          onChange={(e) => setPatientDetail('house_location', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </fieldset>
+
                   <div>
                     <span className="label">Symptoms</span>
                     <div className="flex flex-wrap gap-1.5">
@@ -651,6 +998,48 @@ export default function NewAssessment() {
                         </div>
                       ))}
                     </div>
+
+                    <div className="mt-3">
+                      <label className="label" htmlFor="sugar_mg_dl">
+                        Blood Sugar (mg/dL)
+                      </label>
+                      <input
+                        id="sugar_mg_dl"
+                        type="number"
+                        min={0}
+                        step="1"
+                        className="input max-w-[10rem]"
+                        value={form.sugar_mg_dl}
+                        onChange={(e) => setSugar(e.target.value)}
+                      />
+
+                      {form.sugar_mg_dl.trim() !== '' && (
+                        <div className="mt-2">
+                          <span className="label">Measurement</span>
+                          <div className="flex flex-wrap gap-3">
+                            {SUGAR_MEASUREMENT_OPTIONS.map(([value, label]) => (
+                              <label
+                                key={value}
+                                className="flex items-center gap-1.5 text-xs text-ink-700"
+                              >
+                                <input
+                                  type="radio"
+                                  name="blood_sugar_measurement_type"
+                                  checked={form.blood_sugar_measurement_type === value}
+                                  onChange={() => set('blood_sugar_measurement_type', value)}
+                                />
+                                {label}
+                              </label>
+                            ))}
+                          </div>
+                          {sugarMissingMeasurement && (
+                            <p className="mt-1 text-xs text-red-600">
+                              Select when this reading was taken.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </fieldset>
 
                   <div>
@@ -682,12 +1071,20 @@ export default function NewAssessment() {
 
           <div className="space-y-6">
             {!support ? (
-              <Card title="Triage support">
-                <p className="text-sm text-ink-400 py-8 text-center">
-                  {patient
-                    ? 'Record the presentation, then select Get AI suggestion.'
-                    : 'Select a patient to begin.'}
-                </p>
+              <Card title="Previous Assessments">
+                {!patient ? (
+                  <p className="text-sm text-ink-400 py-8 text-center">
+                    Select a patient to view previous assessments.
+                  </p>
+                ) : !historyReady ? (
+                  history.error ? (
+                    <ErrorNote message={history.error} onRetry={history.reload} />
+                  ) : (
+                    <Loading label="Loading history…" />
+                  )
+                ) : (
+                  <PreviousAssessmentsList assessments={history.data?.assessments ?? []} />
+                )}
               </Card>
             ) : (
               <Card title="Triage support">

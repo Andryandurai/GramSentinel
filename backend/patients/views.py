@@ -9,7 +9,11 @@ from assessments.serializers import FollowUpSerializer, PatientAssessmentSeriali
 from users.permissions import IsWorker
 
 from .models import Patient
-from .serializers import PatientCreateSerializer, PatientSerializer
+from .serializers import (
+    PatientCreateSerializer,
+    PatientDetailUpdateSerializer,
+    PatientSerializer,
+)
 
 
 class PatientListCreateView(generics.ListCreateAPIView):
@@ -60,6 +64,15 @@ class PatientListCreateView(generics.ListCreateAPIView):
 
 
 class PatientDetailView(generics.RetrieveAPIView):
+    """GET returns the full patient + encounter history (below). PATCH is
+    deliberately narrower: `PatientDetailUpdateSerializer` only accepts the
+    four patient-detail fields (height/weight/phone/house location) — a
+    worker corrects or fills these in for a patient already on file, never
+    the identifier, name, age, sex or village those same protections
+    (`get_object()` below, from the same village-scoped `get_queryset()`
+    the GET path already uses) exist to keep stable.
+    """
+
     permission_classes = (IsWorker,)
     serializer_class = PatientSerializer
     lookup_field = "pk"
@@ -71,6 +84,15 @@ class PatientDetailView(generics.RetrieveAPIView):
         if self.request.user.village_id:
             queryset = queryset.filter(village_id=self.request.user.village_id)
         return queryset
+
+    def patch(self, request, *args, **kwargs):
+        patient = self.get_object()
+        serializer = PatientDetailUpdateSerializer(
+            patient, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(PatientSerializer(patient).data, status=status.HTTP_200_OK)
 
     def retrieve(self, request, *args, **kwargs):
         patient = self.get_object()

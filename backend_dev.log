@@ -1550,3 +1550,619 @@ HTTP POST /api/auth/login/ 200 [0.44, 127.0.0.1:53029]
 INFO django.channels.server :: HTTP POST /api/auth/login/ 200 [0.44, 127.0.0.1:53029]
 HTTP GET /api/simulation/scenarios/ 200 [0.02, 127.0.0.1:53030]
 INFO django.channels.server :: HTTP GET /api/simulation/scenarios/ 200 [0.02, 127.0.0.1:53030]
+HTTP GET /api/patients/ 200 [0.03, 127.0.0.1:52399]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.03, 127.0.0.1:52399]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:52840]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:52840]
+HTTP POST /api/auth/login/ 200 [0.43, 127.0.0.1:54052]
+INFO django.channels.server :: HTTP POST /api/auth/login/ 200 [0.43, 127.0.0.1:54052]
+HTTP POST /api/simulation/sessions/ 201 [0.04, 127.0.0.1:54053]
+INFO django.channels.server :: HTTP POST /api/simulation/sessions/ 201 [0.04, 127.0.0.1:54053]
+INFO gramsentinel.simulation :: Signal Analysis LLM narrative unavailable, using deterministic fallback: No LLM configured; using deterministic narrative.
+HTTP POST /api/simulation/sessions/122/advance/ 200 [0.09, 127.0.0.1:54054]
+INFO django.channels.server :: HTTP POST /api/simulation/sessions/122/advance/ 200 [0.09, 127.0.0.1:54054]
+INFO gramsentinel.simulation :: Signal Analysis LLM narrative unavailable, using deterministic fallback: No LLM configured; using deterministic narrative.
+HTTP POST /api/simulation/sessions/122/advance/ 200 [0.09, 127.0.0.1:54055]
+INFO django.channels.server :: HTTP POST /api/simulation/sessions/122/advance/ 200 [0.09, 127.0.0.1:54055]
+INFO gramsentinel.simulation :: Signal Analysis LLM narrative unavailable, using deterministic fallback: No LLM configured; using deterministic narrative.
+HTTP POST /api/simulation/sessions/122/counterfactual/ 200 [0.05, 127.0.0.1:54056]
+INFO django.channels.server :: HTTP POST /api/simulation/sessions/122/counterfactual/ 200 [0.05, 127.0.0.1:54056]
+HTTP GET /api/simulation/sessions/122/intelligence/ 200 [0.03, 127.0.0.1:54057]
+INFO django.channels.server :: HTTP GET /api/simulation/sessions/122/intelligence/ 200 [0.03, 127.0.0.1:54057]
+HTTP POST /api/auth/login/ 200 [0.42, 127.0.0.1:62872]
+INFO django.channels.server :: HTTP POST /api/auth/login/ 200 [0.42, 127.0.0.1:62872]
+HTTP GET /api/worker/dashboard/?week=all 200 [0.06, 127.0.0.1:59427]
+INFO django.channels.server :: HTTP GET /api/worker/dashboard/?week=all 200 [0.06, 127.0.0.1:59427]
+HTTP GET /api/worker/dashboard/?week=all 200 [0.06, 127.0.0.1:63202]
+INFO django.channels.server :: HTTP GET /api/worker/dashboard/?week=all 200 [0.06, 127.0.0.1:63202]
+HTTP POST /api/auth/login/ 200 [0.46, 127.0.0.1:50374]
+INFO django.channels.server :: HTTP POST /api/auth/login/ 200 [0.46, 127.0.0.1:50374]
+HTTP GET /api/worker/dashboard/?week=all 200 [0.05, 127.0.0.1:62660]
+INFO django.channels.server :: HTTP GET /api/worker/dashboard/?week=all 200 [0.05, 127.0.0.1:62660]
+HTTP GET /api/worker/dashboard/?week=all 200 [0.04, 127.0.0.1:62195]
+INFO django.channels.server :: HTTP GET /api/worker/dashboard/?week=all 200 [0.04, 127.0.0.1:62195]
+HTTP GET /api/patients/312/ 200 [0.03, 127.0.0.1:56414]
+INFO django.channels.server :: HTTP GET /api/patients/312/ 200 [0.03, 127.0.0.1:56414]
+HTTP GET /api/patients/312/ 200 [0.03, 127.0.0.1:50983]
+INFO django.channels.server :: HTTP GET /api/patients/312/ 200 [0.03, 127.0.0.1:50983]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:56643]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:56643]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:49697]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:49697]
+HTTP GET /api/worker/dashboard/?week=all 200 [0.04, 127.0.0.1:57166]
+INFO django.channels.server :: HTTP GET /api/worker/dashboard/?week=all 200 [0.04, 127.0.0.1:57166]
+HTTP GET /api/worker/dashboard/?week=all 200 [0.04, 127.0.0.1:62648]
+INFO django.channels.server :: HTTP GET /api/worker/dashboard/?week=all 200 [0.04, 127.0.0.1:62648]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:57365]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:57365]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:65149]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:65149]
+C:\Users\Andry\GramSentinel\backend\patients\models.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\patients\models.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 11:05:47
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+C:\Users\Andry\GramSentinel\backend\patients\serializers.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\patients\serializers.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 11:24:47
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+C:\Users\Andry\GramSentinel\backend\patients\views.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\patients\views.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 11:25:28
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+C:\Users\Andry\GramSentinel\backend\patients\views.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\patients\views.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 11:25:39
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+HTTP GET /api/patients/ 200 [0.12, 127.0.0.1:53182]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.12, 127.0.0.1:53182]
+HTTP GET /api/patients/ 200 [0.01, 127.0.0.1:64088]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.01, 127.0.0.1:64088]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:65499]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:65499]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:65501]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:65501]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:52551]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:52551]
+HTTP GET /api/patients/ 200 [0.01, 127.0.0.1:61875]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.01, 127.0.0.1:61875]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:61877]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:61877]
+HTTP GET /api/patients/ 200 [0.01, 127.0.0.1:50065]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.01, 127.0.0.1:50065]
+HTTP GET /api/patients/ 200 [0.03, 127.0.0.1:58333]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.03, 127.0.0.1:58333]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:50803]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:50803]
+HTTP GET /api/patients/ 200 [0.01, 127.0.0.1:55925]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.01, 127.0.0.1:55925]
+HTTP POST /api/auth/login/ 200 [0.40, 127.0.0.1:59662]
+INFO django.channels.server :: HTTP POST /api/auth/login/ 200 [0.40, 127.0.0.1:59662]
+HTTP POST /api/patients/ 201 [0.02, 127.0.0.1:59663]
+INFO django.channels.server :: HTTP POST /api/patients/ 201 [0.02, 127.0.0.1:59663]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.2ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+INFO gramsentinel.aggregation :: [AGGREGATION] KVL 2026-W38 -> 1 anonymised community signal(s)
+HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:59664]
+INFO django.channels.server :: HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:59664]
+HTTP GET /api/patients/326/ 200 [0.03, 127.0.0.1:59665]
+INFO django.channels.server :: HTTP GET /api/patients/326/ 200 [0.03, 127.0.0.1:59665]
+HTTP GET /api/auth/me/ 200 [0.02, 127.0.0.1:59924]
+INFO django.channels.server :: HTTP GET /api/auth/me/ 200 [0.02, 127.0.0.1:59924]
+HTTP GET /api/auth/me/ 200 [0.02, 127.0.0.1:59926]
+INFO django.channels.server :: HTTP GET /api/auth/me/ 200 [0.02, 127.0.0.1:59926]
+HTTP GET /api/patients/ 200 [0.03, 127.0.0.1:59928]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.03, 127.0.0.1:59928]
+HTTP GET /api/patients/ 200 [0.03, 127.0.0.1:59930]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.03, 127.0.0.1:59930]
+HTTP GET /api/worker/dashboard/?week=all 200 [0.05, 127.0.0.1:58531]
+INFO django.channels.server :: HTTP GET /api/worker/dashboard/?week=all 200 [0.05, 127.0.0.1:58531]
+HTTP GET /api/worker/dashboard/?week=all 200 [0.04, 127.0.0.1:52489]
+INFO django.channels.server :: HTTP GET /api/worker/dashboard/?week=all 200 [0.04, 127.0.0.1:52489]
+HTTP POST /api/auth/login/ 200 [0.45, 127.0.0.1:56333]
+INFO django.channels.server :: HTTP POST /api/auth/login/ 200 [0.45, 127.0.0.1:56333]
+HTTP GET /api/officer/dashboard/ 200 [0.17, 127.0.0.1:52149]
+INFO django.channels.server :: HTTP GET /api/officer/dashboard/ 200 [0.17, 127.0.0.1:52149]
+HTTP GET /api/officer/dashboard/ 200 [0.04, 127.0.0.1:64141]
+INFO django.channels.server :: HTTP GET /api/officer/dashboard/ 200 [0.04, 127.0.0.1:64141]
+HTTP GET /api/simulation/scenarios/ 200 [0.02, 127.0.0.1:65218]
+INFO django.channels.server :: HTTP GET /api/simulation/scenarios/ 200 [0.02, 127.0.0.1:65218]
+HTTP GET /api/simulation/scenarios/ 200 [0.02, 127.0.0.1:61287]
+INFO django.channels.server :: HTTP GET /api/simulation/scenarios/ 200 [0.02, 127.0.0.1:61287]
+HTTP POST /api/simulation/sessions/ 201 [0.04, 127.0.0.1:61235]
+INFO django.channels.server :: HTTP POST /api/simulation/sessions/ 201 [0.04, 127.0.0.1:61235]
+HTTP GET /api/simulation/sessions/123/intelligence/ 200 [0.03, 127.0.0.1:57286]
+INFO django.channels.server :: HTTP GET /api/simulation/sessions/123/intelligence/ 200 [0.03, 127.0.0.1:57286]
+HTTP POST /api/auth/login/ 200 [0.32, 127.0.0.1:49305]
+INFO django.channels.server :: HTTP POST /api/auth/login/ 200 [0.32, 127.0.0.1:49305]
+HTTP GET /api/worker/dashboard/?week=all 200 [0.04, 127.0.0.1:53252]
+INFO django.channels.server :: HTTP GET /api/worker/dashboard/?week=all 200 [0.04, 127.0.0.1:53252]
+HTTP GET /api/worker/dashboard/?week=all 200 [0.05, 127.0.0.1:56909]
+INFO django.channels.server :: HTTP GET /api/worker/dashboard/?week=all 200 [0.05, 127.0.0.1:56909]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:51924]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:51924]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:61002]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:61002]
+C:\Users\Andry\GramSentinel\backend\assessments\models.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\assessments\models.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 11:25:47
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+C:\Users\Andry\GramSentinel\backend\assessments\serializers.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\assessments\serializers.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 11:47:04
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+C:\Users\Andry\GramSentinel\backend\assessments\serializers.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\assessments\serializers.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 11:47:30
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+C:\Users\Andry\GramSentinel\backend\assessments\views.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\assessments\views.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 11:47:35
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+HTTP POST /api/auth/login/ 200 [0.32, 127.0.0.1:54466]
+INFO django.channels.server :: HTTP POST /api/auth/login/ 200 [0.32, 127.0.0.1:54466]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:54467]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:54467]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.3ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+INFO gramsentinel.aggregation :: [AGGREGATION] KVL 2026-W38 -> 1 anonymised community signal(s)
+HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:54468]
+INFO django.channels.server :: HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:54468]
+HTTP GET /api/patients/310/ 200 [0.03, 127.0.0.1:54469]
+INFO django.channels.server :: HTTP GET /api/patients/310/ 200 [0.03, 127.0.0.1:54469]
+Bad Request: /api/assessments/
+WARNING django.request :: Bad Request: /api/assessments/
+HTTP POST /api/assessments/ 400 [0.02, 127.0.0.1:54470]
+WARNING django.channels.server :: HTTP POST /api/assessments/ 400 [0.02, 127.0.0.1:54470]
+HTTP GET /api/patients/ 200 [0.01, 127.0.0.1:56851]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.01, 127.0.0.1:56851]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:65354]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:65354]
+HTTP GET /api/worker/dashboard/?week=all 200 [0.05, 127.0.0.1:65356]
+INFO django.channels.server :: HTTP GET /api/worker/dashboard/?week=all 200 [0.05, 127.0.0.1:65356]
+HTTP GET /api/worker/dashboard/?week=all 200 [0.03, 127.0.0.1:55937]
+INFO django.channels.server :: HTTP GET /api/worker/dashboard/?week=all 200 [0.03, 127.0.0.1:55937]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:53488]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:53488]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:63191]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:63191]
+HTTP POST /api/auth/login/ 200 [0.29, 127.0.0.1:63194]
+INFO django.channels.server :: HTTP POST /api/auth/login/ 200 [0.29, 127.0.0.1:63194]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:63195]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:63195]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+INFO gramsentinel.aggregation :: [AGGREGATION] KVL 2026-W36 -> 3 anonymised community signal(s)
+HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:63196]
+INFO django.channels.server :: HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:63196]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+INFO gramsentinel.aggregation :: [AGGREGATION] KVL 2026-W37 -> 4 anonymised community signal(s)
+HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:63197]
+INFO django.channels.server :: HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:63197]
+HTTP GET /api/patients/310/ 200 [0.03, 127.0.0.1:63198]
+INFO django.channels.server :: HTTP GET /api/patients/310/ 200 [0.03, 127.0.0.1:63198]
+HTTP POST /api/patients/ 201 [0.03, 127.0.0.1:50958]
+INFO django.channels.server :: HTTP POST /api/patients/ 201 [0.03, 127.0.0.1:50958]
+HTTP GET /api/patients/327/ 200 [0.03, 127.0.0.1:58765]
+INFO django.channels.server :: HTTP GET /api/patients/327/ 200 [0.03, 127.0.0.1:58765]
+HTTP GET /api/patients/ 200 [0.03, 127.0.0.1:58764]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.03, 127.0.0.1:58764]
+HTTP GET /api/report-categories/ 200 [0.01, 127.0.0.1:54983]
+INFO django.channels.server :: HTTP GET /api/report-categories/ 200 [0.01, 127.0.0.1:54983]
+HTTP GET /api/report-categories/ 200 [0.02, 127.0.0.1:58572]
+INFO django.channels.server :: HTTP GET /api/report-categories/ 200 [0.02, 127.0.0.1:58572]
+HTTP GET /api/auth/me/ 200 [0.01, 127.0.0.1:56363]
+INFO django.channels.server :: HTTP GET /api/auth/me/ 200 [0.01, 127.0.0.1:56363]
+HTTP GET /api/auth/me/ 200 [0.13, 127.0.0.1:56365]
+INFO django.channels.server :: HTTP GET /api/auth/me/ 200 [0.13, 127.0.0.1:56365]
+HTTP GET /api/report-categories/ 200 [0.01, 127.0.0.1:56367]
+INFO django.channels.server :: HTTP GET /api/report-categories/ 200 [0.01, 127.0.0.1:56367]
+HTTP GET /api/report-categories/ 200 [0.01, 127.0.0.1:56369]
+INFO django.channels.server :: HTTP GET /api/report-categories/ 200 [0.01, 127.0.0.1:56369]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:56371]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:56371]
+HTTP GET /api/patients/ 200 [0.01, 127.0.0.1:56373]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.01, 127.0.0.1:56373]
+HTTP GET /api/patients/310/ 200 [0.02, 127.0.0.1:54346]
+INFO django.channels.server :: HTTP GET /api/patients/310/ 200 [0.02, 127.0.0.1:54346]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+HTTP POST /api/assessments/preview/ 200 [0.02, 127.0.0.1:60518]
+INFO django.channels.server :: HTTP POST /api/assessments/preview/ 200 [0.02, 127.0.0.1:60518]
+HTTP PATCH /api/patients/310/ 200 [0.03, 127.0.0.1:55676]
+INFO django.channels.server :: HTTP PATCH /api/patients/310/ 200 [0.03, 127.0.0.1:55676]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+INFO gramsentinel.aggregation :: [AGGREGATION] KVL 2026-W38 -> 1 anonymised community signal(s)
+HTTP POST /api/assessments/ 201 [0.03, 127.0.0.1:65432]
+INFO django.channels.server :: HTTP POST /api/assessments/ 201 [0.03, 127.0.0.1:65432]
+HTTP GET /api/patients/310/ 200 [0.03, 127.0.0.1:59730]
+INFO django.channels.server :: HTTP GET /api/patients/310/ 200 [0.03, 127.0.0.1:59730]
+HTTP GET /api/patients/310/ 200 [0.03, 127.0.0.1:50482]
+INFO django.channels.server :: HTTP GET /api/patients/310/ 200 [0.03, 127.0.0.1:50482]
+C:\Users\Andry\GramSentinel\backend\assessments\models.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\assessments\models.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 11:47:48
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+C:\Users\Andry\GramSentinel\backend\assessments\models.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\assessments\models.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 12:08:38
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+C:\Users\Andry\GramSentinel\backend\assessments\serializers.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\assessments\serializers.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 12:08:45
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+C:\Users\Andry\GramSentinel\backend\assessments\serializers.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\assessments\serializers.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 12:09:08
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+C:\Users\Andry\GramSentinel\backend\assessments\serializers.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\assessments\serializers.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 12:09:21
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+C:\Users\Andry\GramSentinel\backend\assessments\views.py changed, reloading.
+INFO django.utils.autoreload :: C:\Users\Andry\GramSentinel\backend\assessments\views.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+September 14, 2026 - 12:09:33
+Django version 5.0.6, using settings 'config.settings'
+Starting ASGI/Daphne version 4.1.2 development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+Watching for file changes with StatReloader
+INFO django.utils.autoreload :: Watching for file changes with StatReloader
+C:\Users\Andry\GramSentinel\.venv\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.6.0)/charset_normalizer (3.5.0) doesn't match a supported version!
+  warnings.warn(
+HTTP POST /api/auth/login/ 200 [0.31, 127.0.0.1:61716]
+INFO django.channels.server :: HTTP POST /api/auth/login/ 200 [0.31, 127.0.0.1:61716]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:61717]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:61717]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.2ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+INFO gramsentinel.aggregation :: [AGGREGATION] KVL 2026-W38 -> 1 anonymised community signal(s)
+HTTP POST /api/assessments/ 201 [0.03, 127.0.0.1:61718]
+INFO django.channels.server :: HTTP POST /api/assessments/ 201 [0.03, 127.0.0.1:61718]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+INFO gramsentinel.aggregation :: [AGGREGATION] KVL 2026-W38 -> 1 anonymised community signal(s)
+HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:61719]
+INFO django.channels.server :: HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:61719]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+INFO gramsentinel.aggregation :: [AGGREGATION] KVL 2026-W38 -> 1 anonymised community signal(s)
+HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:61720]
+INFO django.channels.server :: HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:61720]
+Bad Request: /api/assessments/
+WARNING django.request :: Bad Request: /api/assessments/
+HTTP POST /api/assessments/ 400 [0.01, 127.0.0.1:61721]
+WARNING django.channels.server :: HTTP POST /api/assessments/ 400 [0.01, 127.0.0.1:61721]
+Bad Request: /api/assessments/
+WARNING django.request :: Bad Request: /api/assessments/
+HTTP POST /api/assessments/ 400 [0.01, 127.0.0.1:61722]
+WARNING django.channels.server :: HTTP POST /api/assessments/ 400 [0.01, 127.0.0.1:61722]
+Bad Request: /api/assessments/
+WARNING django.request :: Bad Request: /api/assessments/
+HTTP POST /api/assessments/ 400 [0.01, 127.0.0.1:61461]
+WARNING django.channels.server :: HTTP POST /api/assessments/ 400 [0.01, 127.0.0.1:61461]
+HTTP GET /api/patients/310/ 200 [0.03, 127.0.0.1:61462]
+INFO django.channels.server :: HTTP GET /api/patients/310/ 200 [0.03, 127.0.0.1:61462]
+Not Found: /api/
+WARNING django.request :: Not Found: /api/
+HTTP GET /api/ 404 [0.12, 127.0.0.1:53461]
+WARNING django.channels.server :: HTTP GET /api/ 404 [0.12, 127.0.0.1:53461]
+HTTP POST /api/auth/login/ 200 [0.38, 127.0.0.1:59601]
+INFO django.channels.server :: HTTP POST /api/auth/login/ 200 [0.38, 127.0.0.1:59601]
+HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:59608]
+INFO django.channels.server :: HTTP GET /api/patients/ 200 [0.02, 127.0.0.1:59608]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+INFO gramsentinel.aggregation :: [AGGREGATION] KVL 2026-W38 -> 1 anonymised community signal(s)
+HTTP POST /api/assessments/ 201 [0.03, 127.0.0.1:59648]
+INFO django.channels.server :: HTTP POST /api/assessments/ 201 [0.03, 127.0.0.1:59648]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+INFO gramsentinel.aggregation :: [AGGREGATION] KVL 2026-W38 -> 2 anonymised community signal(s)
+HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:59649]
+INFO django.channels.server :: HTTP POST /api/assessments/ 201 [0.04, 127.0.0.1:59649]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.1ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.5ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+INFO gramsentinel.aggregation :: [AGGREGATION] KVL 2026-W38 -> 3 anonymised community signal(s)
+HTTP POST /api/assessments/ 201 [0.10, 127.0.0.1:59650]
+INFO django.channels.server :: HTTP POST /api/assessments/ 201 [0.10, 127.0.0.1:59650]
+HTTP GET /api/assessments/ 200 [0.01, 127.0.0.1:55330]
+INFO django.channels.server :: HTTP GET /api/assessments/ 200 [0.01, 127.0.0.1:55330]
+HTTP GET /api/assessments/ 200 [0.02, 127.0.0.1:55331]
+INFO django.channels.server :: HTTP GET /api/assessments/ 200 [0.02, 127.0.0.1:55331]
+HTTP GET /api/assessments/ 200 [0.00, 127.0.0.1:55333]
+INFO django.channels.server :: HTTP GET /api/assessments/ 200 [0.00, 127.0.0.1:55333]
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_1_DATA_INGESTION ===
+INFO gramsentinel.agents :: [AGENT PatientListenerAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> PatientListenerAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_3_DOMAIN_REASONING ===
+INFO gramsentinel.agents :: [AGENT SymptomAnalysisAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> SymptomAnalysisAgent (OK)
+INFO gramsentinel.agents :: [AGENT RiskTriageAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> RiskTriageAgent (OK)
+INFO gramsentinel.agents :: [AGENT ReferralAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] DOMAIN_REASONING -> ReferralAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_4_SAFETY_VERIFICATION ===
+INFO gramsentinel.agents :: [AGENT IndividualSafetyAgent] OK in 0.0ms
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] SAFETY_VERIFICATION -> IndividualSafetyAgent (OK)
+INFO gramsentinel.orchestrator :: [ORCHESTRATOR] === STAGE: STAGE_5_HUMAN_FACING_OUTPUT ===
+HTTP POST /api/assessments/preview/ 200 [0.01, 127.0.0.1:55334]
+INFO django.channels.server :: HTTP POST /api/assessments/preview/ 200 [0.01, 127.0.0.1:55334]
+HTTP POST /api/auth/login/ 200 [0.40, 127.0.0.1:55337]
+INFO django.channels.server :: HTTP POST /api/auth/login/ 200 [0.40, 127.0.0.1:55337]
+HTTP GET /api/local-signals/ 200 [0.06, 127.0.0.1:55338]
+INFO django.channels.server :: HTTP GET /api/local-signals/ 200 [0.06, 127.0.0.1:55338]
+HTTP GET /api/officer/dashboard/ 200 [0.02, 127.0.0.1:55339]
+INFO django.channels.server :: HTTP GET /api/officer/dashboard/ 200 [0.02, 127.0.0.1:55339]
+HTTP GET /api/officer/community-data/ 200 [0.02, 127.0.0.1:55340]
+INFO django.channels.server :: HTTP GET /api/officer/community-data/ 200 [0.02, 127.0.0.1:55340]
+HTTP GET /api/alerts/ 200 [0.03, 127.0.0.1:55341]
+INFO django.channels.server :: HTTP GET /api/alerts/ 200 [0.03, 127.0.0.1:55341]
+HTTP GET /api/local-signals/ 200 [0.07, 127.0.0.1:54432]
+INFO django.channels.server :: HTTP GET /api/local-signals/ 200 [0.07, 127.0.0.1:54432]
+HTTP GET /api/local-signals/ 200 [0.04, 127.0.0.1:52047]
+INFO django.channels.server :: HTTP GET /api/local-signals/ 200 [0.04, 127.0.0.1:52047]

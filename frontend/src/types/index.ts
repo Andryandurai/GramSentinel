@@ -145,12 +145,20 @@ export interface Patient {
   age_years: number | null
   age_months: number | null
   sex: string
+  /** Patient details — persist on the patient record across every
+   *  assessment, never per-encounter. Blank/null where never recorded. */
+  height_cm: number | null
+  weight_kg: number | null
+  phone_number: string
+  house_location: string
   village: number
   village_name: string
   village_code: string
   assessment_count: number
   created_at: string
 }
+
+export type BloodSugarMeasurementType = 'fasting' | 'random' | '2_hour_post_meal'
 
 export interface Assessment {
   id: number
@@ -166,6 +174,19 @@ export interface Assessment {
   /** Empty when day-wise details were not recorded. Old records have none. */
   symptom_timeline: SymptomDay[]
   temperature_c: number | null
+  pulse_bpm: number | null
+  respiratory_rate: number | null
+  systolic_bp: number | null
+  diastolic_bp: number | null
+  spo2: number | null
+  /** Blood glucose reading in mg/dL — null on assessments recorded before
+   *  this field existed, or where the worker had no reading available. */
+  sugar_mg_dl: number | null
+  /** Context for `sugar_mg_dl` — '' when there is no sugar reading, and
+   *  '' (not inferred) on an older assessment that has a reading but was
+   *  recorded before this field existed. */
+  blood_sugar_measurement_type: BloodSugarMeasurementType | ''
+  notes: string
   primary_category: string
   triage_level: TriageLevel
   triage_score: number

@@ -13,6 +13,11 @@ class PatientAssessment(models.Model):
     summary and a suggested workflow. It is never a diagnosis.
     """
 
+    class BloodSugarMeasurementType(models.TextChoices):
+        FASTING = "fasting", "Fasting"
+        RANDOM = "random", "Random"
+        TWO_HOUR_POST_MEAL = "2_hour_post_meal", "2-hour post-meal"
+
     patient = models.ForeignKey(
         "patients.Patient", on_delete=models.CASCADE, related_name="assessments"
     )
@@ -55,6 +60,22 @@ class PatientAssessment(models.Model):
     systolic_bp = models.PositiveSmallIntegerField(null=True, blank=True)
     diastolic_bp = models.PositiveSmallIntegerField(null=True, blank=True)
     spo2 = models.PositiveSmallIntegerField(null=True, blank=True)
+    sugar_mg_dl = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Blood glucose reading in mg/dL, if recorded. Not used by triage logic.",
+    )
+    blood_sugar_measurement_type = models.CharField(
+        max_length=24,
+        choices=BloodSugarMeasurementType.choices,
+        blank=True,
+        default="",
+        help_text=(
+            "Context for sugar_mg_dl (fasting/random/2-hour post-meal). Blank "
+            "on assessments with no sugar reading, and on assessments "
+            "recorded before this field existed. Not used by triage logic."
+        ),
+    )
     history = models.JSONField(default=list, blank=True)
     notes = models.TextField(blank=True)
 

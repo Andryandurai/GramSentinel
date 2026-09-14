@@ -177,6 +177,8 @@ class AssessmentListCreateView(generics.ListCreateAPIView):
             systolic_bp=data.get("systolic_bp"),
             diastolic_bp=data.get("diastolic_bp"),
             spo2=data.get("spo2"),
+            sugar_mg_dl=data.get("sugar_mg_dl"),
+            blood_sugar_measurement_type=data.get("blood_sugar_measurement_type", ""),
             history=data.get("history", []),
             notes=data.get("notes", ""),
             primary_category=result["signal_category"],
