@@ -13,12 +13,30 @@
             v
     agents.llm.get_llm_client().summarise(GROUNDING_SYSTEM_PROMPT, ...)
             |
-      (LLMUnavailable, any exception, or RAG_ENABLED=False)
+      (no client configured, LLMUnavailable, any exception, or an
+       empty/whitespace response)
             |
             v
+    {"status": "unavailable", "answer": "", "sources": [], ...}
+            |
+      (otherwise)
+            v
+    {"status": "grounded", "answer": <LLM text>, "sources": [...], ...}
+
     always returns a dict — NEVER raises. A caller that ignores the return
     value entirely still gets the same triage/alert/safety result it would
     have gotten without this module existing at all (Section 33).
+
+    IMPORTANT — "grounded" means an LLM actually produced wording. Retrieval
+    succeeding on its own is not grounding: raw retrieved chunk text is
+    never returned as `answer`. It was, once — a `_template_explanation()`
+    helper stitched retrieved chunk previews into a "Retrieved guidance
+    (LLM wording unavailable):" string and that was returned under
+    `status: "grounded"`, which leaked straight into the Health Worker's
+    New Assessment screen as a wall of raw source text. That helper is
+    gone; "no usable LLM wording" now correctly reports `status:
+    "unavailable"` with no answer text and no sources, so the frontend
+    shows its own clean "temporarily unavailable" message instead.
 
 This function is the ONLY place `agents.llm.get_llm_client` is imported in
 this app — reusing the existing LLM client (least-disruptive option A from
@@ -53,20 +71,6 @@ def _chunk_preview(result: RetrievedChunk) -> dict:
         "keyword_score": round(result.keyword_score, 3),
         "combined_score": round(result.combined_score, 3),
     }
-
-
-def _template_explanation(results: list[RetrievedChunk]) -> str:
-    """Used when no LLM is configured/available — the same "deterministic
-    template, never a blank screen" contract every existing LLM call site
-    in this project already follows. Not a synthesis, just the retrieved
-    text itself, clearly presented as such."""
-
-    lines = [
-        f"[{i + 1}] {r.chunk.document.organization} — {r.chunk.document.title}: "
-        f"{r.chunk.chunk_text[:280]}"
-        for i, r in enumerate(results)
-    ]
-    return "Retrieved guidance (LLM wording unavailable):\n" + "\n".join(lines)
 
 
 def _log(
@@ -140,23 +144,36 @@ def get_grounded_explanation(
         }
 
     client = get_llm_client()
-    used_llm = False
-    if client.available:
-        try:
-            answer = client.summarise(
-                GROUNDING_SYSTEM_PROMPT,
-                build_user_prompt(
-                    application_result=application_result, question=question, chunks=results
-                ),
-                max_tokens=settings.RAG_MAX_TOKENS,
-            )
-            used_llm = True
-        except LLMUnavailable:
-            answer = _template_explanation(results)
-    else:
-        answer = _template_explanation(results)
+    if not client.available:
+        # No LLM configured at all — this is the ordinary state in this
+        # environment (no API key), and it is a genuinely different fact
+        # from "nothing relevant was found": relevant material exists, but
+        # there is no wording engine available to explain it right now.
+        _log(query_type=query_type, user=user, topic=topic, results=results, grounded=False, used_llm=False)
+        return {**empty, "status": "unavailable"}
 
-    _log(query_type=query_type, user=user, topic=topic, results=results, grounded=True, used_llm=used_llm)
+    try:
+        answer = client.summarise(
+            GROUNDING_SYSTEM_PROMPT,
+            build_user_prompt(
+                application_result=application_result, question=question, chunks=results
+            ),
+            max_tokens=settings.RAG_MAX_TOKENS,
+        )
+    except LLMUnavailable as exc:
+        logger.info("RAG explanation unavailable (%s), no answer returned to caller.", exc)
+        _log(query_type=query_type, user=user, topic=topic, results=results, grounded=False, used_llm=False)
+        return {**empty, "status": "unavailable"}
+
+    if not answer or not answer.strip():
+        # An empty/whitespace LLM response is treated the same as no LLM at
+        # all — never fabricate placeholder wording, and never fall back to
+        # showing the raw retrieved text in its place.
+        logger.warning("RAG LLM call returned an empty response for query_type=%s", query_type)
+        _log(query_type=query_type, user=user, topic=topic, results=results, grounded=False, used_llm=False)
+        return {**empty, "status": "unavailable"}
+
+    _log(query_type=query_type, user=user, topic=topic, results=results, grounded=True, used_llm=True)
 
     return {
         "status": "grounded",
@@ -165,5 +182,5 @@ def get_grounded_explanation(
         "sources": citations_for(results),
         "retrieved_chunks": [_chunk_preview(r) for r in results],
         "knowledge_topic": topic,
-        "used_llm": used_llm,
+        "used_llm": True,
     }

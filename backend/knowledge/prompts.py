@@ -34,7 +34,7 @@ def build_user_prompt(
         f"[{i + 1}] ({r.chunk.document.organization} — {r.chunk.document.title}"
         f"{f', {r.chunk.section_title}' if r.chunk.section_title else ''}"
         f"{f', p.{r.chunk.page_number}' if r.chunk.page_number else ''})\n"
-        f"{r.chunk.text}"
+        f"{r.chunk.chunk_text}"
         for i, r in enumerate(chunks)
     )
     return (

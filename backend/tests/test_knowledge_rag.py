@@ -318,13 +318,31 @@ def test_patient_identifiers_not_sent_to_rag(patient):
     assert not (params & forbidden)
 
 
-def test_retrieved_clinical_source_appears_correctly():
+class _StubLLMClient:
+    """A minimal stand-in for agents.llm.client.LLMClient — `available=True`
+    and a fixed `summarise()` response, so a test can exercise the real
+    "grounded" path without a live API key (none is configured anywhere in
+    this test environment)."""
+
+    def __init__(self, answer: str = "This is a grounded, LLM-generated explanation.") -> None:
+        self.available = True
+        self._answer = answer
+
+    def summarise(self, system_prompt: str, user_prompt: str, max_tokens: int = 400) -> str:
+        return self._answer
+
+
+def test_retrieved_clinical_source_appears_correctly(monkeypatch):
+    from knowledge import rag_service
+
     _make_document(
         title="Persistent Fever Doc",
         text="A fever lasting several days with a recorded temperature above normal is "
         "generally treated as more concerning and may warrant PHC referral.",
         section="Fever duration",
     )
+    monkeypatch.setattr(rag_service, "get_llm_client", lambda: _StubLLMClient())
+
     result = queries.ruralcare_guidance(
         triage_level="CONCERNING",
         contributing_factors=["recorded temperature 39.2 C", "symptoms persisting 4 days"],
@@ -638,3 +656,116 @@ def test_audit_log_written_without_patient_data(village):
     assert after == before + 1
     log = RagQueryLog.objects.latest("created_at")
     assert "patient" not in str(log.retrieved_document_ids).lower()
+
+
+# ===========================================================================
+# Regression: LLM-unavailable must never surface raw retrieved chunk text
+# as "guidance" (the bug the New Assessment screenshot showed).
+# ===========================================================================
+
+
+def test_llm_unavailable_reports_unavailable_not_grounded():
+    """The exact bug: previously this returned status="grounded" with a
+    "Retrieved guidance (LLM wording unavailable):" wall of raw chunk text
+    as `answer`. No LLM is configured anywhere in this test environment, so
+    this exercises the real, un-mocked default path."""
+
+    _make_document(
+        title="Fever Doc For Unavailable Test",
+        text="Fever lasting several days with breathlessness is a concerning combination worth noting.",
+    )
+    result = queries.ruralcare_guidance(
+        triage_level="CONCERNING",
+        contributing_factors=["symptoms persisting 4 days"],
+        syndrome_groups=["febrile"],
+        referral_pathway="PHC_REFERRAL",
+    )
+    assert result["status"] == "unavailable"
+    assert result["answer"] == ""
+    assert result["sources"] == []
+    assert "Retrieved guidance" not in result["answer"]
+    assert "LLM wording unavailable" not in result["answer"]
+
+
+def test_llm_unavailable_endpoint_never_exposes_raw_chunks(worker_api):
+    """End-to-end through the actual /api/rag/ruralcare/ endpoint the New
+    Assessment page calls — proves the fix at the HTTP boundary, not just
+    inside the service function."""
+
+    _make_document(
+        title="Fever Doc For Endpoint Test",
+        text="A prolonged fever with a high recorded temperature is generally treated as concerning.",
+    )
+    response = worker_api.post(
+        "/api/rag/ruralcare/",
+        {
+            "triage_level": "CONCERNING",
+            "contributing_factors": ["symptoms persisting 4 days"],
+            "syndrome_groups": ["febrile"],
+            "referral_pathway": "PHC_REFERRAL",
+        },
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.data["status"] == "unavailable"
+    assert response.data["answer"] in ("", None)
+    body = str(response.data)
+    assert "Retrieved guidance" not in body
+    assert "LLM wording unavailable" not in body
+
+
+def test_assessment_preview_succeeds_regardless_of_llm_unavailable(worker_api, patient):
+    """The New Assessment page's actual triage result must be completely
+    unaffected — /api/assessments/preview/ never calls RAG inline at all
+    (see test_ruralcare_triage_unaffected_by_rag above), so this is really
+    confirming that fact still holds after this fix."""
+
+    response = worker_api.post(
+        "/api/assessments/preview/",
+        {"patient": patient.id, "symptoms": ["fever"], "duration_days": 4, "temperature_c": 39.2},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert "triage_level" in response.data["support"]
+
+
+def test_malformed_empty_llm_response_falls_back_to_unavailable(monkeypatch):
+    """A misbehaving LLM returning an empty/whitespace string must be
+    treated exactly like no LLM at all — never surfaced as a blank or
+    broken "grounded" answer."""
+
+    from knowledge import rag_service
+
+    _make_document(title="Empty Response Doc", text="Fever lasting several days is a concerning finding.")
+    monkeypatch.setattr(rag_service, "get_llm_client", lambda: _StubLLMClient(answer="   "))
+
+    result = queries.ruralcare_guidance(
+        triage_level="CONCERNING", contributing_factors=[], syndrome_groups=["febrile"],
+        referral_pathway="PHC_REFERRAL",
+    )
+    assert result["status"] == "unavailable"
+    assert result["answer"] == ""
+
+
+def test_grounded_response_includes_explanation_and_citations(monkeypatch):
+    """Phase 12 item 1 — the positive case: when an LLM genuinely produces
+    wording, both the explanation and its citations must be present."""
+
+    from knowledge import rag_service
+
+    _make_document(
+        title="Grounded Path Doc",
+        text="Breathlessness alongside fever is commonly treated as a danger sign warranting referral.",
+    )
+    monkeypatch.setattr(
+        rag_service, "get_llm_client", lambda: _StubLLMClient(answer="Fever with breathlessness is notable.")
+    )
+
+    result = queries.ruralcare_guidance(
+        triage_level="URGENT", contributing_factors=["breathlessness"], syndrome_groups=["respiratory"],
+        referral_pathway="SAME_DAY_FACILITY_REFERRAL",
+    )
+    assert result["status"] == "grounded"
+    assert result["answer"] == "Fever with breathlessness is notable."
+    assert len(result["sources"]) > 0
+    assert result["used_llm"] is True
