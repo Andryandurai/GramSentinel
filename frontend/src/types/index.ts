@@ -1455,3 +1455,257 @@ export interface SimulationFeedbackState {
   officer: string | null
   updated_at: string | null
 }
+
+// ---------------------------------------------------------------------------
+// Work & Communication — Supervisor Communication, Report Approval Tracker,
+// Correction Requests. See backend/workspace/.
+// ---------------------------------------------------------------------------
+export interface SupervisorMessage {
+  id: number
+  sender_name: string
+  is_from_officer: boolean
+  subject: string
+  body: string
+  has_attachment: boolean
+  attachment_filename: string
+  attachment_mime: string
+  created_at: string
+  read_at: string | null
+  is_read: boolean
+}
+
+export interface MessageThreadResponse {
+  officer_name?: string | null
+  worker_name?: string
+  messages: SupervisorMessage[]
+  count: number
+  limit: number
+  offset: number
+  has_more: boolean
+  notice?: string
+}
+
+export interface OfficerWorkerThread {
+  worker_id: number
+  worker_name: string
+  village_name: string
+  unread_count: number
+  last_message_at: string | null
+  last_message_preview: string
+}
+
+export type WorkflowStatus =
+  | 'SUBMITTED'
+  | 'UNDER_REVIEW'
+  | 'APPROVED'
+  | 'RETURNED_FOR_CORRECTION'
+  | 'RESUBMITTED'
+  | 'REJECTED'
+
+export interface WorkflowEvent {
+  from_status: string
+  to_status: WorkflowStatus
+  to_status_label: string
+  comment: string
+  actor_name: string
+  created_at: string
+}
+
+export interface ReportApproval {
+  id: number
+  report_id: number
+  week_label: string
+  period_start: string
+  period_end: string
+  worker_name: string
+  village_name: string
+  status: WorkflowStatus
+  status_label: string
+  supervisor_comment: string
+  reviewed_by_name: string
+  created_at: string
+  updated_at: string
+  events: WorkflowEvent[]
+}
+
+export type CorrectableRecordType = 'assessment' | 'community_report'
+
+export interface CorrectableRecord {
+  record_type: CorrectableRecordType
+  record_id: number
+  label: string
+  snapshot: Record<string, string>
+}
+
+export interface CorrectionRequest {
+  id: number
+  record_type: CorrectableRecordType
+  record_type_label: string
+  record_label: string
+  original_snapshot: Record<string, string>
+  mistake_description: string
+  proposed_correction: string
+  status: WorkflowStatus
+  status_label: string
+  supervisor_comment: string
+  reviewed_by_name: string
+  applied_at: string | null
+  created_at: string
+  updated_at: string
+  events: WorkflowEvent[]
+}
+
+// ---------------------------------------------------------------------------
+// Field Operations — Field Visit Planner, Inspection Checklist System,
+// Action Plan Management. See backend/fieldops/.
+// ---------------------------------------------------------------------------
+export type FieldOpsPriority = 'NORMAL' | 'HIGH' | 'URGENT'
+
+export type FieldVisitStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+
+export interface FieldVisit {
+  id: number
+  village: number
+  village_name: string
+  village_code: string
+  assigned_officer: number
+  assigned_officer_name: string
+  visit_date: string
+  start_time: string | null
+  end_time: string | null
+  objective: string
+  priority: FieldOpsPriority
+  priority_label: string
+  status: FieldVisitStatus
+  status_label: string
+  notes: string
+  outcome_summary: string
+  observations: string
+  issues_identified: string
+  follow_up_required: boolean
+  completed_at: string | null
+  is_overdue: boolean
+  created_by_name: string
+  created_at: string
+  updated_at: string
+}
+
+export type InspectionType =
+  | 'DRINKING_WATER_SANITATION'
+  | 'SCHOOL_ANGANWADI'
+  | 'PUBLIC_PLACE_HYGIENE'
+  | 'WASTE_MANAGEMENT'
+
+export type InspectionStatus = 'DRAFT' | 'IN_PROGRESS' | 'COMPLETED'
+
+export type ChecklistItemStatus = 'PASSED' | 'FAILED' | 'NEEDS_ACTION'
+
+export interface InspectionChecklistResponse {
+  id: number
+  template_item: number
+  item_text: string
+  status: ChecklistItemStatus | null
+  status_label: string
+  remarks: string
+  updated_at: string
+}
+
+export interface InspectionAttachment {
+  id: number
+  filename: string
+  mime: string
+  uploaded_by_name: string
+  created_at: string
+}
+
+export interface InspectionSummaryCounts {
+  total: number
+  passed: number
+  failed: number
+  needs_action: number
+  not_reviewed: number
+}
+
+export interface Inspection {
+  id: number
+  village: number
+  village_name: string
+  officer: number
+  officer_name: string
+  inspection_type: InspectionType
+  inspection_type_label: string
+  inspection_date: string
+  status: InspectionStatus
+  status_label: string
+  summary_remarks: string
+  completed_at: string | null
+  responses: InspectionChecklistResponse[]
+  attachments: InspectionAttachment[]
+  summary: InspectionSummaryCounts
+  created_at: string
+  updated_at: string
+}
+
+export type ActionPlanStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
+export type ActionPlanSourceType = 'FIELD_VISIT' | 'INSPECTION' | 'OTHER'
+
+export interface Department {
+  id: number
+  name: string
+}
+
+export interface ActionPlanProgressUpdate {
+  previous_percentage: number
+  new_percentage: number
+  update_note: string
+  updated_by_name: string
+  created_at: string
+}
+
+export interface ActionPlan {
+  id: number
+  village: number
+  village_name: string
+  title: string
+  problem_finding: string
+  source_type: ActionPlanSourceType
+  source_type_label: string
+  source_field_visit: number | null
+  source_inspection: number | null
+  source_checklist_item: number | null
+  department: number
+  department_name: string
+  responsible_officer: number | null
+  responsible_officer_name: string
+  deadline: string
+  required_resources: string
+  priority: FieldOpsPriority
+  priority_label: string
+  progress_percentage: number
+  status: ActionPlanStatus
+  status_label: string
+  is_overdue: boolean
+  notes: string
+  created_by_name: string
+  created_at: string
+  updated_at: string
+  completed_at: string | null
+  progress_updates: ActionPlanProgressUpdate[]
+}
+
+export interface FieldOpsSummary {
+  field_visits: { upcoming: number; pending: number; completed: number; overdue: number }
+  inspections: { draft: number; in_progress: number; completed: number; needs_action_items: number; failed_items: number }
+  action_plans: { open: number; in_progress: number; due_soon: number; overdue: number; completed: number }
+}
+
+export interface FieldOpsMeta {
+  village_id: number | null
+  village_name: string | null
+  inspection_types: Array<{ value: InspectionType; label: string }>
+  priorities: Array<{ value: FieldOpsPriority; label: string }>
+  visit_objective_templates: string[]
+  departments: Department[]
+  officers: Array<{ id: number; name: string }>
+  staff: Array<{ id: number; name: string }>
+}

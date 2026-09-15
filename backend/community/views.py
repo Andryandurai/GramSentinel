@@ -264,6 +264,15 @@ class CommunityReportListCreateView(generics.ListCreateAPIView):
             e for e in report.entries.all() if e.description.strip()
         ]
 
+        # Work & Communication's Report Approval Tracker — the one hook
+        # point into the existing submission flow (workspace/services.py
+        # ::record_report_submission is the only thing this calls; it
+        # never influences ingestion/pipeline_outcomes above, which are
+        # already fully computed by this point).
+        from workspace.services import record_report_submission
+
+        record_report_submission(report, actor=request.user)
+
         return Response(
             {
                 "report": CommunityReportSerializer(report).data,

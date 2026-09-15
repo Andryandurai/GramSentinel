@@ -198,4 +198,6 @@ urlpatterns = [
     path("api/", include("alerts.urls")),
     path("api/", include("simulation.urls")),
     path("api/", include("knowledge.urls")),
+    path("api/", include("workspace.urls")),
+    path("api/", include("fieldops.urls")),
 ]

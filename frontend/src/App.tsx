@@ -22,11 +22,13 @@ import InvestigationNotebookPage from '@/pages/officer/InvestigationNotebook'
 import OperationalContextPage from '@/pages/officer/OperationalContext'
 import SimulationLabPage from '@/pages/officer/SimulationLab'
 import OfficerTeamPage from '@/pages/officer/Team'
+import TeamWorkspacePage from '@/pages/officer/TeamWorkspace'
 import CommunityReportPage from '@/pages/worker/CommunityReport'
 import WorkerDashboardPage from '@/pages/worker/Dashboard'
 import LocalSignalsPage from '@/pages/worker/LocalSignals'
 import NewAssessment from '@/pages/worker/NewAssessment'
 import PatientDetail from '@/pages/worker/PatientDetail'
+import WorkCommunicationPage from '@/pages/worker/WorkCommunication'
 import { homeRouteFor, useAuth } from '@/store/auth'
 import type { Role } from '@/types'
 
@@ -103,6 +105,7 @@ export default function App() {
           element={<CommunityReportPage />}
         />
         <Route path="/worker/local-signals" element={<LocalSignalsPage />} />
+        <Route path="/worker/work" element={<WorkCommunicationPage />} />
         <Route path="/worker/profile" element={<MyProfilePage />} />
       </Route>
 
@@ -132,6 +135,13 @@ export default function App() {
         />
         <Route path="/officer/history" element={<AlertHistory />} />
         <Route path="/officer/team" element={<OfficerTeamPage />} />
+        <Route path="/officer/work" element={<TeamWorkspacePage />} />
+        {/* Field Operations moved into the Dashboard itself (task: "no
+            longer a top-level tab") — this old route now only redirects,
+            so a stale bookmark or link still lands somewhere useful
+            rather than 404ing, without rendering a second, independent
+            Field Operations page. */}
+        <Route path="/officer/field-operations" element={<Navigate to="/officer/dashboard" replace />} />
         <Route
           path="/officer/operational-context"
           element={<OperationalContextPage />}

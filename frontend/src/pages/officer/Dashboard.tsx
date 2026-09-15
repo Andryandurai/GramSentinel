@@ -23,6 +23,7 @@ import {
   Stat,
 } from '@/components/ui'
 import { CommunityMap } from '@/components/CommunityMap'
+import { FieldOperationsSection } from '@/components/officer/FieldOperationsSection'
 import { RealWorldCommunityProfile } from '@/components/RealWorldCommunityProfile'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
@@ -434,6 +435,8 @@ export default function OfficerDashboardPage() {
           </ul>
         )}
       </Card>
+
+      <FieldOperationsSection />
     </div>
   )
 }

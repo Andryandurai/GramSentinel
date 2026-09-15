@@ -116,6 +116,7 @@ export const WORKER_NAV: NavItem[] = [
   { to: '/worker/assessment/new', label: 'New assessment' },
   { to: '/worker/community-report', label: 'Community report' },
   { to: '/worker/local-signals', label: 'Local signals' },
+  { to: '/worker/work', label: 'Work & Communication' },
   { to: '/worker/profile', label: 'My profile' },
 ]
 
@@ -126,6 +127,7 @@ export const OFFICER_NAV: NavItem[] = [
   { to: '/officer/history', label: 'Alert history' },
   { to: '/officer/simulation', label: 'Simulation Lab' },
   { to: '/officer/team', label: 'Health team' },
+  { to: '/officer/work', label: 'Team Workspace' },
   { to: '/officer/operational-context', label: 'Operational context' },
   { to: '/officer/profile', label: 'My profile' },
 ]

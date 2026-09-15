@@ -78,6 +78,8 @@ INSTALLED_APPS = [
     "integrations",
     "simulation",
     "knowledge",
+    "workspace",
+    "fieldops",
 ]
 
 MIDDLEWARE = [
