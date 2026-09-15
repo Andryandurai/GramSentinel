@@ -138,6 +138,37 @@ export interface TriageSupport {
   data_notice: string
 }
 
+/** A curated-knowledge citation — never fabricated; `section`/`page`/
+ *  `source_url` are omitted (not guessed) when the source document simply
+ *  doesn't carry that metadata. See backend/knowledge/provenance.py. */
+export interface RagSource {
+  document_id: number
+  title: string
+  organization: string
+  authority: 'OFFICIAL' | 'REFERENCE' | 'INTERNAL'
+  authority_label: string
+  document_type: string
+  section: string | null
+  page: number | null
+  version: string
+  source_url: string | null
+  jurisdiction: string | null
+  relevance_score: number
+}
+
+export type RagStatus = 'grounded' | 'no_grounding' | 'unavailable' | 'disabled'
+
+/** The RAG layer's response shape — never a decision, only a grounded
+ *  explanation of a result the deterministic system already computed. */
+export interface RagResponse {
+  status: RagStatus
+  grounded: boolean
+  answer: string
+  sources: RagSource[]
+  knowledge_topic: string
+  used_llm: boolean
+}
+
 export interface Patient {
   id: number
   patient_code: string

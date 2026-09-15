@@ -1807,3 +1807,22 @@ Two production-realistic enhancements layered onto the existing architecture —
 ### Jury-friendly explanation
 
 "GramSentinel is designed for rural connectivity constraints. A CHW can record a community report without internet access. The report remains securely queued on the device and synchronizes automatically when connectivity returns. On the officer side, GramSentinel shows how recent each evidence source is, so older or missing information is not silently treated as current."
+
+---
+
+## 39. RAG Knowledge Layer
+
+A retrieval-augmented generation (RAG) side-car (`backend/knowledge/`) was added to ground explanations in curated reference material — without changing anything about how RuralCare, GramSentinel, the Safety Engine, or alerts actually compute their results. Full technical detail lives in **`RAG_ARCHITECTURE.md`**; this section is the jury-facing summary.
+
+**What it is:** documents → section-aware chunks → embeddings (a deterministic local vectoriser by default; a real external-provider path exists but is unexercised here, no API key configured) → hybrid retrieval (vector similarity + keyword overlap + metadata topic filtering + a small rerank pass) → the existing LLM client explains the retrieved material in relation to an already-computed result → a cited, traceable explanation panel.
+
+**What it is not:** it never computes a triage score/level, never sets a referral pathway, never determines Source Freshness, never creates or sizes an Alert, never touches the Safety Engine, and never submits an investigation decision. Every one of these is independently confirmed by a dedicated test in `backend/tests/test_knowledge_rag.py` (40 tests, all passing).
+
+**Where it shows up:**
+- New Assessment — a "Relevant Guidance" panel under the existing Triage Support panel (clinical + referral guidance).
+- Evidence View — an "Investigation guidance" panel (surveillance, evidence-interpretation, and GramSentinel's own documented policies).
+- Worker Dashboard — a small "Health knowledge" Q&A card for frontline/ASHA-style questions.
+
+**Knowledge sources, honestly:** 12 curated documents, all labeled either `INTERNAL` (this project's own documented rules — verified accurate) or `REFERENCE` (general, plain-language public-health material the project team wrote, explicitly **not** presented as verbatim WHO/MoHFW/NHM text). No `OFFICIAL`-authority document exists in this build — that level is defined and enforced in the schema for a future deployment that ingests real, verified guidance documents, and is not simulated by mislabeling anything ingested here.
+
+**Jury explanation:** "RAG is used as a grounded knowledge layer, not as the decision-maker. Our existing deterministic agents analyze the actual application data and produce the triage or community-signal result. The RAG layer retrieves relevant information from a curated knowledge base of approved clinical, public-health, surveillance and frontline-health guidance. The language model then uses those retrieved sources to provide a traceable explanation or investigation context. The deterministic Safety Engine remains independent of RAG and the LLM, and the Health Officer remains responsible for the final investigation decision. The system separates three things: what our data shows, what authoritative guidance says, and what the human decides."

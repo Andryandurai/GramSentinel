@@ -197,4 +197,5 @@ urlpatterns = [
     path("api/", include("community.urls")),
     path("api/", include("alerts.urls")),
     path("api/", include("simulation.urls")),
+    path("api/", include("knowledge.urls")),
 ]

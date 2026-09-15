@@ -1,12 +1,19 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { RagGuidancePanel } from '@/components/RagGuidancePanel'
 import { TriageSupportPanel } from '@/components/TriageSupport'
 import { Card, Empty, ErrorNote, Loading, TriagePill } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import { useAuth } from '@/store/auth'
-import type { Assessment, BloodSugarMeasurementType, Patient, TriageSupport } from '@/types'
+import type {
+  Assessment,
+  BloodSugarMeasurementType,
+  Patient,
+  RagResponse,
+  TriageSupport,
+} from '@/types'
 
 /** Machine value -> label, reused for both the entry form's radio group and
  *  the Previous Assessments history display, so the two can never drift. */
@@ -1099,6 +1106,20 @@ export default function NewAssessment() {
                     spo2: form.spo2,
                   }}
                 />
+
+                {support && (
+                  <RagGuidancePanel
+                    fetcher={() =>
+                      api.post<RagResponse>('/rag/ruralcare/', {
+                        triage_level: support.triage_level,
+                        contributing_factors: support.contributing_factors,
+                        syndrome_groups: Object.keys(support.syndrome_groups),
+                        referral_pathway: support.referral_pathway,
+                      })
+                    }
+                    deps={[support.triage_level, support.referral_pathway]}
+                  />
+                )}
 
                 {saved ? (
                   <div className="mt-5 rounded-md border border-care-200 bg-care-50 px-3 py-2 text-sm text-care-700">

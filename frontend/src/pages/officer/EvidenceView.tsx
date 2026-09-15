@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { AgentTrace } from '@/components/AgentTrace'
+import { RagGuidancePanel } from '@/components/RagGuidancePanel'
 import { SafetyPanel } from '@/components/SafetyPanel'
 import { Card, Delta, ErrorNote, FreshnessPill, Loading, SeverityPill } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
@@ -12,6 +13,7 @@ import type {
   EvidenceRelationshipContext,
   EvidenceRelationshipEdge,
   EvidenceRelationships,
+  RagResponse,
 } from '@/types'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -328,6 +330,20 @@ export default function EvidenceView() {
           )}
         </Card>
       </div>
+
+      <Card title="Investigation guidance">
+        <p className="text-xs text-ink-600 -mt-1">
+          Grounded guidance retrieved from curated surveillance and
+          investigation reference material — informational only. It does
+          not change the evidence, the safety verdict, or the alert above.
+        </p>
+        <RagGuidancePanel
+          fetcher={() =>
+            api.post<RagResponse>('/rag/investigation/', { alert_id: Number(id) })
+          }
+          deps={[id]}
+        />
+      </Card>
 
       <Card
         title={`Agent handoffs (${data.agent_trace.length} invocations)`}

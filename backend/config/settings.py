@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     "alerts",
     "integrations",
     "simulation",
+    "knowledge",
 ]
 
 MIDDLEWARE = [
@@ -237,6 +238,36 @@ LLM_API_URL = os.getenv("LLM_API_URL", "https://api.anthropic.com/v1/messages")
 LLM_MODEL = os.getenv("LLM_MODEL", "claude-sonnet-5")
 LLM_ENABLED = env_bool("LLM_ENABLED", bool(LLM_API_KEY))
 LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "12"))
+
+# RAG knowledge layer (backend/knowledge/) — a side-car that RETRIEVES
+# curated documents and asks the LLM to explain an already-computed
+# deterministic result. It never computes that result itself. See
+# knowledge/rag_service.py and RAG_ARCHITECTURE.md.
+#
+# Same graceful-degradation contract as LLM_* above: absent config means
+# the feature is off, not broken — every caller falls back to "no grounded
+# guidance available" and the underlying deterministic result is untouched.
+RAG_ENABLED = env_bool("RAG_ENABLED", True)
+#: "local" = deterministic, dependency-free fallback vectoriser, always
+#: available, used by default and by every test in this repo. "openai" is
+#: a real external provider code path (requests-based, no SDK, matching
+#: agents/llm/client.py's own pattern) that activates only when
+#: RAG_EMBEDDING_API_KEY is set — not exercised in this environment since
+#: no such key is configured here; see RAG_ARCHITECTURE.md.
+RAG_EMBEDDING_PROVIDER = os.getenv("RAG_EMBEDDING_PROVIDER", "local")
+RAG_EMBEDDING_MODEL = os.getenv("RAG_EMBEDDING_MODEL", "text-embedding-3-small")
+RAG_EMBEDDING_API_KEY = os.getenv("RAG_EMBEDDING_API_KEY", "")
+RAG_EMBEDDING_API_URL = os.getenv(
+    "RAG_EMBEDDING_API_URL", "https://api.openai.com/v1/embeddings"
+)
+#: Dimensionality of the local fallback vectoriser. An external provider
+#: reports and uses its own model's native dimension instead.
+RAG_LOCAL_EMBEDDING_DIM = int(os.getenv("RAG_LOCAL_EMBEDDING_DIM", "256"))
+RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
+#: Below this combined relevance score, retrieval is treated as "nothing
+#: sufficiently relevant" rather than being forced into the LLM prompt.
+RAG_MIN_RELEVANCE = float(os.getenv("RAG_MIN_RELEVANCE", "0.15"))
+RAG_MAX_TOKENS = int(os.getenv("RAG_MAX_TOKENS", "450"))
 
 GRAMSENTINEL = {
     # Deterministic Safety Engine thresholds (Section 11 / 15 of the spec).
