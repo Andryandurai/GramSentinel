@@ -1268,7 +1268,7 @@ function formatWhatIfSourceValue(source: { value: number | null; reported: boole
 }
 
 /**
- * Officer Investigation Input — the right panel's "add hypothetical
+ * "Verify / What-If Information" — the right panel's "add hypothetical
  * source/verification input" form (Phase 7 What-If, task §36: "what would
  * happen if the synthetic inputs changed?"). `drafts`/`missing` are plain
  * component-local UI state — a draft the officer is editing, pre-filled
@@ -1377,7 +1377,7 @@ function WhatIfControls() {
           disabled={whatIfLoading}
           onClick={handleRunWhatIf}
         >
-          {whatIfLoading ? 'Applying…' : 'Apply Investigation Input'}
+          {whatIfLoading ? 'Evaluating hypothetical information…' : 'Apply Investigation Input'}
         </button>
         <button type="button" className="btn-ghost py-1.5 text-xs" onClick={handleResetInputs}>
           Reset Investigation Input
@@ -1389,7 +1389,7 @@ function WhatIfControls() {
 }
 
 /**
- * Officer Investigation Input result — the right panel's compact,
+ * "Verify / What-If Information" result — the right panel's compact,
  * decision-facing read of `useSimulationStore().whatIfResult` (task
  * §14/§15/§39: distinguish ORIGINAL from HYPOTHETICAL, only report an
  * "Impact of Input" line the pipeline actually produced). No local state,
@@ -2585,7 +2585,7 @@ function RecommendedNextStep({
 }
 
 function SimulationAlertPanel() {
-  const { intelligence, replayWeek, replayIntelligence, currentWeek, whatIfResult } =
+  const { intelligence, replayWeek, replayIntelligence, currentWeek, whatIfResult, whatIfError } =
     useSimulationStore()
   const displayed = replayWeek !== null ? replayIntelligence : intelligence
 
@@ -2614,16 +2614,17 @@ function SimulationAlertPanel() {
         </span>
       </section>
 
-      <details className="border-t border-ink-200 pt-3" open>
-        <summary className="label cursor-pointer select-none">Officer Investigation Input</summary>
-        <div className="mt-2">
+      <details
+        className="border-t border-ink-200 pt-3"
+        open={whatIfResult !== null || whatIfError !== null}
+      >
+        <summary className="label cursor-pointer select-none">Verify / What-If Information</summary>
+        <div className="mt-2 space-y-3">
+          <p className="text-xs text-ink-500">
+            Test how additional or missing information could change the evidence for this
+            signal. This does not change the original simulation.
+          </p>
           <WhatIfControls />
-        </div>
-      </details>
-
-      <details className="border-t border-ink-200 pt-3" open={whatIfResult !== null}>
-        <summary className="label cursor-pointer select-none">Simulation Response</summary>
-        <div className="mt-2">
           <SimulationResponsePanel />
         </div>
       </details>
