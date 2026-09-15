@@ -111,6 +111,10 @@ class StaffProfileListView(APIView):
     Village isolation is applied to the queryset before anything is serialised,
     so a Village B officer cannot reach a Village A worker's profile here or
     anywhere downstream of here.
+
+    A second login account for the same real staff member (see
+    `_deduplicate_by_identity`) is folded into one row after serialization —
+    this view answers "who is on the team", not "how many logins exist".
     """
 
     permission_classes = (IsHealthOfficer,)
@@ -141,6 +145,7 @@ class StaffProfileListView(APIView):
             staff.order_by("village__name", "role", "full_name", "username"),
             many=True,
         ).data
+        rows = self._deduplicate_by_identity(rows)
 
         return Response(
             {
@@ -174,6 +179,36 @@ class StaffProfileListView(APIView):
                 ),
             }
         )
+
+    @staticmethod
+    def _deduplicate_by_identity(rows: list[dict]) -> list[dict]:
+        """The directory lists PEOPLE, not login accounts. Two demo
+        usernames can legitimately point at the same real staff member —
+        `data/synthetic/scenario.py`'s DEMO_USERS deliberately keeps a
+        village-qualified account (e.g. `worker.a`) alongside the original
+        `worker`/`officer` logins "so any existing bookmark, script or demo
+        note continues to work", both filled in with the same professional
+        profile. Folding that second row away here (rather than deleting
+        either login, which would break that preserved-account guarantee)
+        is keyed on `staff_id` — the field the User model's own help_text
+        already calls the "Employee / worker identifier used by the health
+        department" — never on full_name/email/phone, which are not the
+        application's stable identity for a person and could coincidentally
+        collide between two genuinely different staff. A blank staff_id is
+        never treated as a match for another blank one, so two real
+        colleagues who simply have no employee id on file are never merged
+        into a single card."""
+
+        seen_staff_ids: set[str] = set()
+        deduped: list[dict] = []
+        for row in rows:
+            staff_id = (row.get("staff_id") or "").strip()
+            if staff_id:
+                if staff_id in seen_staff_ids:
+                    continue
+                seen_staff_ids.add(staff_id)
+            deduped.append(row)
+        return deduped
 
     @staticmethod
     def _villages(village_id: int | None) -> list[dict]:

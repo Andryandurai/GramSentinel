@@ -298,3 +298,115 @@ def test_a_profile_never_carries_account_internals(api, officer_a, worker):
 
     for forbidden in ("password", "is_superuser", "is_staff", "last_login"):
         assert forbidden not in profile
+
+
+# ---------------------------------------------------------------------------
+# Same-person deduplication (a second login account for one real staff
+# member, e.g. the seeded `worker` / `worker.a` pair — see
+# StaffProfileListView._deduplicate_by_identity).
+# ---------------------------------------------------------------------------
+def test_two_login_accounts_for_the_same_staff_member_appear_once(
+    api, officer_a, worker, village
+):
+    worker.staff_id = "CHW-KVL-014"
+    worker.full_name = "A. Meena (CHW, Kovilur)"
+    worker.save()
+    User.objects.create_user(
+        username="worker.a",
+        password="demo1234",
+        role=User.Role.CHW_PHC_WORKER,
+        full_name="A. Meena (CHW, Kovilur)",
+        village=village,
+        staff_id="CHW-KVL-014",
+    )
+
+    api.force_authenticate(user=officer_a)
+    payload = api.get(DIRECTORY).json()
+
+    matching = [row for row in payload["profiles"] if row["staff_id"] == "CHW-KVL-014"]
+    assert len(matching) == 1
+    assert matching[0]["display_name"] == "A. Meena (CHW, Kovilur)"
+    assert payload["counts"]["workers"] == 1
+
+
+def test_two_genuinely_different_workers_both_still_appear(api, officer_a, worker, village):
+    worker.staff_id = "CHW-KVL-014"
+    worker.save()
+    User.objects.create_user(
+        username="worker.second",
+        password="demo1234",
+        role=User.Role.CHW_PHC_WORKER,
+        full_name="B. Kumar (CHW, Kovilur)",
+        village=village,
+        staff_id="CHW-KVL-015",
+    )
+
+    api.force_authenticate(user=officer_a)
+    payload = api.get(DIRECTORY).json()
+
+    assert {row["staff_id"] for row in payload["profiles"] if row["staff_id"]} == {
+        "CHW-KVL-014",
+        "CHW-KVL-015",
+    }
+    assert payload["counts"]["workers"] == 2
+
+
+def test_two_workers_with_no_staff_id_on_file_are_never_merged(api, officer_a, worker, village):
+    worker.staff_id = ""
+    worker.save()
+    User.objects.create_user(
+        username="worker.second",
+        password="demo1234",
+        role=User.Role.CHW_PHC_WORKER,
+        full_name="B. Kumar (CHW, Kovilur)",
+        village=village,
+        staff_id="",
+    )
+
+    api.force_authenticate(user=officer_a)
+    payload = api.get(DIRECTORY).json()
+
+    assert payload["counts"]["workers"] == 2
+
+
+def test_deduplication_does_not_hide_the_health_officer_card(api, officer_a, worker):
+    worker.staff_id = "CHW-KVL-014"
+    worker.save()
+
+    api.force_authenticate(user=officer_a)
+    payload = api.get(DIRECTORY).json()
+
+    assert "officer.a" in {row["username"] for row in payload["profiles"]}
+    assert payload["counts"]["officers"] == 1
+
+
+def test_village_b_team_is_unaffected_by_village_a_deduplication(
+    api, officer_a, officer_b, worker, other_village
+):
+    worker.staff_id = "CHW-KVL-014"
+    worker.save()
+    User.objects.create_user(
+        username="worker.a",
+        password="demo1234",
+        role=User.Role.CHW_PHC_WORKER,
+        full_name="A. Meena (CHW, Kovilur)",
+        village=worker.village,
+        staff_id="CHW-KVL-014",
+    )
+    village_b_worker = User.objects.create_user(
+        username="worker.b",
+        password="demo1234",
+        role=User.Role.CHW_PHC_WORKER,
+        full_name="R. Suresh (PHC, Manikkampatti)",
+        village=other_village,
+        staff_id="PHC-ARY-021",
+    )
+
+    api.force_authenticate(user=officer_b)
+    payload = api.get(DIRECTORY).json()
+
+    assert {row["username"] for row in payload["profiles"]} == {"worker.b", "officer.b"}
+    assert payload["counts"]["workers"] == 1
+    assert payload["profiles"][
+        [row["username"] for row in payload["profiles"]].index("worker.b")
+    ]["id"] == village_b_worker.id

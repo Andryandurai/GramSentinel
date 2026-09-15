@@ -158,6 +158,44 @@ def test_counterfactual_comparison_fields_are_derived_from_real_data(officer_a_a
 
 
 # ---------------------------------------------------------------------------
+# Regression for the screenshot bug this task fixes: a magnitude-only
+# override that does not change a source's direction relative to the
+# previous week must still be reported as applied via `changed_sources`,
+# even though it leaves every derived comparison metric unchanged. Before
+# this fix, the frontend read an empty `changed_sources` as the ONLY signal
+# that anything happened, so this legitimate "applied, no effect" case was
+# indistinguishable from "the override never reached the pipeline" — this
+# test locks in the backend contract the frontend fix now relies on.
+# ---------------------------------------------------------------------------
+def test_counterfactual_override_can_leave_derived_metrics_unchanged(officer_a_api, village):
+    scenario = _build_pipeline_scenario(
+        village,
+        "CF-MAGNITUDE-ONLY",
+        [
+            _week(1, {"FEVER": 2}, {"CHW": (2, True), "PHC": (5, True)}),
+            _week(2, {"FEVER": 3}, {"CHW": (3, True), "PHC": (6, True)}),
+        ],
+    )
+    session_id, _ = _start_and_advance(officer_a_api, scenario.id, 1)
+
+    data = officer_a_api.post(
+        _counterfactual_url(session_id), {"overrides": {"CHW": 12}}, format="json"
+    ).data
+
+    original = data["original"]
+    hypothetical = data["hypothetical"]
+    # The override was genuinely applied...
+    assert data["changed_sources"] == ["CHW"]
+    assert hypothetical["sources"]["CHW"] == {"value": 12.0, "reported": True}
+    # ...but CHW's direction relative to week 1 (up) is unchanged by going
+    # from 3 to 12 (still up), so its SUPPORTING classification — and every
+    # metric derived from it — stays exactly the same as the original.
+    assert hypothetical["supporting_count"] == original["supporting_count"] == 2
+    assert hypothetical["conflicting_count"] == original["conflicting_count"] == 0
+    assert hypothetical["safety"]["evidence_strength"] == original["evidence_strength"]
+
+
+# ---------------------------------------------------------------------------
 # 3, 11, 14, 15, 16, 17 — isolation: nothing operational or simulation-real
 # is created or modified, whether counterfactual is run once or repeatedly
 # (repeated calls are what a worker does after "Reset" and a new selection).

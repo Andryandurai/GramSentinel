@@ -1673,10 +1673,34 @@ function counterfactualDiffLines(result: SimulationWhatIfResult): string[] {
   return lines
 }
 
+/** The raw source-level effect of the override, independent of whether it
+ *  moved any derived metric (supporting/conflicting/evidence/safety) — a
+ *  source's classification is direction-based (see
+ *  `simulation.orchestrator._correlation`, which compares this week's value
+ *  against the PREVIOUS week's, not against a fixed threshold), so a large
+ *  hypothetical increase that doesn't reverse direction genuinely has no
+ *  effect on supporting/conflicting counts even though it was fully applied.
+ *  Without this list, that legitimate case was indistinguishable from the
+ *  override never having reached the pipeline at all — this is the actual
+ *  fix, not a change to the pipeline itself. */
+function counterfactualSourceChangeLines(result: SimulationWhatIfResult): string[] {
+  const { original, hypothetical, changed_sources: changedSources } = result
+  return changedSources.map(
+    (sourceType) =>
+      `${sourceType}: ${formatWhatIfSourceValue(original.sources[sourceType])} → ` +
+      `${formatWhatIfSourceValue(hypothetical.sources[sourceType])}`,
+  )
+}
+
 /** Deterministic, template-only sentences built from the actual
  *  original-vs-hypothetical differences — never an LLM call, and never
  *  anything beyond what the backend already computed (task §10: "do not
- *  allow the LLM to invent facts about the result"). */
+ *  allow the LLM to invent facts about the result"). `changedSources.length
+ *  === 0` is the ONLY genuine "nothing was applied" case (Section 26 of the
+ *  task — e.g. a hypothetical value identical to the original). Once at
+ *  least one source was actually overridden, the wording below never
+ *  claims otherwise, even when that override happens to leave every
+ *  derived metric unchanged. */
 function counterfactualExplanation(result: SimulationWhatIfResult): string {
   const { original, hypothetical, changed_sources: changedSources } = result
   if (changedSources.length === 0) {
@@ -1715,8 +1739,8 @@ function counterfactualExplanation(result: SimulationWhatIfResult): string {
   }
   if (sentences.length === 0) {
     sentences.push(
-      'Keeping the selected source(s) at their hypothetical value provides no additional ' +
-        'supporting evidence, so the assessment remains the same.',
+      'The hypothetical value(s) below were applied, but they did not change which ' +
+        'sources support or conflict with this signal, so the evidence assessment stays the same.',
     )
   }
   if (hypothetical.safety.gate_result !== original.gate_result) {
@@ -1824,6 +1848,21 @@ function CounterfactualResult({ result }: { result: SimulationWhatIfResult }) {
           </tbody>
         </table>
       </div>
+
+      {result.changed_sources.length > 0 && (
+        <section>
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-500">
+            Hypothetical values applied
+          </h4>
+          <ul className="mt-1 space-y-0.5 text-xs text-ink-700">
+            {counterfactualSourceChangeLines(result).map((line) => (
+              <li key={line} className="font-mono tabular-nums">
+                {line}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-500">
