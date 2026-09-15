@@ -20,6 +20,7 @@ export function PortalLayout({
   accent,
   nav,
   wide = false,
+  headerExtra,
 }: {
   portal: string
   subtitle: string
@@ -30,6 +31,9 @@ export function PortalLayout({
    *  other officer page keeps unchanged) — default `false` preserves the
    *  exact existing container width for every page that doesn't pass it. */
   wide?: boolean
+  /** Optional extra header content, shown next to the account details —
+   *  currently only the Worker Portal's offline/sync status indicator. */
+  headerExtra?: React.ReactNode
 }) {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
@@ -55,6 +59,7 @@ export function PortalLayout({
           </div>
 
           <div className="ml-auto flex items-center gap-4">
+            {headerExtra}
             <div className="text-right hidden sm:block">
               <div className="text-sm font-medium">{user?.display_name}</div>
               <div className="text-xs text-white/70">

@@ -254,6 +254,15 @@ GRAMSENTINEL = {
     # School absenteeism also triggers on absolute percentage-point rise.
     "SCHOOL_ABSOLUTE_POINT_RISE": 5.0,
     "LAB_MIN_CONFIRMATIONS": 1,
+    # Source Freshness Indicator — informational only (community/freshness.py).
+    # Does not feed the Safety Engine above; kept in this same settings dict
+    # purely so every GramSentinel threshold lives in one place, and so a
+    # future per-source override is a config change, not a code change.
+    "FRESHNESS_THRESHOLDS_HOURS": {
+        "FRESH": 24,
+        "AGING": 72,
+        # Anything older than AGING is STALE. No report ever -> MISSING.
+    },
 }
 
 LOGGING = {

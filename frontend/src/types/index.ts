@@ -409,6 +409,19 @@ export interface AlertSummary {
   created_at: string
 }
 
+/** Source Freshness Indicator — informational only, never a safety verdict.
+ *  See `backend/community/freshness.py`'s module docstring. */
+export type FreshnessStatus = 'FRESH' | 'AGING' | 'STALE' | 'MISSING'
+
+export interface SourceFreshness {
+  source_kind: string
+  source_label: string
+  status: FreshnessStatus
+  last_updated_at: string | null
+  relative_time: string
+  received: boolean
+}
+
 export interface EvidenceCard {
   id: number
   source_kind: string
@@ -427,6 +440,7 @@ export interface EvidenceCard {
   is_corroborating: boolean
   explanation: string
   produced_by_agent: string
+  freshness: SourceFreshness
 }
 
 export type RelationshipKind = 'AGREE' | 'DISAGREE' | 'NOT_COMPARABLE'
@@ -552,6 +566,10 @@ export interface OfficerDashboard {
   alerts: AlertSummary[]
   /** Actual worker-reported signal counts over time — see CommunitySeries. */
   community_trend: CommunitySeries
+  /** Empty for a district-wide officer — freshness is per-village, and
+   *  there is no single village to compute it for (see source_freshness_note). */
+  source_freshness: SourceFreshness[]
+  source_freshness_note: string
   disclaimer: string
   data_notice: string
 }

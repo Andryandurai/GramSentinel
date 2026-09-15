@@ -85,11 +85,45 @@ class CommunityReport(models.Model):
     unusual_observation = models.BooleanField(default=False)
     notes = models.TextField(blank=True)
 
-    submitted_at = models.DateTimeField(auto_now_add=True)
+    submitted_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text=(
+            "The server's own authoritative receipt time. This IS the "
+            "'server_received_at' concept for offline sync — a separate, "
+            "identically-timed column was not added, to avoid storing the "
+            "same moment twice."
+        ),
+    )
     acknowledged_at = models.DateTimeField(
         null=True,
         blank=True,
         help_text="Set when a health officer has opened this report.",
+    )
+
+    # --- Offline Community Reporting -------------------------------------
+    client_created_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "When the worker actually filled this report in, if it was "
+            "queued on the device before syncing. Never overwritten by the "
+            "sync time — `submitted_at` above is when the server received "
+            "it, which can be well after this."
+        ),
+    )
+    idempotency_key = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text=(
+            "Client-generated key so an offline retry (timeout, dropped "
+            "connection, duplicate tap) can never create a second report. "
+            "`null` (not '') for rows with no key, so multiple online "
+            "submissions can coexist under one UNIQUE constraint — NULL is "
+            "not compared equal to NULL in SQL, unlike two empty strings "
+            "would be."
+        ),
     )
 
     class Meta:

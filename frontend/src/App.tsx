@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { Loading } from '@/components/ui'
+import { SyncStatusIndicator } from '@/components/SyncStatusIndicator'
 import {
   ADMIN_NAV,
   OFFICER_NAV,
@@ -88,6 +89,7 @@ export default function App() {
               subtitle="Individual patient support · Worker Portal"
               accent="care"
               nav={WORKER_NAV}
+              headerExtra={<SyncStatusIndicator />}
             />
           </RequireRole>
         }

@@ -105,6 +105,22 @@ class DataQuality(models.TextChoices):
     MISSING = "MISSING", "Not submitted"
 
 
+class FreshnessStatus(models.TextChoices):
+    """How recently a community data source last reported, nothing more.
+
+    Deliberately not a safety or correctness judgment — see
+    `community/freshness.py`'s module docstring. FRESH/AGING/STALE describe
+    an *existing, reported* signal's age; MISSING describes the absence of
+    one, kept distinct from a reported value of zero (Safety Engine R8's
+    "missing data never treated as zero" applies here too).
+    """
+
+    FRESH = "FRESH", "Fresh"
+    AGING = "AGING", "Aging"
+    STALE = "STALE", "Stale"
+    MISSING = "MISSING", "Missing"
+
+
 class EvidenceStatus(models.TextChoices):
     ANOMALY_DETECTED = "ANOMALY_DETECTED", "Anomaly detected"
     NORMAL = "NORMAL", "Within expected range"

@@ -2,8 +2,10 @@ import { useState, type ReactNode } from 'react'
 
 import type {
   FollowUpState,
+  FreshnessStatus,
   SafetyVerdict,
   Severity,
+  SourceFreshness,
   TriageLevel,
 } from '@/types'
 
@@ -81,6 +83,43 @@ export function SafetyPill({ verdict }: { verdict: SafetyVerdict }) {
   }
   return (
     <span className={`pill ${styles[verdict]}`}>SAFETY&nbsp;{verdict}</span>
+  )
+}
+
+/**
+ * Source Freshness Indicator — how recently a source last reported, nothing
+ * more. Never implies "safe"/"unsafe" or "correct"/"incorrect" — a dot plus
+ * a plain status word plus a relative time, matching how the Safety/Severity
+ * pills above communicate one fact each rather than a judgment.
+ */
+export function FreshnessPill({ freshness }: { freshness: SourceFreshness }) {
+  const dot: Record<FreshnessStatus, string> = {
+    FRESH: 'bg-care-500',
+    AGING: 'bg-amber-500',
+    STALE: 'bg-red-500',
+    MISSING: 'bg-ink-300',
+  }
+  const text: Record<FreshnessStatus, string> = {
+    FRESH: 'text-care-700',
+    AGING: 'text-amber-700',
+    STALE: 'text-red-700',
+    MISSING: 'text-ink-500',
+  }
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 text-xs ${text[freshness.status]}`}
+      title={
+        freshness.last_updated_at
+          ? new Date(freshness.last_updated_at).toLocaleString()
+          : undefined
+      }
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${dot[freshness.status]}`} aria-hidden="true" />
+      <span className="font-medium">
+        {freshness.status.charAt(0) + freshness.status.slice(1).toLowerCase()}
+      </span>
+      <span className="text-ink-400">· {freshness.relative_time}</span>
+    </span>
   )
 }
 

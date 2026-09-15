@@ -1759,3 +1759,51 @@ Clearly separated from the above — none of the following is implemented today.
 - *"Does the AI diagnose or declare outbreaks?"* — No, on both counts, structurally prevented (Sections 11, 17).
 - *"Is any of this real patient data?"* — No, entirely synthetic; only Manikkampatti's demographic profile is real (Section 8).
 - *"Who makes the final call?"* — A Health Officer, for every community alert; a worker, for every individual assessment — never the AI.
+
+---
+
+## 38. Source Freshness & Offline Community Reporting
+
+Two production-realistic enhancements layered onto the existing architecture — neither introduces a second intelligence pipeline, a second Safety Engine, or a second community-reporting system.
+
+### Source Freshness
+
+**Purpose:** lets a Health Officer see how recently each evidence source last reported, so old or missing evidence is never silently read as current.
+
+**Statuses:** `FRESH` / `AGING` / `STALE` / `MISSING` (`core/constants.py::FreshnessStatus`) — describing recency only, nothing else.
+
+**Threshold configuration:** centralized in `config/settings.py`'s existing `GRAMSENTINEL` dict, under a new `FRESHNESS_THRESHOLDS_HOURS` key (`FRESH` ≤24h, `AGING` ≤72h, beyond that `STALE`) — the same pattern the Safety Engine's own thresholds already use, so a future per-source override is a config change, not a code change.
+
+**Missing-data semantics:** identical to the rest of the platform — a source that reported a genuine `0` is `FRESH`/`AGING`/`STALE` like any other reported value; a source with no `is_reported=True` row at all is `MISSING`, never inferred as zero.
+
+**Where it's derived from:** entirely existing data. `community/freshness.py::build_source_freshness()` reads the most recent `CommunitySignal.ingested_at` (already `auto_now_add`) per source kind for a village — no new model was introduced.
+
+**Where it's shown:** the Officer Dashboard's new "Source freshness" card (`GET /api/officer/dashboard/`'s `source_freshness` field), and inline on every evidence card in the Evidence View (`AlertEvidenceSerializer.freshness`, computed fresh on every read from the evidence's own `village_code`/`source_kind`).
+
+**Does it change the Safety Engine?** No — verified by a dedicated test (`test_freshness_does_not_change_safety_verdict_or_severity`) that backdates every signal for a village to STALE and confirms the resulting `safety_verdict` is unchanged. `community/freshness.py` is never imported by `safety/engine.py`, and vice versa.
+
+**RuralCare Aggregate** is deliberately excluded from the freshness list — `integrations/ingestion.py` never routes it through a Signal Agent or into an evidence card, so it is not "a source/evidence input" in the sense this feature covers.
+
+### Offline Community Reporting
+
+**Purpose:** lets a CHW/PHC Worker record a Community Report with no internet connection, with automatic sync once connectivity returns.
+
+**Local queue:** plain IndexedDB (`frontend/src/services/offlineQueue.ts`) — no new dependency; `localStorage` was deliberately avoided for the reasons the task specified (structured data, reliability). One record per queued report: payload, `created_at`, `queued_at`, `status` (pending/syncing/synced/failed), `retry_count`, `last_error`, `synced_at`, `server_report_id`.
+
+**Sync:** `frontend/src/store/offlineSync.ts` (Zustand, mirroring the existing `store/simulation.ts` pattern) — a single, non-re-entrant `syncNow()` processes the queue sequentially, triggered automatically on the browser's `online` event or manually via "Sync now". A report is only marked `synced` after the backend confirms receipt; failed/pending reports are never deleted.
+
+**Backend:** the *existing* `POST /api/community-reports/` endpoint was extended, not duplicated, with two new optional fields:
+- `idempotency_key` — a client-generated key (the queue's own `client_id`). `CommunityReport.idempotency_key` is a `null=True, unique=True` column; a retry with the same key returns the already-created report (`idempotent_replay: true`, HTTP 200) instead of creating a duplicate or re-running the intelligence pipeline a second time. A key reused by a *different* worker is rejected (409), never silently handed back.
+- `client_created_at` — when the worker actually filled the form in, preserved separately from the existing `submitted_at` (which already serves as the authoritative server-received timestamp — no duplicate column was added for that).
+
+**Timestamps in practice:** `client_created_at` can be well before `submitted_at` (the gap is exactly the time the report spent queued offline) — both are shown to the officer via the existing `CommunityReportSerializer`.
+
+**Village/worker are always server-derived**, exactly as before — there is no `worker` field on the input serializer at all, and the existing `request.user.village_id` mismatch check runs before the idempotency check even looks at the payload, so an idempotency key cannot be used to bypass village scoping.
+
+**Worker-facing UI:** a compact status indicator in the Worker Portal header (`SyncStatusIndicator` — Online / Offline / Syncing N / N could not sync), and a "Pending reports" panel on the Community Report page itself, with a manual retry per failed report — plain language only, no implementation detail surfaced.
+
+**Does this create a second pipeline?** No — a synced offline report enters the *exact same* `run_community_pipeline()` call every online report already goes through. The frontend never runs agent logic, safety logic, or alert creation locally; it only stores and re-POSTs the same payload the online form always sent.
+
+### Jury-friendly explanation
+
+"GramSentinel is designed for rural connectivity constraints. A CHW can record a community report without internet access. The report remains securely queued on the device and synchronizes automatically when connectivity returns. On the officer side, GramSentinel shows how recent each evidence source is, so older or missing information is not silently treated as current."

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from community.freshness import freshness_for_source
 from core.constants import DATA_NOTICE
 
 from .models import Alert, AlertEvidence, Feedback, Investigation, SafetyCheck
@@ -12,6 +13,11 @@ class AlertEvidenceSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(
         source="get_status_display", read_only=True
     )
+    # Informational only — see community/freshness.py. Computed fresh on
+    # every read from the source's own most recent CommunitySignal, never
+    # stored on AlertEvidence itself, so it always reflects "as of now",
+    # not "as of when the alert was raised".
+    freshness = serializers.SerializerMethodField()
 
     class Meta:
         model = AlertEvidence
@@ -33,8 +39,12 @@ class AlertEvidenceSerializer(serializers.ModelSerializer):
             "is_corroborating",
             "explanation",
             "produced_by_agent",
+            "freshness",
         )
         read_only_fields = fields
+
+    def get_freshness(self, obj: AlertEvidence) -> dict:
+        return freshness_for_source(obj.village_code, obj.source_kind)
 
 
 class SafetyCheckSerializer(serializers.ModelSerializer):

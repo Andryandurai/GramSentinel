@@ -115,6 +115,7 @@ class Command(BaseCommand):
 
         self._clear_stale_alerts(villages, today)
         self._seed_community_signals(sources, today)
+        self._seed_source_freshness_demo(villages)
         self._seed_prior_aggregates(villages, today)
         self._seed_historical_reports(villages, today)
         self._seed_chw_reports(villages, today)
@@ -418,6 +419,81 @@ class Command(BaseCommand):
                     total_events += 1
 
         self.stdout.write(f"  ingestion batches ... {total_events}")
+
+    def _seed_source_freshness_demo(self, villages):
+        """Backdate one signal per source kind so the Source Freshness
+        Indicator (community/freshness.py) has something to show on first
+        login, without waiting for real activity.
+
+        Targets Manikkampatti (village B / code ARY) specifically, since
+        that is the village this demo's Worker B / Officer B accounts are
+        assigned to. Offsets are relative to *now* (seed time), not a fixed
+        calendar date, so freshness looks freshly-seeded every time this
+        command runs rather than drifting stale as real time passes —
+        `CommunitySignal.ingested_at` is `auto_now_add`, so the only way to
+        set a specific value is a queryset-level `.update()` after creation,
+        which bypasses that auto-now behaviour (it only fires on `.save()`).
+
+        School is deliberately left with no reported signal for this
+        village at all, so "Missing" is demonstrated for real — not by
+        faking an absence, but by there genuinely being none.
+        """
+
+        village = villages.get("ARY")
+        if village is None:
+            return
+
+        now = timezone.now()
+        plan = [
+            (SourceKind.CHW, SignalCategory.FEVER, dt.timedelta(minutes=20)),
+            (SourceKind.PHC, SignalCategory.FEVER, dt.timedelta(hours=3)),
+            (SourceKind.PHARMACY, SignalCategory.FEVER, dt.timedelta(hours=50)),
+            (SourceKind.LAB, SignalCategory.LAB_CONFIRMATION, dt.timedelta(hours=100)),
+            (SourceKind.WEATHER, SignalCategory.ENVIRONMENT, dt.timedelta(hours=6)),
+        ]
+        week_start = S.week_start_for(timezone.localdate(), 0)
+        week_label = S.week_label_for(week_start)
+
+        for kind, category, age in plan:
+            source, _ = DataSource.objects.get_or_create(
+                village=village,
+                kind=kind,
+                defaults={
+                    "code": f"{kind}-{village.code}-FRESHNESS-DEMO",
+                    "name": f"{SourceKind(kind).label} — {village.name}",
+                    "channel": DataSource.Channel.API,
+                    "simulated": True,
+                },
+            )
+            signal, _ = CommunitySignal.objects.update_or_create(
+                source=source,
+                category=category,
+                week_label=week_label,
+                defaults={
+                    "village": village,
+                    "period_start": week_start,
+                    "period_end": week_start + dt.timedelta(days=6),
+                    "value": 4.0,
+                    "baseline": 3.0,
+                    "unit": "reports",
+                    "is_reported": True,
+                    "data_quality": DataQuality.GOOD,
+                    "metadata": {"freshness_demo": True},
+                },
+            )
+            # Bypass auto_now_add — see docstring above.
+            CommunitySignal.objects.filter(pk=signal.pk).update(ingested_at=now - age)
+
+        # School: guarantee "Missing" by ensuring no *reported* signal exists
+        # for this source in this village, this week or any other.
+        CommunitySignal.objects.filter(
+            village=village, source__kind=SourceKind.SCHOOL, is_reported=True
+        ).delete()
+
+        self.stdout.write(
+            "  source freshness demo (Manikkampatti): CHW/PHC/Weather fresh, "
+            "Pharmacy aging, Laboratory stale, School missing"
+        )
 
     def _seed_prior_aggregates(self, villages, today: dt.date):
         """Give the aggregated RuralCare signal a prior-week baseline."""

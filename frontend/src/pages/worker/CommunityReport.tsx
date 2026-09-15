@@ -1,10 +1,11 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
 import { Card, ErrorNote, Loading } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
-import { api } from '@/services/api'
+import { ApiError, api } from '@/services/api'
 import { useAuth } from '@/store/auth'
+import { useOfflineSync } from '@/store/offlineSync'
 import type { SymptomSummary } from '@/types'
 
 interface CategoryOption {
@@ -106,8 +107,17 @@ export default function CommunityReportPage() {
       : [newRow('FEVER'), newRow('RESPIRATORY'), newRow('DIARRHOEAL')],
   )
   const [result, setResult] = useState<ReportResponse | null>(null)
+  const [savedOffline, setSavedOffline] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const { status: connectivity, reports: queuedReports, init, retry } = useOfflineSync()
+  useEffect(() => {
+    init()
+  }, [init])
+  // This device's own queue, not filtered by village — a CHW's phone only
+  // ever queues their own submissions, so there is nothing to scope here.
+  const myPending = queuedReports.filter((r) => r.status !== 'synced')
 
   const options = categories.data?.categories ?? []
   const optionFor = (value: string) => options.find((o) => o.value === value)
@@ -153,26 +163,45 @@ export default function CommunityReportPage() {
 
     setBusy(true)
     setError(null)
-    try {
-      const entries = rows
-        .filter(
-          (r) =>
-            r.category && (r.case_count.trim() !== '' || r.description.trim()),
-        )
-        .map((r) => ({
-          category: r.category,
-          case_count: Number(r.case_count || 0),
-          description: r.description.trim(),
-        }))
+    setSavedOffline(false)
 
-      const response = await api.post<ReportResponse>('/community-reports/', {
-        village: user.village,
-        ...meta,
-        entries,
-      })
+    const entries = rows
+      .filter(
+        (r) => r.category && (r.case_count.trim() !== '' || r.description.trim()),
+      )
+      .map((r) => ({
+        category: r.category,
+        case_count: Number(r.case_count || 0),
+        description: r.description.trim(),
+      }))
+
+    const payload = { village: user.village, ...meta, entries }
+
+    // Offline first: don't even attempt the network call if the browser
+    // already knows it has no connection — go straight to the queue.
+    if (connectivity === 'offline') {
+      await useOfflineSync
+        .getState()
+        .enqueue(payload, user.village_name ?? '')
+      setSavedOffline(true)
+      setBusy(false)
+      return
+    }
+
+    try {
+      const response = await api.post<ReportResponse>('/community-reports/', payload)
       setResult(response)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not submit.')
+      if (err instanceof ApiError && err.status === 0) {
+        // Reachability failed even though the browser thought it was
+        // online — the report is not lost, it goes to the same queue.
+        await useOfflineSync
+          .getState()
+          .enqueue(payload, user.village_name ?? '')
+        setSavedOffline(true)
+      } else {
+        setError(err instanceof Error ? err.message : 'Could not submit.')
+      }
     } finally {
       setBusy(false)
     }
@@ -193,6 +222,67 @@ export default function CommunityReportPage() {
           Counts by category only — never household identities.
         </p>
       </div>
+
+      {myPending.length > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-amber-800">
+              Pending reports ({myPending.length})
+            </div>
+            {connectivity !== 'offline' && (
+              <button
+                type="button"
+                className="btn-ghost text-xs"
+                onClick={() => void useOfflineSync.getState().syncNow()}
+              >
+                Sync now
+              </button>
+            )}
+          </div>
+          <ul className="mt-2 space-y-2">
+            {myPending.map((queued) => (
+              <li
+                key={queued.client_id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-white px-3 py-2 text-xs"
+              >
+                <span className="text-ink-700">
+                  Report created {new Date(queued.created_at).toLocaleString()}
+                  {queued.status === 'failed' && (
+                    <span className="ml-2 text-red-700">⚠ Sync failed</span>
+                  )}
+                  {queued.status === 'syncing' && (
+                    <span className="ml-2 text-amber-700">Syncing…</span>
+                  )}
+                  {queued.status === 'pending' && (
+                    <span className="ml-2 text-ink-500">Pending sync</span>
+                  )}
+                </span>
+                {queued.status === 'failed' && (
+                  <button
+                    type="button"
+                    className="btn-ghost px-2 py-1 text-xs"
+                    onClick={() => void retry(queued.client_id)}
+                  >
+                    Retry
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {savedOffline && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+          <div className="text-sm font-semibold text-amber-800">
+            Saved on this device — waiting to sync
+          </div>
+          <p className="mt-1 text-xs text-amber-800">
+            Could not reach the server, so nothing was lost — this report will
+            send automatically once your connection returns.
+          </p>
+        </div>
+      )}
 
       {handoff?.summary && !handoff.summary.is_empty && (
         <div className="rounded-lg border border-care-200 bg-care-50 px-4 py-3">

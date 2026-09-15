@@ -116,7 +116,47 @@ class CommunityReportListCreateView(generics.ListCreateAPIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        # Offline Community Reporting — idempotency. A worker's device may
+        # retry the exact same submission (timeout, dropped connection,
+        # duplicate tap) once connectivity returns. Short-circuiting here,
+        # before anything is written or the pipeline runs, means a retry can
+        # never create a second CommunityReport or a second Alert — the
+        # pipeline below is not re-entrant across two Alert-creating calls.
+        idempotency_key = (serializer.validated_data.get("idempotency_key") or "").strip()
+        if idempotency_key:
+            existing = (
+                CommunityReport.objects.select_related("village", "worker")
+                .filter(idempotency_key=idempotency_key)
+                .first()
+            )
+            if existing is not None:
+                if existing.worker_id != request.user.id:
+                    # A key collision across two different workers is refused
+                    # rather than silently handed back someone else's report.
+                    return Response(
+                        {"detail": "This idempotency key has already been used."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                return Response(
+                    {
+                        "report": CommunityReportSerializer(existing).data,
+                        "idempotent_replay": True,
+                        "officer_note": (
+                            f"This report is already recorded for "
+                            f"{existing.village.name}."
+                        ),
+                        "data_notice": DATA_NOTICE,
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
         entry_inputs = serializer.validated_data.pop("entries", [])
+
+        # The serializer's own default for a not-provided key is "" (blank
+        # input, not "no input") — but the model's UNIQUE constraint relies
+        # on NULL semantics (many NULLs never collide; two "" values would).
+        # Normalise here, once, right before it flows into `defaults` below.
+        serializer.validated_data["idempotency_key"] = idempotency_key or None
 
         # Roll the entries up per category so the legacy columns and the
         # ingested signal both reflect the whole report. 'Other' can appear
@@ -222,6 +262,7 @@ class CommunityReportListCreateView(generics.ListCreateAPIView):
         return Response(
             {
                 "report": CommunityReportSerializer(report).data,
+                "idempotent_replay": False,
                 "ingestion": {
                     "channel": event.channel,
                     "records_received": event.records_received,

@@ -16,6 +16,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from community.freshness import build_source_freshness
 from community.models import (
     CommunityReport,
     CommunityReportEntry,
@@ -190,6 +191,21 @@ class OfficerDashboardView(APIView):
                     active.order_by("-created_at")[:20], many=True
                 ).data,
                 "community_trend": community_trend,
+                # Informational only — see community/freshness.py's module
+                # docstring. A district-wide officer (no village assigned)
+                # gets an empty list rather than a fabricated cross-village
+                # average, since "freshness" is only meaningful per source
+                # per village.
+                "source_freshness": (
+                    build_source_freshness(request.user.village)
+                    if request.user.village
+                    else []
+                ),
+                "source_freshness_note": (
+                    ""
+                    if request.user.village
+                    else "Select a village-scoped account to see source freshness."
+                ),
                 "disclaimer": MEDICAL_DISCLAIMER,
                 "data_notice": DATA_NOTICE,
             }

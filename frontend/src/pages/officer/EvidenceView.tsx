@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { AgentTrace } from '@/components/AgentTrace'
 import { SafetyPanel } from '@/components/SafetyPanel'
-import { Card, Delta, ErrorNote, Loading, SeverityPill } from '@/components/ui'
+import { Card, Delta, ErrorNote, FreshnessPill, Loading, SeverityPill } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import type {
@@ -232,6 +232,12 @@ function EvidenceCardView({ card }: { card: EvidenceCard }) {
         <span className="text-ink-400">·</span>
         <span className="text-ink-600">data quality {card.data_quality}</span>
       </div>
+
+      {card.freshness && (
+        <div className="mt-2">
+          <FreshnessPill freshness={card.freshness} />
+        </div>
+      )}
 
       <p className="mt-2 text-xs text-ink-600 leading-relaxed">
         {card.explanation}

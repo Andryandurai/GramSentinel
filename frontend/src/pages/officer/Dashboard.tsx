@@ -16,6 +16,7 @@ import {
   Delta,
   Empty,
   ErrorNote,
+  FreshnessPill,
   Loading,
   SafetyPill,
   SeverityPill,
@@ -266,6 +267,31 @@ export default function OfficerDashboardPage() {
           tone="care"
         />
       </div>
+
+      {data.source_freshness.length > 0 ? (
+        <Card title="Source freshness">
+          <p className="text-xs text-ink-600 -mt-1 mb-3">
+            How recently each source last reported — a recent update does not
+            by itself mean an alert is warranted, and an old one does not by
+            itself mean the situation is unsafe.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {data.source_freshness.map((freshness) => (
+              <div
+                key={freshness.source_kind}
+                className="flex items-center justify-between rounded-md border border-ink-200 px-3 py-2"
+              >
+                <span className="text-sm font-medium">{freshness.source_label}</span>
+                <FreshnessPill freshness={freshness} />
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : (
+        data.source_freshness_note && (
+          <p className="text-xs text-ink-400">{data.source_freshness_note}</p>
+        )
+      )}
 
       <Card title="Community reported signals over time">
         <p className="text-xs text-ink-600 -mt-1 mb-3">

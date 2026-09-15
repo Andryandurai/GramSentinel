@@ -43,6 +43,7 @@ class CommunityReportSerializer(serializers.ModelSerializer):
             "entries",
             "total_reported_cases",
             "submitted_at",
+            "client_created_at",
         )
         read_only_fields = ("id", "submitted_at", "village_name", "worker_name")
 
@@ -104,6 +105,14 @@ class CommunityReportCreateSerializer(serializers.ModelSerializer):
     """
 
     entries = CommunityReportEntryInputSerializer(many=True, required=False)
+    # Offline Community Reporting — both optional so a normal online
+    # submission (no offline queue involved) works exactly as before.
+    idempotency_key = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=64
+    )
+    client_created_at = serializers.DateTimeField(
+        required=False, allow_null=True, default=None
+    )
 
     class Meta:
         model = CommunityReport
@@ -119,6 +128,8 @@ class CommunityReportCreateSerializer(serializers.ModelSerializer):
             "unusual_observation",
             "notes",
             "entries",
+            "idempotency_key",
+            "client_created_at",
         )
 
     def validate(self, attrs):
