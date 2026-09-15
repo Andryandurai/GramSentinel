@@ -140,6 +140,13 @@ class AlertEvidence(models.Model):
     )
     explanation = models.TextField(blank=True)
     produced_by_agent = models.CharField(max_length=64, blank=True)
+    #: Immutable snapshot of the Operational Context that applied when this
+    #: evidence was computed (community/operational_context.py), or `{}`
+    #: when none applied. A dict, not a foreign key, precisely so a later
+    #: edit/cancellation of the live SourceOperationalContext row can never
+    #: change what a historical alert's evidence says it was evaluated
+    #: under (Section 11 — historical auditability).
+    operational_context = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["source_kind"]

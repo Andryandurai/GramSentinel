@@ -74,6 +74,7 @@ def _persist_evidence(alert: Alert, cards: list[dict[str, Any]]) -> None:
                 is_corroborating=bool(card.get("is_corroborating")),
                 explanation=card.get("explanation", ""),
                 produced_by_agent=card.get("produced_by_agent", ""),
+                operational_context=card.get("operational_context") or {},
             )
             for card in cards
         ]

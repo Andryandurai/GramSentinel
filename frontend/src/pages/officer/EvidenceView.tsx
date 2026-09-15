@@ -23,6 +23,11 @@ const STATUS_STYLES: Record<string, string> = {
   NORMAL: 'border-ink-200 bg-white',
   NOT_REPORTED: 'border-dashed border-ink-300 bg-white',
   INSUFFICIENT_DATA: 'border-dashed border-amber-300 bg-amber-50/40',
+  // Operational Context — a known, human-recorded operational condition,
+  // deliberately styled distinctly from both "anomaly" (red) and "missing
+  // data" (dashed) — this is neither a system failure nor unexplained.
+  EXPECTED_UNAVAILABLE: 'border-sky-300 bg-sky-50',
+  EXPECTED_VARIATION: 'border-sky-300 bg-sky-50',
 }
 
 /**
@@ -238,6 +243,19 @@ function EvidenceCardView({ card }: { card: EvidenceCard }) {
       {card.freshness && (
         <div className="mt-2">
           <FreshnessPill freshness={card.freshness} />
+        </div>
+      )}
+
+      {card.operational_context && 'reason' in card.operational_context && (
+        <div className="mt-2 rounded-md border border-sky-200 bg-sky-50 px-2.5 py-2 text-xs text-sky-900">
+          <div className="font-semibold">Operational context</div>
+          <div className="mt-0.5">{card.operational_context.reason}</div>
+          <div className="mt-0.5 text-sky-700">
+            {card.operational_context.starts_on} → {card.operational_context.ends_on}
+          </div>
+          <div className="mt-1 text-sky-700">
+            Excluded from independent corroboration.
+          </div>
         </div>
       )}
 

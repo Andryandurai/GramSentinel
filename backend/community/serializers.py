@@ -1,3 +1,7 @@
+import datetime as dt
+
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
 from rest_framework import serializers
 
 from core.constants import (
@@ -13,7 +17,9 @@ from .models import (
     CommunitySignal,
     DataSource,
     LocalSignalReport,
+    SourceOperationalContext,
 )
+from .operational_context import validate_no_overlap
 
 
 class CommunityReportSerializer(serializers.ModelSerializer):
@@ -263,3 +269,81 @@ class DataSourceSerializer(serializers.ModelSerializer):
             "simulated",
         )
         read_only_fields = fields
+
+
+class SourceOperationalContextSerializer(serializers.ModelSerializer):
+    """Read shape — always computes `is_applicable_now` live rather than
+    trusting a stored flag, exactly like the resolver itself does."""
+
+    source_name = serializers.CharField(source="source.name", read_only=True)
+    source_kind = serializers.CharField(source="source.kind", read_only=True)
+    mode_label = serializers.CharField(source="get_mode_display", read_only=True)
+    created_by_name = serializers.CharField(
+        source="created_by.display_name", read_only=True, default=""
+    )
+    is_applicable_now = serializers.SerializerMethodField()
+    is_cancelled = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SourceOperationalContext
+        fields = (
+            "id",
+            "source",
+            "source_name",
+            "source_kind",
+            "mode",
+            "mode_label",
+            "reason",
+            "notes",
+            "starts_on",
+            "ends_on",
+            "created_by_name",
+            "created_at",
+            "updated_at",
+            "cancelled_at",
+            "is_applicable_now",
+            "is_cancelled",
+        )
+        read_only_fields = fields
+
+    def get_is_applicable_now(self, obj: SourceOperationalContext) -> bool:
+        today = timezone.localdate()
+        return obj.is_applicable(today, today)
+
+    def get_is_cancelled(self, obj: SourceOperationalContext) -> bool:
+        return obj.cancelled_at is not None
+
+
+class SourceOperationalContextCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SourceOperationalContext
+        fields = ("source", "mode", "reason", "notes", "starts_on", "ends_on")
+
+    def validate_reason(self, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError(
+                "A reason is required — e.g. 'School holiday' or 'PHC vaccination camp'."
+            )
+        return value
+
+    def validate(self, attrs):
+        starts_on: dt.date = attrs.get("starts_on") or getattr(self.instance, "starts_on", None)
+        ends_on: dt.date = attrs.get("ends_on") or getattr(self.instance, "ends_on", None)
+        if starts_on and ends_on and starts_on > ends_on:
+            raise serializers.ValidationError(
+                {"ends_on": "The period cannot end before it starts."}
+            )
+
+        source = attrs.get("source") or getattr(self.instance, "source", None)
+        if source and starts_on and ends_on:
+            try:
+                validate_no_overlap(
+                    source,
+                    starts_on,
+                    ends_on,
+                    exclude_id=self.instance.id if self.instance else None,
+                )
+            except DjangoValidationError as exc:
+                raise serializers.ValidationError({"starts_on": exc.messages}) from exc
+        return attrs

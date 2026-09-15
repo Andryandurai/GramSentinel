@@ -7,6 +7,7 @@ tables only ever hold counts tied to a village/facility and a time window.
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from core.constants import DataQuality, SignalCategory, SourceKind
 
@@ -295,3 +296,75 @@ class LocalSignalReport(models.Model):
 
     def __str__(self) -> str:
         return f"Local signal report: {self.category} {self.week_label} ({self.village.code})"
+
+
+class OperationalContextMode(models.TextChoices):
+    """See `community/operational_context.py`'s module docstring for the
+    full explanation of each mode's effect on evidence."""
+
+    TEMPORARILY_UNAVAILABLE = "TEMPORARILY_UNAVAILABLE", "Temporarily unavailable"
+    EXPECTED_VARIATION = "EXPECTED_VARIATION", "Expected unusual activity"
+
+
+class SourceOperationalContext(models.Model):
+    """A human-recorded, time-bounded reason a source's own reading should
+    not count as independent corroborating evidence — a school holiday, a
+    PHC vaccination camp, a known reporting outage.
+
+    This never mutates, hides, or deletes anything the source actually
+    reported (see `community/operational_context.py`). It only changes how
+    that reading is *interpreted* while the window applies. There is no
+    "active" boolean column: whether a context currently applies is always
+    computed live from `starts_on`/`ends_on`/`cancelled_at`, so a stale flag
+    can never drift out of sync with the dates it was configured for.
+    """
+
+    source = models.ForeignKey(
+        DataSource, on_delete=models.CASCADE, related_name="operational_contexts"
+    )
+    mode = models.CharField(max_length=32, choices=OperationalContextMode.choices)
+    reason = models.CharField(max_length=200)
+    notes = models.TextField(blank=True, default="")
+
+    starts_on = models.DateField()
+    ends_on = models.DateField()
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    #: Set by "Restore now" (Section 21). The originally configured
+    #: `starts_on`/`ends_on` are preserved unchanged — cancellation is
+    #: recorded as its own fact, not by silently shortening the window —
+    #: so a historical snapshot taken before cancellation still shows
+    #: exactly what was configured at that time.
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-starts_on"]
+        indexes = [models.Index(fields=["source", "starts_on", "ends_on"])]
+
+    def __str__(self) -> str:
+        return f"{self.source.name}: {self.mode} {self.starts_on} -> {self.ends_on}"
+
+    def is_applicable(self, period_start, period_end, *, as_of=None) -> bool:
+        """Does this context cover ANY part of [period_start, period_end]?
+
+        Both `starts_on`/`ends_on` are inclusive: a context configured
+        15 Sep -> 28 Sep applies to any period touching that range, and a
+        period beginning 29 Sep is unaffected — no manual restore needed.
+
+        A cancellation stops the context from applying to any period
+        starting on/after the cancellation date, but never retroactively:
+        a period entirely before `cancelled_at` is unaffected, which is
+        what keeps an already-persisted historical evidence snapshot
+        correct even after the record it was taken from is later
+        cancelled or edited.
+        """
+
+        if self.cancelled_at is not None:
+            as_of = as_of or timezone.now()
+            if self.cancelled_at <= as_of and period_start >= self.cancelled_at.date():
+                return False
+        return self.starts_on <= period_end and self.ends_on >= period_start

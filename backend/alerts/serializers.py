@@ -40,6 +40,7 @@ class AlertEvidenceSerializer(serializers.ModelSerializer):
             "explanation",
             "produced_by_agent",
             "freshness",
+            "operational_context",
         )
         read_only_fields = fields
 

@@ -91,12 +91,16 @@ class InvestigationGuidanceView(APIView):
         corroborating = [e.source_kind for e in evidence if e.is_corroborating]
         context_only = [e.source_kind for e in evidence if e.status == "SUPPORTING_CONTEXT"]
         missing = [e.source_kind for e in evidence if e.status == "NOT_REPORTED"]
+        operationally_unavailable = [
+            e.source_kind for e in evidence if e.status == "EXPECTED_UNAVAILABLE"
+        ]
 
         result = queries.investigation_guidance(
             category_label=SignalCategory(alert.category).label,
             corroborating_sources=corroborating,
             context_sources=context_only,
             missing_sources=missing,
+            operationally_unavailable_sources=operationally_unavailable,
             cross_level_verdict=alert.cross_level_verdict,
             safety_verdict=alert.safety_verdict,
             mode=data["mode"],

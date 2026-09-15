@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -26,7 +27,8 @@ from core.constants import (
 )
 from core.models import Village
 from integrations.ingestion import ingest_batch
-from users.permissions import IsWorker, IsWorkerOrOfficer
+from users.permissions import IsHealthOfficer, IsWorker, IsWorkerOrOfficer
+from users.scoping import scope_queryset, scoped_village_id
 
 from .models import (
     CommunityReport,
@@ -34,6 +36,7 @@ from .models import (
     CommunitySignal,
     DataSource,
     LocalSignalReport,
+    SourceOperationalContext,
 )
 from .serializers import (
     CommunityReportCreateSerializer,
@@ -42,6 +45,8 @@ from .serializers import (
     DataSourceSerializer,
     LocalSignalReportCreateSerializer,
     LocalSignalReportSerializer,
+    SourceOperationalContextCreateSerializer,
+    SourceOperationalContextSerializer,
 )
 
 logger = logging.getLogger("gramsentinel.community")
@@ -492,3 +497,99 @@ class DataSourceListView(generics.ListAPIView):
         if village_code:
             queryset = queryset.filter(village__code=village_code)
         return queryset.order_by("village__name", "kind")
+
+
+def _accessible_source_or_404(request, source_id: int) -> DataSource:
+    """A Health Officer/Admin may only configure Operational Context for a
+    source in their own village — mirrors `officer_alert_queryset()`'s own
+    "404, not 403" convention (alerts/views.py) so existence is never
+    confirmed to an unauthorised officer either."""
+
+    queryset = scope_queryset(DataSource.objects.select_related("village"), request.user)
+    return generics.get_object_or_404(queryset, pk=source_id)
+
+
+class SourceOperationalContextListCreateView(generics.ListCreateAPIView):
+    """Settings > Operational Context. Health Officer or platform Admin only
+    (`IsHealthOfficer` already covers both — see users/permissions.py)."""
+
+    permission_classes = (IsHealthOfficer,)
+
+    def get_serializer_class(self):
+        return (
+            SourceOperationalContextCreateSerializer
+            if self.request.method == "POST"
+            else SourceOperationalContextSerializer
+        )
+
+    def get_queryset(self):
+        return (
+            scope_queryset(
+                SourceOperationalContext.objects.select_related("source", "source__village", "created_by"),
+                self.request.user,
+                field="source__village_id",
+            )
+        ).order_by("-starts_on")
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # The source itself must be one this officer is actually scoped to
+        # see — the village is derived from the source, never accepted
+        # directly from the client (there is no `village` field on this
+        # serializer at all). Raises 404 if not accessible.
+        source: DataSource = serializer.validated_data["source"]
+        _accessible_source_or_404(request, source.id)
+
+        context = serializer.save(created_by=request.user)
+        return Response(
+            SourceOperationalContextSerializer(context).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class SourceOperationalContextDetailView(generics.RetrieveUpdateAPIView):
+    permission_classes = (IsHealthOfficer,)
+
+    def get_serializer_class(self):
+        return (
+            SourceOperationalContextCreateSerializer
+            if self.request.method in {"PATCH", "PUT"}
+            else SourceOperationalContextSerializer
+        )
+
+    def get_queryset(self):
+        return scope_queryset(
+            SourceOperationalContext.objects.select_related("source", "source__village", "created_by"),
+            self.request.user,
+            field="source__village_id",
+        )
+
+    def update(self, request, *args, **kwargs):
+        super().update(request, *args, **kwargs)
+        # Re-read through the display serializer — the create/update
+        # serializer above is intentionally write-shaped only.
+        instance = self.get_object()
+        return Response(SourceOperationalContextSerializer(instance).data)
+
+
+class SourceOperationalContextCancelView(APIView):
+    """"Restore now" (Section 21). Never deletes the row — sets
+    `cancelled_at` so the original configuration stays visible for
+    historical auditability, and the resolver stops applying it to any
+    period starting on/after this moment."""
+
+    permission_classes = (IsHealthOfficer,)
+
+    def post(self, request, pk: int):
+        queryset = scope_queryset(
+            SourceOperationalContext.objects.select_related("source"),
+            request.user,
+            field="source__village_id",
+        )
+        context = generics.get_object_or_404(queryset, pk=pk)
+        if context.cancelled_at is None:
+            context.cancelled_at = timezone.now()
+            context.save(update_fields=["cancelled_at"])
+        return Response(SourceOperationalContextSerializer(context).data)

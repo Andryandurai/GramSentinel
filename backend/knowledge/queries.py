@@ -96,6 +96,7 @@ def investigation_guidance(
     cross_level_verdict: str,
     safety_verdict: str,
     mode: str = "investigation",
+    operationally_unavailable_sources: list[str] | None = None,
     user=None,
 ) -> dict:
     """Modules 5 + 6 + 7 + 9 + 10. Input is exactly the aggregate evidence
@@ -116,11 +117,15 @@ def investigation_guidance(
     approved guidance says about doing so.
     """
 
+    operationally_unavailable_sources = operationally_unavailable_sources or []
     application_result = (
         f"Potential {category_label} signal. Corroborating sources: "
         f"{', '.join(corroborating_sources) or 'none'}. Context-only "
         f"sources: {', '.join(context_sources) or 'none'}. Sources not "
         f"reported this period: {', '.join(missing_sources) or 'none'}. "
+        f"Sources excluded due to a recorded operational context (e.g. a "
+        f"holiday or known outage — see Operational Context): "
+        f"{', '.join(operationally_unavailable_sources) or 'none'}. "
         f"Cross-level verdict: {cross_level_verdict}. "
         f"Safety Engine verdict: {safety_verdict}."
     )

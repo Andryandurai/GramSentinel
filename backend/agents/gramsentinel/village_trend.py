@@ -46,16 +46,37 @@ class VillageTrendAgent(BaseAgent):
         context_only = [
             c for c in cards if c["status"] == EvidenceStatus.SUPPORTING_CONTEXT
         ]
-        missing = [c for c in cards if not c.get("is_reported", True)]
+        operationally_unavailable = [
+            c for c in cards if c["status"] == EvidenceStatus.EXPECTED_UNAVAILABLE
+        ]
+        # A source a human has explicitly recorded as unavailable this window
+        # is not an unexplained gap, so it is never counted as "missing" (that
+        # label is reserved for a genuinely unexplained absence) — Section 9.
+        missing = [
+            c
+            for c in cards
+            if not c.get("is_reported", True)
+            and c["status"] != EvidenceStatus.EXPECTED_UNAVAILABLE
+        ]
 
         changes = [
             c["change_pct"] for c in anomalous if c.get("change_pct") is not None
         ]
         median_change = round(statistics.median(changes), 1) if changes else None
 
-        reporting_sources = [c for c in cards if c.get("is_reported", True)]
+        # Completeness is measured against sources that were actually
+        # *expected* to report this window — a source flagged operationally
+        # unavailable is excluded from both the numerator and the
+        # denominator, so it never creates the same data-quality penalty an
+        # unexpectedly missing source would (Section 10).
+        expected_sources = [
+            c for c in cards if c["status"] != EvidenceStatus.EXPECTED_UNAVAILABLE
+        ]
+        reporting_sources = [c for c in expected_sources if c.get("is_reported", True)]
         completeness = (
-            round(len(reporting_sources) / len(cards), 2) if cards else 0.0
+            round(len(reporting_sources) / len(expected_sources), 2)
+            if expected_sources
+            else 0.0
         )
         degraded = [
             c
@@ -84,11 +105,19 @@ class VillageTrendAgent(BaseAgent):
             "corroborating_sources": [c["source_kind"] for c in corroborating],
             "context_sources": [c["source_kind"] for c in context_only],
             "missing_sources": [c["source_kind"] for c in missing],
+            "operationally_unavailable_sources": [
+                c["source_kind"] for c in operationally_unavailable
+            ],
             "degraded_quality_sources": [c["source_kind"] for c in degraded],
             "median_change_pct": median_change,
             "reporting_completeness": completeness,
             "description": self._describe(
-                trajectory, corroborating, context_only, missing, median_change
+                trajectory,
+                corroborating,
+                context_only,
+                missing,
+                operationally_unavailable,
+                median_change,
             ),
         }
 
@@ -98,6 +127,7 @@ class VillageTrendAgent(BaseAgent):
         corroborating: list[dict],
         context_only: list[dict],
         missing: list[dict],
+        operationally_unavailable: list[dict],
         median_change: float | None,
     ) -> str:
         parts: list[str] = []
@@ -113,5 +143,10 @@ class VillageTrendAgent(BaseAgent):
         if missing:
             kinds = ", ".join(sorted({c["source_kind"] for c in missing}))
             parts.append(f"Not submitted this window (recorded as missing, not zero): {kinds}.")
+        if operationally_unavailable:
+            kinds = ", ".join(sorted({c["source_kind"] for c in operationally_unavailable}))
+            parts.append(
+                f"Excluded due to a recorded operational context: {kinds}."
+            )
         parts.append(f"Trajectory: {trajectory.replace('_', ' ').lower()}.")
         return " ".join(parts)

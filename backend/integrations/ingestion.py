@@ -244,6 +244,7 @@ def build_agent_payloads(
 
         signal = stored.get((source.id, wanted))
         base = {
+            "source_id": source.id,
             "source_kind": source.kind,
             "source_name": source.name,
             "category": wanted,

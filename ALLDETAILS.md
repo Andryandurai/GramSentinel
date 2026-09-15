@@ -1826,3 +1826,50 @@ A retrieval-augmented generation (RAG) side-car (`backend/knowledge/`) was added
 **Knowledge sources, honestly:** 12 curated documents, all labeled either `INTERNAL` (this project's own documented rules — verified accurate) or `REFERENCE` (general, plain-language public-health material the project team wrote, explicitly **not** presented as verbatim WHO/MoHFW/NHM text). No `OFFICIAL`-authority document exists in this build — that level is defined and enforced in the schema for a future deployment that ingests real, verified guidance documents, and is not simulated by mislabeling anything ingested here.
 
 **Jury explanation:** "RAG is used as a grounded knowledge layer, not as the decision-maker. Our existing deterministic agents analyze the actual application data and produce the triage or community-signal result. The RAG layer retrieves relevant information from a curated knowledge base of approved clinical, public-health, surveillance and frontline-health guidance. The language model then uses those retrieved sources to provide a traceable explanation or investigation context. The deterministic Safety Engine remains independent of RAG and the LLM, and the Health Officer remains responsible for the final investigation decision. The system separates three things: what our data shows, what authoritative guidance says, and what the human decides."
+
+---
+
+## 40. Operational Context (Temporary Data Source Availability)
+
+Lets a Health Officer (or Admin) record that a specific community data source — School absenteeism, PHC, Pharmacy, Lab, CHW, Weather — is temporarily unavailable or expectedly varying during an explicit date range, so a known event (a school holiday, a PHC vaccination camp, a reporting outage) is never mistaken for genuine epidemiological evidence.
+
+**Architecture:**
+```
+Raw Signal (CommunitySignal — never mutated)
+    ↓
+Operational Context Resolver (community/operational_context.py::resolve_context())
+    ↓
+Signal Interpretation (agents/gramsentinel/signal_agents.py — one shared check point)
+    ↓
+Evidence (AlertEvidence, carrying an immutable snapshot)
+    ↓
+Correlation (alerts/evidence_relationships.py — unchanged, reads the new statuses)
+    ↓
+Deterministic Safety Engine (safety/ — completely unmodified)
+    ↓
+Alert / Investigation
+```
+
+**Model:** `community.SourceOperationalContext` — `source` (FK to `DataSource`), `mode` (`TEMPORARILY_UNAVAILABLE` / `EXPECTED_VARIATION`), `reason`, `notes`, `starts_on`/`ends_on` (both dates inclusive), `created_by`, `created_at`/`updated_at`, `cancelled_at`. No `is_active` boolean — whether a context currently applies is always computed live from the dates (`is_applicable()`), so it can never drift out of sync with what was actually configured. "Restore now" sets `cancelled_at` rather than deleting the row, preserving the original configuration for historical auditability.
+
+**Raw data is never touched:** the signal agent still reads the same reported value (or its genuine absence) — only the *interpretation* changes. Verified live: a School source reporting 100% absenteeism against an 8% baseline during a configured holiday keeps `current_value = 100.0` on the persisted `AlertEvidence` row; it is never rewritten to 0 or null.
+
+**Corroboration:** the resolver forces `is_corroborating = False` on the evidence card — the *same* flag the deterministic Safety Engine's rules already read (`safety/rules.py`'s `is_corroborating and is_anomalous` filter). No Safety Engine code was touched; three genuinely anomalous sources with one under an active context correctly count as 2 corroborating, not 3 — confirmed live and by test.
+
+**Two new evidence statuses** (`core/constants.py::EvidenceStatus`): `EXPECTED_UNAVAILABLE` and `EXPECTED_VARIATION` — deliberately distinct from `NOT_REPORTED`, so a known operational event is never displayed as an unexplained gap, and never as zero.
+
+**Completeness:** `agents/gramsentinel/village_trend.py`'s existing `reporting_completeness` calculation now excludes `EXPECTED_UNAVAILABLE` sources from both the numerator and denominator (rather than penalizing them like an unexpected gap), and separately reports them as `operationally_unavailable_sources` — reusing the one existing completeness engine, not a second one.
+
+**Historical auditability:** an immutable snapshot (`{id, mode, reason, notes, starts_on, ends_on, source_name, recorded_at}`) is persisted directly onto each `AlertEvidence.operational_context` row at evidence-computation time — confirmed by test that editing or cancelling the live `SourceOperationalContext` afterward never changes what an already-raised alert's evidence says it was evaluated under.
+
+**Permissions:** `IsHealthOfficer` (already covers Health Officer *and* platform Admin — no new permission class needed). A source's village is always derived server-side from the `DataSource` itself and checked via the existing `scope_queryset()` helper — a village-scoped officer gets 404 (not 403) attempting to reach another village's source or context, matching the project's existing convention.
+
+**API:** `GET/POST /api/source-contexts/`, `PATCH /api/source-contexts/<id>/`, `POST /api/source-contexts/<id>/cancel/` — all reusing the existing `community` app's URL conventions. Overlapping contexts on the same source are rejected at creation/update time (400), never silently allowed.
+
+**Frontend:** a new "Operational context" page under the Officer Portal nav (`/officer/operational-context`) listing every data source for the officer's own village, with a Configure dialog and a per-source "Restore now" action; the Evidence View shows the new statuses with a distinct (blue, not red/dashed) styling and the recorded reason/period inline on the evidence card.
+
+**RAG:** `knowledge/queries.py::investigation_guidance()` now also receives the list of operationally-unavailable source kinds, so a grounded explanation can reference them accurately — RAG still never decides applicability, corroboration, or anything else; that remains entirely this feature's own deterministic resolver.
+
+**Tests:** 23 backend tests (`tests/test_operational_context.py`), covering every one of the task's 12 required scenarios (holiday + anomaly, no override, automatic expiry, no-report-during-holiday, corroboration count, normal restoration, cross-village permission denial, overlap rejection, historical snapshot survival, completeness exclusion, out-of-window no-effect, inclusive date boundaries) plus dedicated security tests (role denial, cross-village read/write denial, `created_by` spoof rejection).
+
+**Important implementation decision:** the Configure dialog offers only "Temporarily unavailable" / "Expected unusual activity" (not a third "Normal/Active" radio, since selecting Configure is only ever used to *set* a context) — returning a source to normal interpretation is the dedicated "Restore now" action instead, which more precisely matches the model's own "no ACTIVE flag, dates alone decide" design than a redundant "Normal" option would have.

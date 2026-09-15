@@ -128,6 +128,14 @@ class EvidenceStatus(models.TextChoices):
     CORROBORATING = "CORROBORATING", "Corroborating evidence"
     INSUFFICIENT_DATA = "INSUFFICIENT_DATA", "Insufficient data"
     NOT_REPORTED = "NOT_REPORTED", "Not reported (never treated as zero)"
+    # Operational Context (community/operational_context.py) — an explicit,
+    # time-bounded, human-recorded reason a source's own reading should not
+    # count as independent corroboration. Deliberately distinct from
+    # NOT_REPORTED: a known operational event is not the same fact as an
+    # unexplained reporting gap, even when the source also happened not to
+    # submit a value during the same window.
+    EXPECTED_UNAVAILABLE = "EXPECTED_UNAVAILABLE", "Expected unavailable"
+    EXPECTED_VARIATION = "EXPECTED_VARIATION", "Expected unusual activity"
 
 
 class TriageLevel(models.TextChoices):

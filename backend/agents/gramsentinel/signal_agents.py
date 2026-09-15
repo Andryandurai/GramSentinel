@@ -11,11 +11,14 @@ arithmetic.
 
 from __future__ import annotations
 
+import datetime as dt
 from typing import Any
 
 from django.conf import settings
 
 from agents.base import BaseAgent
+from community.models import OperationalContextMode
+from community.operational_context import context_snapshot, resolve_context
 from core.constants import (
     CONTEXT_SOURCE_KINDS,
     DataQuality,
@@ -26,6 +29,71 @@ from core.constants import (
 
 def _thresholds() -> dict[str, float]:
     return settings.GRAMSENTINEL["ANOMALY_THRESHOLDS"]
+
+
+#: The one place every signal agent checks for an applicable Operational
+#: Context, before any anomaly-threshold logic runs. A card built here is
+#: returned as-is by the caller — the raw reported value (or its absence)
+#: is carried through unchanged, only the *interpretation* (status,
+#: is_corroborating) differs from what the same value would otherwise get.
+def _operational_context_card(agent: "BaseSignalAgent", payload: dict[str, Any]) -> dict[str, Any] | None:
+    source_id = payload.get("source_id")
+    period_start_raw = payload.get("period_start")
+    period_end_raw = payload.get("period_end")
+    if source_id is None or not period_start_raw or not period_end_raw:
+        return None
+
+    period_start = dt.date.fromisoformat(period_start_raw)
+    period_end = dt.date.fromisoformat(period_end_raw)
+    context = resolve_context(source_id, period_start, period_end)
+    if context is None:
+        return None
+
+    snapshot = context_snapshot(context)
+    status = (
+        EvidenceStatus.EXPECTED_UNAVAILABLE
+        if context.mode == OperationalContextMode.TEMPORARILY_UNAVAILABLE
+        else EvidenceStatus.EXPECTED_VARIATION
+    )
+
+    is_reported = bool(payload.get("is_reported", True))
+    value = payload.get("value") if is_reported else None
+    baseline = payload.get("baseline")
+    change_pct = (
+        round((value - baseline) / baseline * 100.0, 1)
+        if value is not None and baseline not in (None, 0)
+        else None
+    )
+
+    if status == EvidenceStatus.EXPECTED_UNAVAILABLE:
+        explanation = (
+            f"{agent.signal_label} was excluded from independent corroboration "
+            f"because this source was marked temporarily unavailable: "
+            f'"{context.reason}" ({context.starts_on:%d %b %Y} → '
+            f"{context.ends_on:%d %b %Y})."
+        )
+    else:
+        explanation = (
+            f"{agent.signal_label} shows unusual activity that has a recorded "
+            f'operational explanation: "{context.reason}" '
+            f"({context.starts_on:%d %b %Y} → {context.ends_on:%d %b %Y}). "
+            "Excluded from independent corroboration for this window."
+        )
+
+    return agent._card(
+        payload,
+        value=value,
+        baseline=baseline,
+        change_pct=change_pct,
+        status=status,
+        # Reported-but-contextualised data is still good data; only a
+        # genuinely absent report (no value at all) is data_quality MISSING.
+        quality=payload.get("data_quality") or (DataQuality.GOOD if value is not None else DataQuality.MISSING),
+        is_corroborating=False,
+        is_reported=is_reported,
+        explanation=explanation,
+        operational_context=snapshot,
+    )
 
 
 class BaseSignalAgent(BaseAgent):
@@ -80,6 +148,14 @@ class BaseSignalAgent(BaseAgent):
 
     # ------------------------------------------------------------------
     def handle(self, payload: dict[str, Any], context: Any) -> dict[str, Any]:
+        # Operational Context takes precedence over the ordinary threshold
+        # logic below — a source a human has explicitly flagged as
+        # temporarily unavailable or expectedly varying is never evaluated
+        # as if nothing were known about it.
+        override = _operational_context_card(self, payload)
+        if override is not None:
+            return override
+
         is_reported = bool(payload.get("is_reported", True))
         value = payload.get("value")
         baseline = payload.get("baseline")
@@ -152,6 +228,7 @@ class BaseSignalAgent(BaseAgent):
         is_corroborating: bool,
         is_reported: bool,
         explanation: str,
+        operational_context: dict | None = None,
     ) -> dict[str, Any]:
         return {
             "evidence_card": {
@@ -175,6 +252,9 @@ class BaseSignalAgent(BaseAgent):
                 "is_reported": is_reported,
                 "explanation": explanation,
                 "produced_by_agent": self.name,
+                # Immutable snapshot (Section 11) — present only when an
+                # Operational Context actually applied to this card.
+                "operational_context": operational_context or {},
             }
         }
 
@@ -315,6 +395,15 @@ class LabEvidenceAgent(BaseSignalAgent):
     unit = "confirmations"
 
     def handle(self, payload: dict[str, Any], context: Any) -> dict[str, Any]:
+        # Same precedence as BaseSignalAgent.handle() — this class overrides
+        # handle() entirely (a floor-based decision, not a threshold-based
+        # one), so the Operational Context check is repeated here rather
+        # than inherited; the resolution logic itself still lives in exactly
+        # one place (community/operational_context.py).
+        override = _operational_context_card(self, payload)
+        if override is not None:
+            return override
+
         is_reported = bool(payload.get("is_reported", True))
         value = payload.get("value")
 

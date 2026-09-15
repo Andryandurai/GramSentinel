@@ -74,6 +74,13 @@ def _reason_not_comparable(card, alert_category: str) -> str:
         return f"{card.source_name} did not submit data for this window, so no comparison is possible."
     if card.status == EvidenceStatus.INSUFFICIENT_DATA:
         return f"{card.source_name} has no usable baseline for this window, so no comparison is possible."
+    if card.status in {EvidenceStatus.EXPECTED_UNAVAILABLE, EvidenceStatus.EXPECTED_VARIATION}:
+        oc = card.operational_context or {}
+        reason = oc.get("reason", "a recorded operational reason")
+        return (
+            f"{card.source_name} was excluded from comparison because of a "
+            f"recorded operational context: “{reason}”."
+        )
     specific = _NOT_COMPARABLE_REASONS.get(card.source_kind)
     if specific:
         return specific

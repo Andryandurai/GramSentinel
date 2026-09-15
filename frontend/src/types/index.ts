@@ -453,6 +453,55 @@ export interface SourceFreshness {
   received: boolean
 }
 
+/** Operational Context — a human-recorded, time-bounded reason a source
+ *  was excluded from independent corroboration. Never a safety verdict;
+ *  see backend/community/operational_context.py. Empty object `{}` when
+ *  no context applied to this evidence card. */
+export type OperationalContextMode = 'TEMPORARILY_UNAVAILABLE' | 'EXPECTED_VARIATION'
+
+export interface OperationalContextSnapshot {
+  id: number
+  mode: OperationalContextMode
+  mode_label: string
+  reason: string
+  notes: string
+  starts_on: string
+  ends_on: string
+  source_name: string
+  recorded_at: string
+}
+
+export interface DataSourceRow {
+  id: number
+  code: string
+  name: string
+  kind: string
+  channel: string
+  village: number
+  village_name: string
+  is_active: boolean
+  simulated: boolean
+}
+
+export interface SourceOperationalContext {
+  id: number
+  source: number
+  source_name: string
+  source_kind: string
+  mode: OperationalContextMode
+  mode_label: string
+  reason: string
+  notes: string
+  starts_on: string
+  ends_on: string
+  created_by_name: string
+  created_at: string
+  updated_at: string
+  cancelled_at: string | null
+  is_applicable_now: boolean
+  is_cancelled: boolean
+}
+
 export interface EvidenceCard {
   id: number
   source_kind: string
@@ -468,6 +517,7 @@ export interface EvidenceCard {
   data_quality: string
   status: string
   status_display: string
+  operational_context?: OperationalContextSnapshot | Record<string, never>
   is_corroborating: boolean
   explanation: string
   produced_by_agent: string

@@ -6,6 +6,9 @@ from .views import (
     LocalSignalReportCreateView,
     LocalSignalsView,
     ReportCategoryListView,
+    SourceOperationalContextCancelView,
+    SourceOperationalContextDetailView,
+    SourceOperationalContextListCreateView,
 )
 
 urlpatterns = [
@@ -26,4 +29,19 @@ urlpatterns = [
         name="local-signal-report-create",
     ),
     path("data-sources/", DataSourceListView.as_view(), name="data-source-list"),
+    path(
+        "source-contexts/",
+        SourceOperationalContextListCreateView.as_view(),
+        name="source-context-list",
+    ),
+    path(
+        "source-contexts/<int:pk>/",
+        SourceOperationalContextDetailView.as_view(),
+        name="source-context-detail",
+    ),
+    path(
+        "source-contexts/<int:pk>/cancel/",
+        SourceOperationalContextCancelView.as_view(),
+        name="source-context-cancel",
+    ),
 ]
