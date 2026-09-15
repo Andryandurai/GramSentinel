@@ -10,7 +10,6 @@ import {
   Stat,
   TriagePill,
 } from '@/components/ui'
-import { ChwKnowledgeCard } from '@/components/ChwKnowledgeCard'
 import { CommunityMap } from '@/components/CommunityMap'
 import { RealWorldCommunityProfile } from '@/components/RealWorldCommunityProfile'
 import { useAsync } from '@/hooks/useAsync'
@@ -211,7 +210,6 @@ export default function WorkerDashboardPage() {
 
       <RealWorldCommunityProfile profile={data.village?.real_world_profile ?? null} />
       <CommunityMap profile={data.village?.real_world_profile ?? null} />
-      <ChwKnowledgeCard />
 
       {allWeeks ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -2117,8 +2117,19 @@ function CounterfactualSummaryPanel() {
   const { counterfactualResult } = useSimulationStore()
   if (!counterfactualResult) return null
 
-  const { original, hypothetical } = counterfactualResult
+  const { original, hypothetical, changed_sources: changedSources } = counterfactualResult
   const diffLines = counterfactualDiffLines(counterfactualResult)
+  // Mirrors the three-state distinction `counterfactualExplanation()` makes
+  // in the full comparison below — this compact pointer must never repeat
+  // the bug that motivated this fix: `diffLines` (derived-metric deltas
+  // only) being empty does NOT mean the override was never applied.
+  // `changed_sources` is the one field that actually answers that question.
+  const changedSummary =
+    changedSources.length === 0
+      ? 'No hypothetical change was applied.'
+      : diffLines[0]
+        ? `Changed because: ${diffLines[0]}`
+        : 'Hypothetical value(s) applied — see full comparison below.'
 
   return (
     <details className="border-t border-ink-200 pt-3" open>
@@ -2138,7 +2149,7 @@ function CounterfactualSummaryPanel() {
             {hypothetical.safety.evidence_strength ?? '—'}
           </span>
         </div>
-        <p className="text-ink-600">Changed because: {diffLines[0] ?? 'No change applied.'}</p>
+        <p className="text-ink-600">{changedSummary}</p>
         <div className="flex items-center justify-between">
           <span className="text-ink-500">Safety</span>
           <span className={`pill ${gateResultPillClass(hypothetical.safety.gate_result ?? '')}`}>

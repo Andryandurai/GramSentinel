@@ -191,7 +191,7 @@ Module 10 (GramSentinel internal knowledge) is reachable through this same endpo
 
 ## 20. ASHA/CHW knowledge RAG (module 8)
 
-`knowledge/queries.py::chw_knowledge()` — `POST /api/rag/chw/` (`IsWorker`), wired into a small "Health knowledge" card on the Worker Dashboard (`frontend/src/components/ChwKnowledgeCard.tsx`). The only endpoint accepting free text directly from a user; scoped to a single fixed `KnowledgeTopic.CHW_ASHA` the client cannot override, so it cannot become an unrestricted knowledge endpoint.
+`knowledge/queries.py::chw_knowledge()` — `POST /api/rag/chw/` (`IsWorker`). The only endpoint accepting free text directly from a user; scoped to a single fixed `KnowledgeTopic.CHW_ASHA` the client cannot override, so it cannot become an unrestricted knowledge endpoint. Its former Worker Dashboard UI (`ChwKnowledgeCard.tsx`, a "Health knowledge" card) was removed as a product decision; the endpoint itself is untouched and has its own backend test coverage, but currently has no frontend caller.
 
 ## 21. What-If RAG (module 9) — see Section 19.
 
