@@ -266,10 +266,6 @@
       "title": "Safety Gate",
       "none": "No safety check recorded."
     },
-    "guidance": {
-      "title": "Investigation guidance",
-      "description": "Grounded guidance retrieved from curated surveillance and investigation reference material — informational only. It does not change the evidence, the safety verdict, or the alert above."
-    },
     "agentTrace": {
       "title": "Agent handoffs ({{count}} invocations)",
       "llmUsed": "LLM used for narrative wording only",

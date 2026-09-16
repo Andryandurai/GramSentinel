@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { AgentTrace } from '@/components/AgentTrace'
-import { RagGuidancePanel } from '@/components/RagGuidancePanel'
 import { SafetyPanel } from '@/components/SafetyPanel'
 import { Card, Delta, ErrorNote, FreshnessPill, Loading, SeverityPill } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
@@ -14,7 +13,6 @@ import type {
   EvidenceRelationshipContext,
   EvidenceRelationshipEdge,
   EvidenceRelationships,
-  RagResponse,
 } from '@/types'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -349,18 +347,6 @@ export default function EvidenceView() {
           )}
         </Card>
       </div>
-
-      <Card title={t('evidenceView.guidance.title')}>
-        <p className="text-xs text-ink-600 -mt-1">
-          {t('evidenceView.guidance.description')}
-        </p>
-        <RagGuidancePanel
-          fetcher={() =>
-            api.post<RagResponse>('/rag/investigation/', { alert_id: Number(id) })
-          }
-          deps={[id]}
-        />
-      </Card>
 
       <Card
         title={t('evidenceView.agentTrace.title', { count: data.agent_trace.length })}
