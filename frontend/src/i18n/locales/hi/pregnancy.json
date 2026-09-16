@@ -1,0 +1,146 @@
+{
+  "visitLabels": {
+    "1": "विज़िट 1 — पहली गर्भावस्था विज़िट",
+    "2": "विज़िट 2 — फॉलो-अप ANC विज़िट",
+    "3": "विज़िट 3 — शिशु की हलचल / जोखिम जांच",
+    "4": "विज़िट 4 — प्रसव की तैयारी"
+  },
+  "visitShort": {
+    "1": "विज़िट 1",
+    "2": "विज़िट 2",
+    "3": "विज़िट 3",
+    "4": "विज़िट 4"
+  },
+  "questions": {
+    "lmp_date": "आपकी अंतिम मासिक धर्म तिथि (LMP) कब थी?",
+    "first_pregnancy": "क्या यह आपकी पहली गर्भावस्था है?",
+    "previous_complications": "क्या आपको पहले किसी गर्भावस्था संबंधी जटिलता का सामना करना पड़ा है?",
+    "vaginal_bleeding": "क्या आपको योनि से रक्तस्राव हो रहा है?",
+    "severe_abdominal_pain": "क्या आपको तेज पेट दर्द है?",
+    "severe_vomiting": "क्या आपको तेज उल्टी हो रही है या पानी पीने में असमर्थ हैं?",
+    "fever_chills": "क्या आपको बुखार या ठंड लगना है?",
+    "severe_headache_vision": "क्या आपको तेज सिरदर्द या धुंधला दिखाई देना है?",
+    "existing_health_problems": "क्या आपको कोई पहले से स्वास्थ्य समस्या है या आप नियमित दवाएं लेती हैं?",
+    "iron_folic_started": "क्या आपने आयरन और फोलिक एसिड की गोलियां लेना शुरू कर दिया है?",
+    "abdominal_pain_cramps": "क्या आपको पेट दर्द या पेट में ऐंठन है?",
+    "swelling_face_hands_feet": "क्या आपके चेहरे, हाथों या पैरों में सूजन है?",
+    "fever_chills_burning_urination": "क्या आपको बुखार, ठंड लगना, या पेशाब करते समय जलन है?",
+    "breathing_difficulty_chest_pain": "क्या आपको सांस लेने में कठिनाई या सीने में दर्द है?",
+    "iron_folic_regular": "क्या आप आयरन और फोलिक एसिड की गोलियां नियमित रूप से ले रही हैं?",
+    "eating_drinking_adequate": "क्या आप ठीक से खा रही हैं और पर्याप्त पानी पी रही हैं?",
+    "attended_scheduled_anc": "क्या आपने निर्धारित प्रसवपूर्व (ANC) जांच के लिए विज़िट किया?",
+    "difficulty_accessing_services": "क्या आपको गर्भावस्था संबंधी सेवाएं प्राप्त करने में कोई कठिनाई हो रही है?",
+    "movement_started": "क्या आपको शिशु की हलचल महसूस होना शुरू हो गई है?",
+    "movement_reduced_stopped": "क्या शिशु की हलचल कम हो गई है या रुक गई है?",
+    "fluid_leaking": "क्या योनि से तरल पदार्थ रिस रहा है?",
+    "fever_weakness": "क्या आपको बुखार या असामान्य कमजोरी है?",
+    "breathing_difficulty": "क्या आपको सांस लेने में कठिनाई हो रही है?",
+    "supplements_regular": "क्या आप निर्धारित सप्लीमेंट नियमित रूप से ले रही हैं?",
+    "delivery_hospital_concerns": "क्या प्रसव या अस्पताल तक पहुंच को लेकर आपको कोई चिंता है?",
+    "labour_pain_contractions": "क्या आपको प्रसव पीड़ा या नियमित संकुचन (contractions) हो रहे हैं?",
+    "fever_fits_breathing": "क्या आपको बुखार, दौरे, या सांस लेने में कठिनाई है?",
+    "hospital_selected": "क्या आपने प्रसव के लिए अस्पताल चुन लिया है?",
+    "transport_available": "क्या आपातकालीन प्रसव के लिए परिवहन उपलब्ध है?",
+    "documents_ready": "क्या आपके पास सभी आवश्यक दस्तावेज़ और योजना रिकॉर्ड मौजूद हैं?"
+  },
+  "answers": {
+    "YES": "हां",
+    "NO": "नहीं",
+    "UNKNOWN": "अज्ञात / दर्ज नहीं किया गया"
+  },
+  "warningSignBadge": "चेतावनी संकेत",
+  "profile": {
+    "title": "गर्भावस्था प्रोफ़ाइल",
+    "notFoundTitle": "गर्भावस्था",
+    "noProfile": "इस मरीज के लिए अभी तक कोई गर्भावस्था प्रोफ़ाइल मौजूद नहीं है।",
+    "startAssessment": "गर्भावस्था मूल्यांकन शुरू करें",
+    "starting": "शुरू किया जा रहा है…",
+    "couldNotStart": "गर्भावस्था प्रोफ़ाइल शुरू नहीं की जा सकी।",
+    "visitsCompleted": "पूर्ण विज़िट",
+    "nextCheckup": "अगली जांच",
+    "notRecorded": "दर्ज नहीं किया गया",
+    "picmeRchId": "PICME / RCH ID",
+    "lmp": "अंतिम मासिक धर्म तिथि (LMP)",
+    "expectedDeliveryDate": "प्रसव की संभावित तिथि",
+    "status": "स्थिति",
+    "noFlags": "इस गर्भावस्था के लिए कोई फॉलो-अप फ़्लैग नहीं है।",
+    "loadingRecord": "गर्भावस्था रिकॉर्ड लोड हो रहा है…"
+  },
+  "picme": {
+    "label": "PICME / RCH ID",
+    "placeholder": "यदि पहले से प्रदान किया गया है, तो PICME/RCH ID दर्ज करें",
+    "statusAvailable": "उपलब्ध",
+    "statusPending": "पंजीकरण लंबित",
+    "statusNotAvailable": "अनुपलब्ध",
+    "helperNote": "उचित सरकारी पंजीकरण प्रक्रिया के माध्यम से प्रदान की गई PICME / RCH ID दर्ज करें। यह प्रणाली PICME संख्या उत्पन्न नहीं करती है।"
+  },
+  "form": {
+    "title": "गर्भावस्था विज़िट दर्ज करें",
+    "whichVisit": "यह कौन-सी विज़िट है?",
+    "loadingQuestions": "प्रश्न लोड हो रहे हैं…",
+    "nextCheckupDate": "अगली निर्धारित जांच की तिथि",
+    "save": "गर्भावस्था विज़िट सहेजें",
+    "saving": "सहेजा जा रहा है…",
+    "couldNotSave": "यह गर्भावस्था विज़िट सहेजी नहीं जा सकी।"
+  },
+  "history": {
+    "title": "गर्भावस्था इतिहास",
+    "noVisits": "अभी तक कोई गर्भावस्था विज़िट दर्ज नहीं की गई है।",
+    "warningSignsLabel": "चेतावनी संकेत:",
+    "noWarningSigns": "कोई चेतावनी संकेत दर्ज नहीं किया गया।",
+    "nextCheckupLabel": "अगली जांच:"
+  },
+  "summary": {
+    "title": "गर्भावस्था फॉलो-अप",
+    "followUpStatus": "फॉलो-अप स्थिति",
+    "aiGuidanceLabel": "AI मार्गदर्शन",
+    "recordAnother": "एक और विज़िट दर्ज करें",
+    "missingLabel": "अनुपलब्ध:"
+  },
+  "workerSummary": {
+    "title": "गर्भावस्था फॉलो-अप",
+    "dueSoon": "जल्द देय",
+    "missingPicme": "PICME/RCH ID अनुपलब्ध"
+  },
+  "followUpStatus": {
+    "URGENT_REVIEW_REQUIRED": "तत्काल समीक्षा आवश्यक",
+    "OVERDUE": "समय-सीमा पार",
+    "NEXT_CHECKUP_NOT_RECORDED": "अगली जांच की तिथि दर्ज नहीं",
+    "DUE": "देय",
+    "SCHEDULED": "निर्धारित"
+  },
+  "rules": {
+    "URGENT_CLINICAL_REVIEW": "तत्काल चिकित्सकीय समीक्षा की सिफारिश की जाती है",
+    "FOLLOW_UP_OVERDUE": "फॉलो-अप की समय-सीमा पार",
+    "MISSING_NEXT_CHECKUP": "अगली जांच की तिथि दर्ज नहीं की गई",
+    "LOW_VISIT_COMPLETION_FOR_STAGE": "इस चरण के लिए अपेक्षा से कम विज़िट",
+    "ANC_4PLUS_TARGET_NOT_YET_REACHED": "4+ ANC विज़िट का लक्ष्य अभी तक पूरा नहीं हुआ",
+    "MISSING_PICME": "PICME/RCH ID अभी तक दर्ज नहीं की गई"
+  },
+  "officer": {
+    "sectionTitle": "गर्भावस्था फॉलो-अप",
+    "viewList": "सूची देखें",
+    "hideList": "सूची छिपाएं",
+    "activePregnancies": "सक्रिय गर्भावस्थाएं",
+    "completedAncVisits": "पूर्ण ANC विज़िट",
+    "dueFollowups": "लंबित फॉलो-अप",
+    "overdueFollowups": "समय-सीमा पार फॉलो-अप",
+    "belowVisitTarget": "चरण की अपेक्षा से कम विज़िट",
+    "picmePending": "PICME/RCH लंबित",
+    "noRecords": "इस गांव के लिए कोई गर्भावस्था रिकॉर्ड नहीं।",
+    "visitsLabel": "विज़िट",
+    "lastVisit": "अंतिम विज़िट:",
+    "worker": "कार्यकर्ता:",
+    "unassigned": "अनियुक्त",
+    "picmeRchLabel": "PICME/RCH:",
+    "loadingSummary": "गर्भावस्था फॉलो-अप लोड हो रहे हैं…",
+    "loadingList": "गर्भावस्था रिकॉर्ड लोड हो रहे हैं…",
+    "requestVisit": "स्वास्थ्य कार्यकर्ता विज़िट का अनुरोध करें",
+    "requestFormDueDate": "नियत तिथि",
+    "requestFormPriority": "प्राथमिकता",
+    "requestFormReasonPlaceholder": "कारण (वैकल्पिक)",
+    "sendRequest": "अनुरोध भेजें",
+    "sending": "भेजा जा रहा है…",
+    "couldNotRequest": "इस फॉलो-अप का अनुरोध नहीं किया जा सका।"
+  }
+}

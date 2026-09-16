@@ -135,6 +135,11 @@ class FollowUp(models.Model):
         COMPLETED = "COMPLETED", "Completed"
         MISSED = "MISSED", "Missed"
 
+    class Priority(models.TextChoices):
+        NORMAL = "NORMAL", "Normal"
+        HIGH = "HIGH", "High"
+        URGENT = "URGENT", "Urgent"
+
     patient = models.ForeignKey(
         "patients.Patient", on_delete=models.CASCADE, related_name="followups"
     )
@@ -148,6 +153,16 @@ class FollowUp(models.Model):
     due_date = models.DateField()
     status = models.CharField(
         max_length=16, choices=Status.choices, default=Status.PENDING
+    )
+    priority = models.CharField(
+        max_length=16,
+        choices=Priority.choices,
+        default=Priority.NORMAL,
+        help_text=(
+            "Defaults to NORMAL for every pre-existing follow-up (auto-"
+            "scheduled or worker-created). Set explicitly when a Health "
+            "Officer requests a follow-up, e.g. from Pregnancy Follow-up."
+        ),
     )
     notes = models.TextField(blank=True)
     created_by = models.ForeignKey(

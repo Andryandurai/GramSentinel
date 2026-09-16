@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Card, Empty, ErrorNote, Loading } from '@/components/ui'
 import { useWorkCommunicationStore } from '@/store/workCommunication'
@@ -21,24 +22,17 @@ const STATUS_STYLES: Record<WorkflowStatus, string> = {
   RESUBMITTED: 'bg-ink-100 text-ink-600',
   REJECTED: 'bg-red-100 text-red-700',
 }
-const STATUS_LABELS: Record<WorkflowStatus, string> = {
-  SUBMITTED: 'Submitted',
-  UNDER_REVIEW: 'Under review',
-  APPROVED: 'Approved',
-  RETURNED_FOR_CORRECTION: 'Needs correction',
-  RESUBMITTED: 'Resubmitted',
-  REJECTED: 'Rejected',
-}
 
 function StatusPill({ status }: { status: WorkflowStatus }) {
-  return <span className={`pill ${STATUS_STYLES[status]}`}>{STATUS_LABELS[status]}</span>
+  const { t: tc } = useTranslation('common')
+  return <span className={`pill ${STATUS_STYLES[status]}`}>{tc(`status.${status}`)}</span>
 }
 
-function readFileAsDataUri(file: File): Promise<string> {
+function readFileAsDataUri(file: File, errorMessage: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(String(reader.result))
-    reader.onerror = () => reject(new Error('Could not read that file.'))
+    reader.onerror = () => reject(new Error(errorMessage))
     reader.readAsDataURL(file)
   })
 }
@@ -47,6 +41,8 @@ function readFileAsDataUri(file: File): Promise<string> {
 // Communication
 // ---------------------------------------------------------------------------
 function CommunicationSection() {
+  const { t } = useTranslation('officer')
+  const { t: tc } = useTranslation('common')
   const {
     threads, threadsLoading, threadsError, loadThreads,
     selectedWorkerId, threadWorkerName, threadMessages, threadLoading, threadError, openThread, replyToThread,
@@ -66,7 +62,7 @@ function CommunicationSection() {
     setSending(true)
     try {
       let attachment: string | undefined
-      if (file) attachment = await readFileAsDataUri(file)
+      if (file) attachment = await readFileAsDataUri(file, t('teamWorkspace.communication.fileReadError'))
       await replyToThread(selectedWorkerId, { body: reply.trim(), attachment, attachment_filename: file?.name })
       setReply('')
       setFile(null)
@@ -76,15 +72,15 @@ function CommunicationSection() {
   }
 
   return (
-    <Card title="Worker Messages">
+    <Card title={t('teamWorkspace.communication.title')}>
       <div className="grid gap-4 md:grid-cols-[240px_minmax(0,1fr)]">
         <div>
           {threadsLoading ? (
-            <Loading label="Loading…" />
+            <Loading label={tc('states.loading')} />
           ) : threadsError ? (
             <ErrorNote message={threadsError} onRetry={loadThreads} />
           ) : threads.length === 0 ? (
-            <Empty>No workers found.</Empty>
+            <Empty>{t('teamWorkspace.communication.noWorkers')}</Empty>
           ) : (
             <ul className="space-y-1">
               {threads.map((thread) => (
@@ -102,7 +98,7 @@ function CommunicationSection() {
                       )}
                     </div>
                     <div className="truncate text-xs text-ink-500">
-                      {thread.last_message_preview || 'No messages yet'}
+                      {thread.last_message_preview || t('teamWorkspace.communication.noMessages')}
                     </div>
                   </button>
                 </li>
@@ -113,9 +109,9 @@ function CommunicationSection() {
 
         <div>
           {!selectedWorkerId ? (
-            <Empty>Select a worker to view the conversation.</Empty>
+            <Empty>{t('teamWorkspace.communication.selectWorker')}</Empty>
           ) : threadLoading ? (
-            <Loading label="Loading conversation…" />
+            <Loading label={tc('states.loading')} />
           ) : threadError ? (
             <ErrorNote message={threadError} onRetry={() => void openThread(selectedWorkerId)} />
           ) : (
@@ -123,7 +119,7 @@ function CommunicationSection() {
               <div className="mb-2 text-sm font-medium text-ink-700">{threadWorkerName}</div>
               <ul className="max-h-[360px] space-y-3 overflow-y-auto rounded-md border border-ink-100 p-3">
                 {threadMessages.length === 0 ? (
-                  <Empty>No messages yet.</Empty>
+                  <Empty>{t('teamWorkspace.communication.noMessages')}</Empty>
                 ) : (
                   threadMessages.map((message) => (
                     <li
@@ -136,7 +132,7 @@ function CommunicationSection() {
                     >
                       <div className="flex items-center justify-between gap-2 text-xs text-ink-500">
                         <span className="font-medium text-ink-700">
-                          {message.is_from_officer ? 'You' : threadWorkerName}
+                          {message.is_from_officer ? t('teamWorkspace.communication.you') : threadWorkerName}
                         </span>
                         <span>{new Date(message.created_at).toLocaleString()}</span>
                       </div>
@@ -148,7 +144,7 @@ function CommunicationSection() {
                           target="_blank"
                           rel="noreferrer"
                         >
-                          📎 {message.attachment_filename || 'Attachment'}
+                          📎 {message.attachment_filename || t('teamWorkspace.communication.attachmentFallback')}
                         </a>
                       )}
                     </li>
@@ -160,13 +156,13 @@ function CommunicationSection() {
                 <textarea
                   className="input w-full"
                   rows={2}
-                  placeholder="Reply…"
+                  placeholder={t('teamWorkspace.communication.replyPlaceholder')}
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                 />
                 <div className="flex items-center gap-2">
                   <label className="btn-ghost cursor-pointer py-1.5 text-xs">
-                    Attach document
+                    {t('teamWorkspace.communication.attachDocument')}
                     <input
                       type="file"
                       className="hidden"
@@ -176,7 +172,7 @@ function CommunicationSection() {
                   </label>
                   {file && <span className="text-xs text-ink-500">{file.name}</span>}
                   <button type="submit" className="btn-sentinel ml-auto" disabled={sending || !reply.trim()}>
-                    {sending ? 'Sending…' : 'Send'}
+                    {sending ? t('teamWorkspace.communication.sending') : tc('actions.send')}
                   </button>
                 </div>
               </form>
@@ -191,14 +187,16 @@ function CommunicationSection() {
 // ---------------------------------------------------------------------------
 // Report Approvals
 // ---------------------------------------------------------------------------
-const NEXT_ACTIONS: Record<string, { target: WorkflowStatus; label: string; tone: string }[]> = {
-  SUBMITTED: [{ target: 'UNDER_REVIEW', label: 'Mark Under Review', tone: 'btn-sentinel' }],
-  RESUBMITTED: [{ target: 'UNDER_REVIEW', label: 'Mark Under Review', tone: 'btn-sentinel' }],
-  UNDER_REVIEW: [
-    { target: 'APPROVED', label: 'Approve', tone: 'btn-care' },
-    { target: 'RETURNED_FOR_CORRECTION', label: 'Return for Correction', tone: 'btn-ghost' },
-    { target: 'REJECTED', label: 'Reject', tone: 'btn-ghost' },
-  ],
+function getNextActions(t: (key: string) => string): Record<string, { target: WorkflowStatus; label: string; tone: string }[]> {
+  return {
+    SUBMITTED: [{ target: 'UNDER_REVIEW', label: t('teamWorkspace.transition.actions.markUnderReview'), tone: 'btn-sentinel' }],
+    RESUBMITTED: [{ target: 'UNDER_REVIEW', label: t('teamWorkspace.transition.actions.markUnderReview'), tone: 'btn-sentinel' }],
+    UNDER_REVIEW: [
+      { target: 'APPROVED', label: t('teamWorkspace.transition.actions.approve'), tone: 'btn-care' },
+      { target: 'RETURNED_FOR_CORRECTION', label: t('teamWorkspace.transition.actions.returnForCorrection'), tone: 'btn-ghost' },
+      { target: 'REJECTED', label: t('teamWorkspace.transition.actions.reject'), tone: 'btn-ghost' },
+    ],
+  }
 }
 
 function TransitionControls({
@@ -208,9 +206,11 @@ function TransitionControls({
   currentStatus: WorkflowStatus
   onTransition: (target: WorkflowStatus, comment: string) => Promise<void>
 }) {
+  const { t } = useTranslation('officer')
+  const { t: tc } = useTranslation('common')
   const [comment, setComment] = useState('')
   const [busy, setBusy] = useState<WorkflowStatus | null>(null)
-  const actions = NEXT_ACTIONS[currentStatus] ?? []
+  const actions = getNextActions(t)[currentStatus] ?? []
   if (actions.length === 0) return null
 
   async function run(target: WorkflowStatus) {
@@ -227,7 +227,7 @@ function TransitionControls({
     <div className="mt-3 space-y-2 border-t border-ink-100 pt-3">
       <input
         className="input w-full text-sm"
-        placeholder="Comment (shown to the worker)"
+        placeholder={t('teamWorkspace.transition.commentPlaceholder')}
         value={comment}
         onChange={(e) => setComment(e.target.value)}
       />
@@ -239,7 +239,7 @@ function TransitionControls({
             disabled={busy !== null}
             onClick={() => void run(action.target)}
           >
-            {busy === action.target ? 'Saving…' : action.label}
+            {busy === action.target ? tc('actions.saving') : action.label}
           </button>
         ))}
       </div>
@@ -248,6 +248,7 @@ function TransitionControls({
 }
 
 function ReportApprovalsSection() {
+  const { t } = useTranslation('officer')
   const { reportApprovals, reportApprovalsLoading, reportApprovalsError, loadTeamReportApprovals, transitionReportApproval } =
     useWorkCommunicationStore()
 
@@ -257,13 +258,13 @@ function ReportApprovalsSection() {
   }, [])
 
   return (
-    <Card title="Report Approvals">
+    <Card title={t('teamWorkspace.reports.title')}>
       {reportApprovalsLoading ? (
-        <Loading label="Loading reports…" />
+        <Loading label={t('teamWorkspace.reports.loading')} />
       ) : reportApprovalsError ? (
         <ErrorNote message={reportApprovalsError} onRetry={() => loadTeamReportApprovals()} />
       ) : reportApprovals.length === 0 ? (
-        <Empty>No reports are currently awaiting approval.</Empty>
+        <Empty>{t('teamWorkspace.reports.empty')}</Empty>
       ) : (
         <div className="space-y-3">
           {reportApprovals.map((approval) => (
@@ -293,6 +294,7 @@ function ReportApprovalsSection() {
 // Corrections
 // ---------------------------------------------------------------------------
 function CorrectionsSection() {
+  const { t } = useTranslation('officer')
   const { corrections, correctionsLoading, correctionsError, loadTeamCorrections, transitionCorrection } =
     useWorkCommunicationStore()
 
@@ -302,13 +304,13 @@ function CorrectionsSection() {
   }, [])
 
   return (
-    <Card title="Correction Requests">
+    <Card title={t('teamWorkspace.corrections.title')}>
       {correctionsLoading ? (
-        <Loading label="Loading correction requests…" />
+        <Loading label={t('teamWorkspace.corrections.loading')} />
       ) : correctionsError ? (
         <ErrorNote message={correctionsError} onRetry={() => loadTeamCorrections()} />
       ) : corrections.length === 0 ? (
-        <Empty>No correction requests.</Empty>
+        <Empty>{t('teamWorkspace.corrections.empty')}</Empty>
       ) : (
         <div className="space-y-3">
           {corrections.map((correction) => (
@@ -319,7 +321,7 @@ function CorrectionsSection() {
               </div>
               {Object.keys(correction.original_snapshot).length > 0 && (
                 <div className="mt-2 rounded-md border border-ink-100 bg-ink-50 px-3 py-2 text-xs text-ink-700">
-                  <div className="mb-1 font-medium text-ink-500">Original</div>
+                  <div className="mb-1 font-medium text-ink-500">{t('teamWorkspace.corrections.original')}</div>
                   {Object.entries(correction.original_snapshot).map(([field, value]) => (
                     <div key={field}>
                       {field}: <span className="font-medium">{value}</span>
@@ -328,11 +330,11 @@ function CorrectionsSection() {
                 </div>
               )}
               <p className="mt-2 text-sm text-ink-700">
-                <span className="font-medium">Issue: </span>
+                <span className="font-medium">{t('teamWorkspace.corrections.issueLabel')} </span>
                 {correction.mistake_description}
               </p>
               <p className="mt-1 text-sm text-ink-700">
-                <span className="font-medium">Proposed correction: </span>
+                <span className="font-medium">{t('teamWorkspace.corrections.proposedLabel')} </span>
                 {correction.proposed_correction}
               </p>
               <TransitionControls
@@ -353,19 +355,20 @@ function CorrectionsSection() {
 type Section = 'communication' | 'reports' | 'corrections'
 
 export default function TeamWorkspacePage() {
+  const { t } = useTranslation('officer')
   const [section, setSection] = useState<Section>('communication')
   const tabs: Array<{ id: Section; label: string }> = [
-    { id: 'communication', label: 'Worker Messages' },
-    { id: 'reports', label: 'Report Approvals' },
-    { id: 'corrections', label: 'Correction Requests' },
+    { id: 'communication', label: t('teamWorkspace.communication.title') },
+    { id: 'reports', label: t('teamWorkspace.reports.title') },
+    { id: 'corrections', label: t('teamWorkspace.corrections.title') },
   ]
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Team Workspace</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t('teamWorkspace.title')}</h1>
         <p className="text-sm text-ink-600 mt-0.5">
-          Review messages, report approvals, and correction requests from your team.
+          {t('teamWorkspace.subtitle')}
         </p>
       </div>
 

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import {
   Card,
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui'
 import { CommunityMap } from '@/components/CommunityMap'
 import { RealWorldCommunityProfile } from '@/components/RealWorldCommunityProfile'
+import { PregnancySummaryCard } from '@/components/worker/PregnancySummaryCard'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import type { SymptomSummary, WorkerDashboard } from '@/types'
@@ -33,30 +35,31 @@ function SymptomSummaryCard({
   summary: SymptomSummary | undefined
   onCreateReport: () => void
 }) {
+  const { t } = useTranslation('worker')
+
   if (!summary) return null
 
   const max = summary.rows.reduce((top, row) => Math.max(top, row.count), 0) || 1
 
   return (
     <Card
-      title="Community symptom summary"
+      title={t('dashboard.symptomSummaryTitle')}
       action={
         <span className="text-xs text-ink-400">
-          {summary.is_all_weeks ? 'All weeks' : summary.period_label}
+          {summary.is_all_weeks ? t('dashboard.allWeeks') : summary.period_label}
         </span>
       }
     >
       {summary.is_empty ? (
         <>
-          <Empty>{summary.empty_message || 'No assessments recorded yet.'}</Empty>
+          <Empty>{summary.empty_message || t('dashboard.noAssessmentsYet')}</Empty>
           <p className="-mt-3 text-center text-xs text-ink-400">
-            Record a patient assessment and the reported symptoms will be
-            summarised here.
+            {t('dashboard.symptomSummaryHint')}
           </p>
         </>
       ) : (
         <>
-          <p className="text-xs text-ink-400 mb-3">People with reported symptoms</p>
+          <p className="text-xs text-ink-400 mb-3">{t('dashboard.peopleWithReportedSymptoms')}</p>
           <ul className="space-y-1.5">
             {summary.rows.map((row) => (
               <li key={row.key} className="flex items-center gap-3">
@@ -83,20 +86,18 @@ function SymptomSummaryCard({
 
           <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2 border-t border-ink-200 pt-3">
             <span className="text-sm font-medium text-ink-800">
-              Total people assessed
+              {t('dashboard.totalPeopleAssessed')}
             </span>
             <span className="font-mono text-lg font-semibold tabular-nums">
               {summary.total_people_assessed}
             </span>
           </div>
           <p className="mt-1 text-xs text-ink-400">
-            From {summary.assessment_count} recorded assessment
-            {summary.assessment_count === 1 ? '' : 's'}. A person is counted once
-            in the total, whatever their number of symptoms.
+            {t('dashboard.assessmentCountNote', { count: summary.assessment_count })}
           </p>
 
           <button className="btn-ghost mt-4 w-full" onClick={onCreateReport}>
-            Create community report →
+            {t('dashboard.createCommunityReport')} →
           </button>
         </>
       )}
@@ -105,6 +106,7 @@ function SymptomSummaryCard({
 }
 
 export default function WorkerDashboardPage() {
+  const { t } = useTranslation('worker')
   const navigate = useNavigate()
   const [week, setWeek] = useState(ALL_WEEKS)
   const [followupPatient, setFollowupPatient] = useState(ALL_PATIENTS)
@@ -115,7 +117,7 @@ export default function WorkerDashboardPage() {
 
   // Keep the previous view on screen while a different week loads, so the
   // filter never blanks the dashboard between selections.
-  if (loading && !data) return <Loading label="Loading your dashboard…" />
+  if (loading && !data) return <Loading label={t('dashboard.loadingDashboard')} />
   if (error && !data) return <ErrorNote message={error} onRetry={reload} />
   if (!data) return null
 
@@ -146,16 +148,16 @@ export default function WorkerDashboardPage() {
       <div className="flex flex-wrap items-end gap-4">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
-            RuralCare — Worker Portal
+            {t('dashboard.pageTitle')}
           </h1>
           <p className="text-sm text-ink-600 mt-0.5">
             {data.village
               ? `${data.village.name} · ${data.village.cluster}`
-              : 'No village assigned'}
+              : t('shared.noVillageAssigned')}
             {period?.range_label ? (
               <span className="text-ink-400">
                 {' '}
-                · {allWeeks ? 'All weeks' : period.label} · {period.range_label}
+                · {allWeeks ? t('dashboard.allWeeks') : period.label} · {period.range_label}
               </span>
             ) : null}
           </p>
@@ -164,7 +166,7 @@ export default function WorkerDashboardPage() {
         {weeks.length > 0 && (
           <div className="ml-auto">
             <label className="label" htmlFor="week-filter">
-              Time period
+              {t('dashboard.timePeriod')}
             </label>
             <select
               id="week-filter"
@@ -173,11 +175,11 @@ export default function WorkerDashboardPage() {
               onChange={(event) => setWeek(event.target.value)}
               disabled={loading}
             >
-              <option value={ALL_WEEKS}>All weeks</option>
+              <option value={ALL_WEEKS}>{t('dashboard.allWeeks')}</option>
               {weeks.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label} · {option.range_label}
-                  {option.is_current_week ? ' (this week)' : ''}
+                  {option.is_current_week ? ` (${t('dashboard.thisWeek')})` : ''}
                 </option>
               ))}
             </select>
@@ -188,7 +190,7 @@ export default function WorkerDashboardPage() {
           to="/worker/assessment/new"
           className={`btn-care ${weeks.length > 0 ? '' : 'ml-auto'}`}
         >
-          New patient assessment
+          {t('dashboard.newPatientAssessment')}
         </Link>
       </div>
 
@@ -204,7 +206,7 @@ export default function WorkerDashboardPage() {
 
       {!allWeeks && !period.has_activity && (
         <p className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-600">
-          {period.empty_message || 'No activity recorded for this week.'}
+          {period.empty_message || t('dashboard.noActivityThisWeek')}
         </p>
       )}
 
@@ -213,56 +215,56 @@ export default function WorkerDashboardPage() {
 
       {allWeeks ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat value={data.today.assessment_count} label="Assessments today" tone="care" />
+          <Stat value={data.today.assessment_count} label={t('dashboard.assessmentsToday')} tone="care" />
           <Stat
             value={data.today.concerning_count}
-            label="Concerning today"
+            label={t('dashboard.concerningToday')}
             tone="amber"
           />
-          <Stat value={data.today.urgent_count} label="Urgent today" tone="red" />
-          <Stat value={data.pending_followup_count} label="Pending follow-ups" />
+          <Stat value={data.today.urgent_count} label={t('dashboard.urgentToday')} tone="red" />
+          <Stat value={data.pending_followup_count} label={t('dashboard.pendingFollowups')} />
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat
             value={period.assessment_count}
-            label={`Assessments · ${period.label}`}
+            label={t('dashboard.assessmentsPeriod', { period: period.label })}
             tone="care"
           />
           <Stat
             value={period.concerning_count}
-            label="Concerning this week"
+            label={t('dashboard.concerningThisWeek')}
             tone="amber"
           />
-          <Stat value={period.urgent_count} label="Urgent this week" tone="red" />
+          <Stat value={period.urgent_count} label={t('dashboard.urgentThisWeek')} tone="red" />
           <Stat
             value={period.followup_count}
-            label="Follow-ups due this week"
+            label={t('dashboard.followupsDueThisWeek')}
           />
         </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-3 items-start">
         <Card
-          title={allWeeks ? 'Recent assessments' : `Assessments · ${period.label}`}
+          title={allWeeks ? t('dashboard.recentAssessments') : t('dashboard.assessmentsPeriodTitle', { period: period.label })}
           className="lg:col-span-2"
         >
           {data.recent_assessments.length === 0 ? (
             <Empty>
               {allWeeks
-                ? 'No assessments recorded yet.'
-                : 'No assessments recorded for this week.'}
+                ? t('dashboard.noAssessmentsYet')
+                : t('dashboard.noAssessmentsThisWeek')}
             </Empty>
           ) : (
             <div className="overflow-x-auto -mx-5">
               <table className="w-full min-w-[560px]">
                 <thead>
                   <tr>
-                    <th className="table-head">Patient</th>
-                    <th className="table-head">Symptoms</th>
-                    <th className="table-head">Triage</th>
-                    <th className="table-head">Date</th>
-                    <th className="table-head">Aggregated</th>
+                    <th className="table-head">{t('dashboard.tablePatient')}</th>
+                    <th className="table-head">{t('dashboard.tableSymptoms')}</th>
+                    <th className="table-head">{t('dashboard.tableTriage')}</th>
+                    <th className="table-head">{t('dashboard.tableDate')}</th>
+                    <th className="table-head">{t('dashboard.tableAggregated')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -287,14 +289,14 @@ export default function WorkerDashboardPage() {
                           .join(', ')
                           .replace(/_/g, ' ') || '—'}
                         <div className="text-xs text-ink-400">
-                          {assessment.duration_days} day(s)
+                          {t('dashboard.dayCount', { count: assessment.duration_days })}
                         </div>
                       </td>
                       <td className="table-cell">
                         <TriagePill level={assessment.triage_level} />
                         {assessment.escalation_forced && (
                           <div className="text-xs text-red-600 mt-1">
-                            escalation forced
+                            {t('dashboard.escalationForced')}
                           </div>
                         )}
                       </td>
@@ -304,10 +306,10 @@ export default function WorkerDashboardPage() {
                       <td className="table-cell">
                         {assessment.aggregated_at ? (
                           <span className="text-xs text-care-700">
-                            counted anonymously
+                            {t('dashboard.countedAnonymously')}
                           </span>
                         ) : (
-                          <span className="text-xs text-ink-400">pending</span>
+                          <span className="text-xs text-ink-400">{t('dashboard.pendingAggregation')}</span>
                         )}
                       </td>
                     </tr>
@@ -334,7 +336,7 @@ export default function WorkerDashboardPage() {
         <Card
           className="lg:col-span-3"
           title={
-            allWeeks ? 'Pending follow-ups' : `Follow-ups due · ${period.label}`
+            allWeeks ? t('dashboard.pendingFollowupsTitle') : t('dashboard.followupsDueTitle', { period: period.label })
           }
           action={
             followupPatients.length > 0 ? (
@@ -342,9 +344,9 @@ export default function WorkerDashboardPage() {
                 className="input w-auto min-w-[11rem] py-1 text-xs"
                 value={selectedPatient}
                 onChange={(event) => setFollowupPatient(event.target.value)}
-                aria-label="Filter follow-ups by patient"
+                aria-label={t('dashboard.filterFollowupsAria')}
               >
-                <option value={ALL_PATIENTS}>All patients</option>
+                <option value={ALL_PATIENTS}>{t('dashboard.allPatients')}</option>
                 {followupPatients.map((option) => (
                   <option key={option.id} value={String(option.id)}>
                     {option.patient_name || option.patient_code} (
@@ -362,7 +364,7 @@ export default function WorkerDashboardPage() {
                   followupCounts.overdue ? 'font-semibold text-red-700' : ''
                 }
               >
-                {followupCounts.overdue} overdue
+                {t('dashboard.overdueCount', { count: followupCounts.overdue })}
               </span>
               {' · '}
               <span
@@ -370,20 +372,20 @@ export default function WorkerDashboardPage() {
                   followupCounts.due_today ? 'font-semibold text-amber-700' : ''
                 }
               >
-                {followupCounts.due_today} due today
+                {t('dashboard.dueTodayCount', { count: followupCounts.due_today })}
               </span>
-              {` · ${followupCounts.upcoming} upcoming`}
+              {` · ${t('dashboard.upcomingCount', { count: followupCounts.upcoming })}`}
             </p>
           )}
 
           {visibleFollowups.length === 0 ? (
             <Empty>
               {selectedPatient !== ALL_PATIENTS
-                ? 'No pending follow-ups for this patient in this period.'
+                ? t('dashboard.noFollowupsForPatient')
                 : followupSummary?.empty_message ||
                   (allWeeks
-                    ? 'No pending follow-ups.'
-                    : 'No follow-ups due in this week.')}
+                    ? t('dashboard.noPendingFollowups')
+                    : t('dashboard.noFollowupsThisWeek'))}
             </Empty>
           ) : (
             <ol className="space-y-2">
@@ -444,11 +446,12 @@ export default function WorkerDashboardPage() {
             </p>
           )}
           <p className="mt-3 border-t border-ink-200 pt-3 text-xs text-ink-400">
-            Select a patient to open their record, previous assessments and
-            follow-up history.
+            {t('dashboard.selectPatientHint')}
           </p>
         </Card>
       </div>
+
+      <PregnancySummaryCard />
     </div>
   )
 }

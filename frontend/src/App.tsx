@@ -30,6 +30,7 @@ import NewAssessment from '@/pages/worker/NewAssessment'
 import PatientDetail from '@/pages/worker/PatientDetail'
 import WorkCommunicationPage from '@/pages/worker/WorkCommunication'
 import { homeRouteFor, useAuth } from '@/store/auth'
+import { useLanguage } from '@/store/language'
 import type { Role } from '@/types'
 
 /**
@@ -63,10 +64,17 @@ function RequireRole({
 
 export default function App() {
   const { restore, status, user } = useAuth()
+  const initializeLanguage = useLanguage((state) => state.initializeLanguage)
 
   useEffect(() => {
     void restore()
   }, [restore])
+
+  // Runs once at startup, independent of authentication (task §8/§16: the
+  // language preference works the same way before and after login).
+  useEffect(() => {
+    initializeLanguage()
+  }, [initializeLanguage])
 
   if (status !== 'ready') {
     return (
@@ -88,8 +96,8 @@ export default function App() {
         element={
           <RequireRole roles={['CHW_PHC_WORKER']}>
             <PortalLayout
-              portal="RuralCare"
-              subtitle="Individual patient support · Worker Portal"
+              portal="portalHeader.ruralcareTitle"
+              subtitle="portalHeader.ruralcareSubtitle"
               accent="care"
               nav={WORKER_NAV}
               headerExtra={<SyncStatusIndicator />}
@@ -114,8 +122,8 @@ export default function App() {
         element={
           <RequireRole roles={['HEALTH_OFFICER']}>
             <PortalLayout
-              portal="Community Intelligence"
-              subtitle="Community early warning · Officer Portal"
+              portal="portalHeader.communityIntelligenceTitle"
+              subtitle="portalHeader.communityIntelligenceSubtitle"
               accent="sentinel"
               nav={OFFICER_NAV}
             />
@@ -157,8 +165,8 @@ export default function App() {
         element={
           <RequireRole roles={['HEALTH_OFFICER']}>
             <PortalLayout
-              portal="Community Intelligence"
-              subtitle="Community early warning · Officer Portal"
+              portal="portalHeader.communityIntelligenceTitle"
+              subtitle="portalHeader.communityIntelligenceSubtitle"
               accent="sentinel"
               nav={OFFICER_NAV}
               wide
@@ -178,8 +186,8 @@ export default function App() {
         element={
           <RequireRole roles={['ADMIN']}>
             <PortalLayout
-              portal="Administration"
-              subtitle="Platform overview · Admin Portal"
+              portal="portalHeader.administrationTitle"
+              subtitle="portalHeader.administrationSubtitle"
               accent="sentinel"
               nav={ADMIN_NAV}
             />

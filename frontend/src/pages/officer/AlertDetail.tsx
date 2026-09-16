@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import {
   Card,
@@ -12,29 +13,21 @@ import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import type { AlertEvidenceResponse, Outcome } from '@/types'
 
-const OUTCOMES: Array<{ value: Outcome; label: string; help: string }> = [
-  {
-    value: 'VALID_SIGNAL',
-    label: 'Valid signal',
-    help: 'The alert was justified and the investigation was warranted. This is not confirmation of any disease or outbreak.',
-  },
-  {
-    value: 'FALSE_ALERT',
-    label: 'False alert',
-    help: 'Investigation found no meaningful underlying pattern.',
-  },
-  {
-    value: 'RESOLVED',
-    label: 'Resolved',
-    help: 'The situation was addressed or explained and needs no further action.',
-  },
-]
+const OUTCOME_VALUES: Outcome[] = ['VALID_SIGNAL', 'FALSE_ALERT', 'RESOLVED']
 
 export default function AlertDetail() {
+  const { t } = useTranslation('officer')
   const { id } = useParams<{ id: string }>()
   const { data, loading, error, reload } = useAsync<AlertEvidenceResponse>(
     () => api.get(`/alerts/${id}/evidence/`),
     [id],
+  )
+  const OUTCOMES: Array<{ value: Outcome; label: string; help: string }> = OUTCOME_VALUES.map(
+    (value) => ({
+      value,
+      label: t(`outcome.${value}.label`),
+      help: t(`outcome.${value}.help`),
+    }),
   )
 
   const [busy, setBusy] = useState(false)
@@ -52,7 +45,7 @@ export default function AlertDetail() {
       })
       reload()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not update.')
+      setActionError(err instanceof Error ? err.message : t('alertDetail.humanDecision.updateError'))
     } finally {
       setBusy(false)
     }
@@ -69,13 +62,13 @@ export default function AlertDetail() {
       setConfirmed(response.meaning)
       reload()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not record.')
+      setActionError(err instanceof Error ? err.message : t('alertDetail.humanDecision.recordError'))
     } finally {
       setBusy(false)
     }
   }
 
-  if (loading) return <Loading label="Loading alert…" />
+  if (loading) return <Loading label={t('alertDetail.loading')} />
   if (error) return <ErrorNote message={error} onRetry={reload} />
   if (!data) return null
 
@@ -89,7 +82,7 @@ export default function AlertDetail() {
           to="/officer/dashboard"
           className="text-xs text-ink-400 hover:text-ink-600"
         >
-          ← Dashboard
+          {t('alertDetail.backToDashboard')}
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold tracking-tight">{alert.title}</h1>
@@ -99,20 +92,25 @@ export default function AlertDetail() {
           )}
         </div>
         <p className="text-sm text-ink-600 mt-1">
-          {alert.village} · {alert.cluster} · {alert.week_label} (
-          {alert.period_start} to {alert.period_end}) · confidence{' '}
-          <span className="font-mono">{alert.confidence.toFixed(2)}</span>
+          {t('alertDetail.subtitle', {
+            village: alert.village,
+            cluster: alert.cluster,
+            week: alert.week_label,
+            start: alert.period_start,
+            end: alert.period_end,
+            confidence: alert.confidence.toFixed(2),
+          })}
         </p>
       </div>
 
-      <Card title="Why was this alert generated?">
+      <Card title={t('alertDetail.whyCard.title')}>
         <p className="text-sm text-ink-800">{why.explanation}</p>
         <p className="text-sm text-ink-600 mt-3">{alert.summary}</p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <div className="rounded-md border border-ink-200 p-3">
             <div className="text-xs font-semibold text-ink-600">
-              Corroborating ({why.corroborating_count})
+              {t('alertDetail.whyCard.corroborating', { count: why.corroborating_count })}
             </div>
             <p className="text-sm mt-1">
               {why.corroborating_sources.join(', ') || '—'}
@@ -120,31 +118,31 @@ export default function AlertDetail() {
           </div>
           <div className="rounded-md border border-ink-200 p-3">
             <div className="text-xs font-semibold text-ink-600">
-              Supporting context
+              {t('alertDetail.whyCard.supportingContext')}
             </div>
             <p className="text-sm mt-1">
               {why.context_sources.join(', ') || '—'}
             </p>
             <p className="text-xs text-ink-400 mt-1">
-              Does not count toward corroboration.
+              {t('alertDetail.whyCard.notCounted')}
             </p>
           </div>
           <div className="rounded-md border border-ink-200 p-3">
             <div className="text-xs font-semibold text-ink-600">
-              Not reported
+              {t('alertDetail.whyCard.notReported')}
             </div>
             <p className="text-sm mt-1">
               {why.not_reported_sources.join(', ') || '—'}
             </p>
             <p className="text-xs text-ink-400 mt-1">
-              Recorded as missing, never as zero.
+              {t('alertDetail.whyCard.recordedAsMissing')}
             </p>
           </div>
         </div>
 
         <div className="mt-4 rounded-md border border-violet-200 bg-violet-50 p-3">
           <div className="text-xs font-semibold text-violet-800">
-            Cross-Level Intelligence — {cross.verdict.toLowerCase()}
+            {t('alertDetail.crossLevel.title', { verdict: cross.verdict.toLowerCase() })}
           </div>
           <p className="text-sm text-violet-900 mt-1">{cross.statement}</p>
         </div>
@@ -164,8 +162,10 @@ export default function AlertDetail() {
                   : 'text-care-700'
               }`}
             >
-              Evidence relationships — {relationships.summary.agree_count} agree
-              · {relationships.summary.disagree_count} disagree
+              {t('alertDetail.relationships.summary', {
+                agree: relationships.summary.agree_count,
+                disagree: relationships.summary.disagree_count,
+              })}
             </div>
             <p
               className={`text-sm mt-1 ${
@@ -175,8 +175,8 @@ export default function AlertDetail() {
               }`}
             >
               {relationships.summary.has_disagreement
-                ? 'At least one source disagrees with the rest — see the evidence view for why.'
-                : 'The comparable sources for this alert agree with each other.'}
+                ? t('alertDetail.relationships.disagreeMessage')
+                : t('alertDetail.relationships.agreeMessage')}
             </p>
           </div>
         )}
@@ -185,15 +185,15 @@ export default function AlertDetail() {
           to={`/officer/alerts/${id}/evidence`}
           className="btn-sentinel mt-5"
         >
-          Open full evidence view
+          {t('alertDetail.openEvidenceView')}
         </Link>
       </Card>
 
-      <Card title="Human decision">
+      <Card title={t('alertDetail.humanDecision.title')}>
         {confirmed ? (
           <div className="rounded-md border border-care-200 bg-care-50 px-4 py-3">
             <div className="text-sm font-medium text-care-700">
-              Outcome recorded — feedback stored
+              {t('alertDetail.humanDecision.recorded')}
             </div>
             <p className="text-sm text-care-700 mt-1">{confirmed}</p>
           </div>
@@ -205,7 +205,7 @@ export default function AlertDetail() {
 
             <div>
               <label className="label" htmlFor="notes">
-                Investigation notes
+                {t('alertDetail.humanDecision.notesLabel')}
               </label>
               <textarea
                 id="notes"
@@ -213,7 +213,7 @@ export default function AlertDetail() {
                 className="input"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="What did you or the field team find?"
+                placeholder={t('alertDetail.humanDecision.notesPlaceholder')}
               />
             </div>
 
@@ -225,14 +225,14 @@ export default function AlertDetail() {
                 onClick={markInvestigating}
                 disabled={busy}
               >
-                {busy ? 'Updating…' : 'Mark under investigation'}
+                {busy ? t('alertDetail.humanDecision.updating') : t('alertDetail.humanDecision.markInvestigating')}
               </button>
             )}
 
             {!closed && (
               <div className="border-t border-ink-200 pt-4">
                 <div className="label">
-                  Record the outcome after real-world investigation
+                  {t('alertDetail.humanDecision.recordOutcomeLabel')}
                 </div>
                 <div className="grid gap-2 sm:grid-cols-3">
                   {OUTCOMES.map((outcome) => (
@@ -250,15 +250,14 @@ export default function AlertDetail() {
                   ))}
                 </div>
                 <p className="text-xs text-ink-400 mt-3">
-                  Real-world investigation happens outside this platform, by
-                  people rather than software.
+                  {t('alertDetail.humanDecision.investigationNote')}
                 </p>
               </div>
             )}
 
             {closed && (
               <p className="text-sm text-ink-600">
-                This alert is closed and its outcome has been recorded.
+                {t('alertDetail.humanDecision.closedNote')}
               </p>
             )}
           </div>

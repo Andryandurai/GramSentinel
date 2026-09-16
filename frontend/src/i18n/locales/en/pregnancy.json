@@ -1,0 +1,146 @@
+{
+  "visitLabels": {
+    "1": "Visit 1 — First Pregnancy Visit",
+    "2": "Visit 2 — Follow-up ANC Visit",
+    "3": "Visit 3 — Baby Movement / Risk Check",
+    "4": "Visit 4 — Delivery Preparation"
+  },
+  "visitShort": {
+    "1": "Visit 1",
+    "2": "Visit 2",
+    "3": "Visit 3",
+    "4": "Visit 4"
+  },
+  "questions": {
+    "lmp_date": "When was your last menstrual period (LMP)?",
+    "first_pregnancy": "Is this your first pregnancy?",
+    "previous_complications": "Have you had any previous pregnancy complications?",
+    "vaginal_bleeding": "Are you having vaginal bleeding?",
+    "severe_abdominal_pain": "Do you have severe abdominal pain?",
+    "severe_vomiting": "Are you having severe vomiting or unable to drink water?",
+    "fever_chills": "Do you have fever or chills?",
+    "severe_headache_vision": "Do you have severe headache or blurred vision?",
+    "existing_health_problems": "Do you have any existing health problems or take regular medicines?",
+    "iron_folic_started": "Have you started taking iron and folic acid tablets?",
+    "abdominal_pain_cramps": "Do you have abdominal pain or stomach cramps?",
+    "swelling_face_hands_feet": "Do you have swelling in your face, hands, or feet?",
+    "fever_chills_burning_urination": "Do you have fever, chills, or burning while urinating?",
+    "breathing_difficulty_chest_pain": "Are you having difficulty breathing or chest pain?",
+    "iron_folic_regular": "Are you taking iron and folic acid tablets regularly?",
+    "eating_drinking_adequate": "Are you eating properly and drinking enough water?",
+    "attended_scheduled_anc": "Have you attended the scheduled antenatal check-up?",
+    "difficulty_accessing_services": "Are you facing any difficulty accessing pregnancy-related services?",
+    "movement_started": "Have you started feeling the baby's movement?",
+    "movement_reduced_stopped": "Has the baby's movement reduced or stopped?",
+    "fluid_leaking": "Is fluid leaking from the vagina?",
+    "fever_weakness": "Do you have fever or unusual weakness?",
+    "breathing_difficulty": "Are you having difficulty breathing?",
+    "supplements_regular": "Are you taking your prescribed supplements regularly?",
+    "delivery_hospital_concerns": "Do you have any concerns about delivery or hospital access?",
+    "labour_pain_contractions": "Are you having labour pain or regular contractions?",
+    "fever_fits_breathing": "Do you have fever, fits, or difficulty breathing?",
+    "hospital_selected": "Have you selected the hospital for delivery?",
+    "transport_available": "Is transport available for emergency delivery?",
+    "documents_ready": "Do you have all required documents and scheme records?"
+  },
+  "answers": {
+    "YES": "Yes",
+    "NO": "No",
+    "UNKNOWN": "Unknown / Not reported"
+  },
+  "warningSignBadge": "warning sign",
+  "profile": {
+    "title": "Pregnancy Profile",
+    "notFoundTitle": "Pregnancy",
+    "noProfile": "No pregnancy profile exists yet for this patient.",
+    "startAssessment": "Start pregnancy assessment",
+    "starting": "Starting…",
+    "couldNotStart": "Could not start a pregnancy profile.",
+    "visitsCompleted": "Visits completed",
+    "nextCheckup": "Next check-up",
+    "notRecorded": "Not recorded",
+    "picmeRchId": "PICME / RCH ID",
+    "lmp": "LMP",
+    "expectedDeliveryDate": "Expected delivery date",
+    "status": "Status",
+    "noFlags": "No follow-up flags for this pregnancy.",
+    "loadingRecord": "Loading pregnancy record…"
+  },
+  "picme": {
+    "label": "PICME / RCH ID",
+    "placeholder": "Enter the PICME/RCH ID, if already provided",
+    "statusAvailable": "Available",
+    "statusPending": "Registration Pending",
+    "statusNotAvailable": "Not Available",
+    "helperNote": "Enter the PICME / RCH ID provided through the appropriate government registration process. This system does not generate a PICME number."
+  },
+  "form": {
+    "title": "Record a pregnancy visit",
+    "whichVisit": "Which visit is this?",
+    "loadingQuestions": "Loading questions…",
+    "nextCheckupDate": "Next scheduled check-up date",
+    "save": "Save pregnancy visit",
+    "saving": "Saving…",
+    "couldNotSave": "Could not save this pregnancy visit."
+  },
+  "history": {
+    "title": "Pregnancy History",
+    "noVisits": "No pregnancy visits recorded yet.",
+    "warningSignsLabel": "Warning sign(s):",
+    "noWarningSigns": "No warning signs reported.",
+    "nextCheckupLabel": "Next check-up:"
+  },
+  "summary": {
+    "title": "Pregnancy Follow-up",
+    "followUpStatus": "Follow-up status",
+    "aiGuidanceLabel": "AI Guidance",
+    "recordAnother": "Record another visit",
+    "missingLabel": "Missing:"
+  },
+  "workerSummary": {
+    "title": "Pregnancy Follow-ups",
+    "dueSoon": "Due soon",
+    "missingPicme": "Missing PICME/RCH ID"
+  },
+  "followUpStatus": {
+    "URGENT_REVIEW_REQUIRED": "Urgent review required",
+    "OVERDUE": "Overdue",
+    "NEXT_CHECKUP_NOT_RECORDED": "Next check-up not recorded",
+    "DUE": "Due",
+    "SCHEDULED": "Scheduled"
+  },
+  "rules": {
+    "URGENT_CLINICAL_REVIEW": "Urgent clinical review recommended",
+    "FOLLOW_UP_OVERDUE": "Follow-up overdue",
+    "MISSING_NEXT_CHECKUP": "Next check-up date not recorded",
+    "LOW_VISIT_COMPLETION_FOR_STAGE": "Fewer visits than expected for this stage",
+    "ANC_4PLUS_TARGET_NOT_YET_REACHED": "4+ ANC visits target not yet reached",
+    "MISSING_PICME": "PICME/RCH ID not yet recorded"
+  },
+  "officer": {
+    "sectionTitle": "Pregnancy Follow-up",
+    "viewList": "View list",
+    "hideList": "Hide list",
+    "activePregnancies": "Active pregnancies",
+    "completedAncVisits": "Completed ANC visits",
+    "dueFollowups": "Due follow-ups",
+    "overdueFollowups": "Overdue follow-ups",
+    "belowVisitTarget": "Below stage-expected visits",
+    "picmePending": "PICME/RCH pending",
+    "noRecords": "No pregnancy records for this village.",
+    "visitsLabel": "Visits",
+    "lastVisit": "Last visit:",
+    "worker": "Worker:",
+    "unassigned": "Unassigned",
+    "picmeRchLabel": "PICME/RCH:",
+    "loadingSummary": "Loading pregnancy follow-ups…",
+    "loadingList": "Loading pregnancy records…",
+    "requestVisit": "Request Health Worker Visit",
+    "requestFormDueDate": "Due date",
+    "requestFormPriority": "Priority",
+    "requestFormReasonPlaceholder": "Reason (optional)",
+    "sendRequest": "Send request",
+    "sending": "Sending…",
+    "couldNotRequest": "Could not request this follow-up."
+  }
+}

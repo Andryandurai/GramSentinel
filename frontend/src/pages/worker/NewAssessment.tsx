@@ -1,9 +1,12 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 
 import { RagGuidancePanel } from '@/components/RagGuidancePanel'
 import { TriageSupportPanel } from '@/components/TriageSupport'
 import { Card, Empty, ErrorNote, Loading, TriagePill } from '@/components/ui'
+import { PregnancyAssessmentFlow } from '@/components/worker/PregnancyAssessmentFlow'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
 import { useAuth } from '@/store/auth'
@@ -15,17 +18,40 @@ import type {
   TriageSupport,
 } from '@/types'
 
-/** Machine value -> label, reused for both the entry form's radio group and
- *  the Previous Assessments history display, so the two can never drift. */
-const SUGAR_MEASUREMENT_LABELS: Record<BloodSugarMeasurementType, string> = {
-  fasting: 'Fasting',
-  random: 'Random',
-  '2_hour_post_meal': '2-hour post-meal',
+/** Machine value -> translation key (under `newAssessment`), reused for both
+ *  the entry form's radio group and the Previous Assessments history
+ *  display, so the two can never drift. */
+const SUGAR_MEASUREMENT_KEYS: Record<BloodSugarMeasurementType, string> = {
+  fasting: 'measurementFasting',
+  random: 'measurementRandom',
+  '2_hour_post_meal': 'measurementPostMeal',
 }
-const SUGAR_MEASUREMENT_OPTIONS = Object.entries(SUGAR_MEASUREMENT_LABELS) as [
-  BloodSugarMeasurementType,
-  string,
-][]
+const SUGAR_MEASUREMENT_OPTIONS = Object.keys(SUGAR_MEASUREMENT_KEYS) as BloodSugarMeasurementType[]
+
+/** Machine vital-sign field -> translation key (under `newAssessment`), plus
+ *  its numeric input step — mirrors the SUGAR_MEASUREMENT_KEYS pattern above
+ *  so the label text is never hardcoded in JSX. */
+const VITAL_FIELDS: [keyof Pick<
+  AssessmentForm,
+  'temperature_c' | 'pulse_bpm' | 'respiratory_rate' | 'systolic_bp' | 'diastolic_bp' | 'spo2'
+>, string, string][] = [
+  ['temperature_c', 'temperature', '0.1'],
+  ['pulse_bpm', 'pulse', '1'],
+  ['respiratory_rate', 'respiratoryRate', '1'],
+  ['systolic_bp', 'systolic', '1'],
+  ['diastolic_bp', 'diastolic', '1'],
+  ['spo2', 'spo2', '1'],
+]
+
+/** Symptom code -> display text, via the `newAssessment.symptomLabels` map.
+ *  Falls back to the raw code (underscores replaced with spaces) for any
+ *  symptom value not present in the map, so an unexpected backend value
+ *  never renders blank. */
+function symptomLabel(t: TFunction, code: string): string {
+  return t(`newAssessment.symptomLabels.${code}`, {
+    defaultValue: code.replace(/_/g, ' '),
+  })
+}
 
 const SYMPTOM_OPTIONS = [
   'fever',
@@ -145,8 +171,10 @@ function formatEncounterDate(value: string): string {
  *  later. Never the current, unsaved form (that only exists client-side
  *  until "Accept & Record Assessment" actually persists it). */
 function PreviousAssessmentsList({ assessments }: { assessments: Assessment[] }) {
+  const { t } = useTranslation('assessments')
+
   if (assessments.length === 0) {
-    return <Empty>No previous assessments recorded.</Empty>
+    return <Empty>{t('patientHistory.noPrevious')}</Empty>
   }
 
   return (
@@ -162,9 +190,9 @@ function PreviousAssessmentsList({ assessments }: { assessments: Assessment[] })
 
           {(assessment.symptoms.length > 0 || assessment.other_symptom_text) && (
             <p className="mt-1.5 text-xs text-ink-600">
-              <span className="font-medium text-ink-700">Symptoms: </span>
+              <span className="font-medium text-ink-700">{t('patientHistory.symptomsLabel')} </span>
               {[
-                ...assessment.symptoms.map((s) => s.replace(/_/g, ' ')),
+                ...assessment.symptoms.map((s) => symptomLabel(t, s)),
                 assessment.other_symptom_text,
               ]
                 .filter(Boolean)
@@ -173,8 +201,8 @@ function PreviousAssessmentsList({ assessments }: { assessments: Assessment[] })
           )}
 
           <p className="mt-1 text-xs text-ink-600">
-            <span className="font-medium text-ink-700">Duration: </span>
-            {assessment.duration_days} day{assessment.duration_days === 1 ? '' : 's'}
+            <span className="font-medium text-ink-700">{t('patientHistory.durationLabel')} </span>
+            {t('patientHistory.durationDaysCount', { count: assessment.duration_days })}
           </p>
 
           {(assessment.temperature_c != null ||
@@ -184,35 +212,44 @@ function PreviousAssessmentsList({ assessments }: { assessments: Assessment[] })
             assessment.diastolic_bp != null ||
             assessment.spo2 != null) && (
             <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-ink-600 sm:grid-cols-3">
-              {assessment.temperature_c != null && <span>Temp {assessment.temperature_c} °C</span>}
-              {assessment.pulse_bpm != null && <span>Pulse {assessment.pulse_bpm} /min</span>}
+              {assessment.temperature_c != null && (
+                <span>{t('patientHistory.vitalTemp', { value: assessment.temperature_c })}</span>
+              )}
+              {assessment.pulse_bpm != null && (
+                <span>{t('patientHistory.vitalPulse', { value: assessment.pulse_bpm })}</span>
+              )}
               {assessment.respiratory_rate != null && (
-                <span>Resp {assessment.respiratory_rate} /min</span>
+                <span>{t('patientHistory.vitalResp', { value: assessment.respiratory_rate })}</span>
               )}
               {(assessment.systolic_bp != null || assessment.diastolic_bp != null) && (
                 <span>
-                  BP {assessment.systolic_bp ?? '—'}/{assessment.diastolic_bp ?? '—'}
+                  {t('patientHistory.vitalBp', {
+                    systolic: assessment.systolic_bp ?? '—',
+                    diastolic: assessment.diastolic_bp ?? '—',
+                  })}
                 </span>
               )}
-              {assessment.spo2 != null && <span>SpO₂ {assessment.spo2}%</span>}
+              {assessment.spo2 != null && (
+                <span>{t('patientHistory.vitalSpo2', { value: assessment.spo2 })}</span>
+              )}
             </div>
           )}
 
           {assessment.sugar_mg_dl != null && (
             <p className="mt-1.5 text-xs text-ink-600">
-              <span className="font-medium text-ink-700">Blood Sugar: </span>
+              <span className="font-medium text-ink-700">{t('patientHistory.bloodSugarLabel')} </span>
               {assessment.sugar_mg_dl} mg/dL
               <br />
-              <span className="font-medium text-ink-700">Measurement: </span>
+              <span className="font-medium text-ink-700">{t('patientHistory.measurementLabel')} </span>
               {assessment.blood_sugar_measurement_type
-                ? SUGAR_MEASUREMENT_LABELS[assessment.blood_sugar_measurement_type]
-                : 'Not recorded'}
+                ? t(`newAssessment.${SUGAR_MEASUREMENT_KEYS[assessment.blood_sugar_measurement_type]}`)
+                : t('patientHistory.notRecorded')}
             </p>
           )}
 
           {assessment.notes && (
             <p className="mt-1.5 text-xs text-ink-600">
-              <span className="font-medium text-ink-700">Notes: </span>
+              <span className="font-medium text-ink-700">{t('patientHistory.notesLabel')} </span>
               {assessment.notes}
             </p>
           )}
@@ -252,7 +289,10 @@ function toPayload(patientId: number, form: AssessmentForm) {
   }
 }
 
+type AssessmentType = 'general' | 'pregnancy'
+
 export default function NewAssessment() {
+  const { t } = useTranslation('assessments')
   const navigate = useNavigate()
   const { user } = useAuth()
   const patients = useAsync<Patient[]>(() => api.get('/patients/'))
@@ -260,6 +300,12 @@ export default function NewAssessment() {
   const [step, setStep] = useState<Step>('choose')
   const [patient, setPatient] = useState<Patient | null>(null)
   const [search, setSearch] = useState('')
+
+  // Which assessment pathway for the current patient — a choice inside this
+  // same New Assessment workflow, never a separate portal or route (task
+  // §1: "Pregnancy must be another assessment pathway inside the existing
+  // New Assessment workflow").
+  const [assessmentType, setAssessmentType] = useState<AssessmentType | null>(null)
 
   const [newPatient, setNewPatient] = useState({ ...EMPTY_PATIENT })
   const [creating, setCreating] = useState(false)
@@ -359,6 +405,7 @@ export default function NewAssessment() {
   function restart() {
     setStep('choose')
     setPatient(null)
+    setAssessmentType(null)
     setSupport(null)
     setSaved(null)
     setError(null)
@@ -388,7 +435,7 @@ export default function NewAssessment() {
       patients.reload()
     } catch (err) {
       setPatientError(
-        err instanceof Error ? err.message : 'Could not register the patient.',
+        err instanceof Error ? err.message : t('newAssessment.couldNotRegisterPatient'),
       )
     } finally {
       setCreating(false)
@@ -408,7 +455,7 @@ export default function NewAssessment() {
       setSupport(response.support)
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Could not process the assessment.',
+        err instanceof Error ? err.message : t('newAssessment.couldNotProcess'),
       )
     } finally {
       setBusy(null)
@@ -458,12 +505,12 @@ export default function NewAssessment() {
         1600,
       )
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save.')
+      setError(err instanceof Error ? err.message : t('newAssessment.couldNotSave'))
       setBusy(null)
     }
   }
 
-  if (patients.loading) return <Loading label="Loading…" />
+  if (patients.loading) return <Loading label={t('patientHistory.loading')} />
 
   // "Other" without a description records nothing, so it is refused here as
   // well as on the server.
@@ -482,25 +529,25 @@ export default function NewAssessment() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">New assessment</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{t('newAssessment.title')}</h1>
           <p className="text-sm text-ink-600 mt-0.5">
             {step === 'choose'
-              ? 'Who is this assessment for?'
+              ? t('newAssessment.chooseWho')
               : patient
                 ? `${patient.patient_code} · ${patient.display_name}`
-                : 'Register the patient'}
+                : t('newAssessment.registerPatient')}
           </p>
         </div>
         {step !== 'choose' && (
           <button className="btn-ghost ml-auto" onClick={restart}>
-            Start over
+            {t('common:actions.startOver')}
           </button>
         )}
       </div>
 
       {/* ---- Step 1: who is this for? ---- */}
       {step === 'choose' && (
-        <Card title="Who is this assessment for?">
+        <Card title={t('newAssessment.chooseWho')}>
           <div className="grid gap-3 sm:grid-cols-2">
             <button
               className="rounded-lg border border-ink-200 p-5 text-left hover:border-care-500 hover:bg-care-50/50 transition-colors"
@@ -510,11 +557,10 @@ export default function NewAssessment() {
                 +
               </div>
               <div className="mt-3 text-sm font-semibold text-ink-800">
-                New patient
+                {t('newAssessment.newPatient')}
               </div>
               <p className="mt-1 text-xs text-ink-600">
-                Register someone being seen for the first time, then continue
-                straight into the assessment.
+                {t('newAssessment.newPatientHelp')}
               </p>
             </button>
 
@@ -535,11 +581,10 @@ export default function NewAssessment() {
                 </svg>
               </div>
               <div className="mt-3 text-sm font-semibold text-ink-800">
-                Existing patient
+                {t('newAssessment.existingPatient')}
               </div>
               <p className="mt-1 text-xs text-ink-600">
-                Find someone already registered and add a new assessment to
-                their record.
+                {t('newAssessment.existingPatientHelp')}
               </p>
             </button>
           </div>
@@ -554,11 +599,11 @@ export default function NewAssessment() {
 
       {/* ---- Step 2a: register a new patient ---- */}
       {step === 'new-patient' && (
-        <Card title="Patient details">
+        <Card title={t('newAssessment.patientDetails')}>
           <form onSubmit={createPatient} className="space-y-4 max-w-lg">
             <div>
               <label className="label" htmlFor="name">
-                Name or local reference *
+                {t('newAssessment.nameOrReference')} *
               </label>
               <input
                 id="name"
@@ -574,7 +619,7 @@ export default function NewAssessment() {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="label" htmlFor="age_years">
-                  Age (years)
+                  {t('newAssessment.ageYears')}
                 </label>
                 <input
                   id="age_years"
@@ -590,7 +635,7 @@ export default function NewAssessment() {
               </div>
               <div>
                 <label className="label" htmlFor="age_months">
-                  or months
+                  {t('newAssessment.ageMonths')}
                 </label>
                 <input
                   id="age_months"
@@ -606,7 +651,7 @@ export default function NewAssessment() {
               </div>
               <div>
                 <label className="label" htmlFor="sex">
-                  Sex
+                  {t('newAssessment.sex')}
                 </label>
                 <select
                   id="sex"
@@ -616,21 +661,21 @@ export default function NewAssessment() {
                     setNewPatient((p) => ({ ...p, sex: e.target.value }))
                   }
                 >
-                  <option value="U">Not stated</option>
-                  <option value="F">Female</option>
-                  <option value="M">Male</option>
-                  <option value="O">Other</option>
+                  <option value="U">{t('newAssessment.sexNotStated')}</option>
+                  <option value="F">{t('newAssessment.sexFemale')}</option>
+                  <option value="M">{t('newAssessment.sexMale')}</option>
+                  <option value="O">{t('newAssessment.sexOther')}</option>
                 </select>
               </div>
             </div>
             <p className="text-xs text-ink-400 -mt-2">
-              Age in years, or in months for infants.
+              {t('newAssessment.ageHelp')}
             </p>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label" htmlFor="height_cm">
-                  Height (cm)
+                  {t('newAssessment.heightCm')}
                 </label>
                 <input
                   id="height_cm"
@@ -646,7 +691,7 @@ export default function NewAssessment() {
               </div>
               <div>
                 <label className="label" htmlFor="weight_kg">
-                  Weight (kg)
+                  {t('newAssessment.weightKg')}
                 </label>
                 <input
                   id="weight_kg"
@@ -664,7 +709,7 @@ export default function NewAssessment() {
 
             <div>
               <label className="label" htmlFor="phone_number">
-                Phone number
+                {t('newAssessment.phoneNumber')}
               </label>
               <input
                 id="phone_number"
@@ -679,12 +724,12 @@ export default function NewAssessment() {
 
             <div>
               <label className="label" htmlFor="house_location">
-                House location
+                {t('newAssessment.houseLocation')}
               </label>
               <input
                 id="house_location"
                 className="input"
-                placeholder="e.g. Near temple / House 24 / North Street"
+                placeholder={t('newAssessment.houseLocationPlaceholder')}
                 value={newPatient.house_location}
                 onChange={(e) =>
                   setNewPatient((p) => ({ ...p, house_location: e.target.value }))
@@ -693,8 +738,8 @@ export default function NewAssessment() {
             </div>
 
             <div className="rounded-md bg-ink-50 border border-ink-200 px-3 py-2 text-xs text-ink-600">
-              Village: <span className="font-medium">{user?.village_name}</span>{' '}
-              — patients you register belong to your own area.
+              {t('newAssessment.villageLabel')} <span className="font-medium">{user?.village_name}</span>{' '}
+              — {t('newAssessment.villageNote')}
             </div>
 
             {patientError && <ErrorNote message={patientError} />}
@@ -705,14 +750,14 @@ export default function NewAssessment() {
                 className="btn-care"
                 disabled={creating || !newPatient.display_name.trim()}
               >
-                {creating ? 'Registering…' : 'Register and continue'}
+                {creating ? t('newAssessment.registering') : t('newAssessment.registerAndContinue')}
               </button>
               <button
                 type="button"
                 className="btn-ghost"
                 onClick={() => setStep('choose')}
               >
-                Back
+                {t('common:actions.back')}
               </button>
             </div>
           </form>
@@ -724,10 +769,10 @@ export default function NewAssessment() {
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-6">
             {!patient && (
-              <Card title="Select patient">
+              <Card title={t('newAssessment.selectPatient')}>
                 <input
                   className="input"
-                  placeholder="Search by name or identifier…"
+                  placeholder={t('newAssessment.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   autoFocus
@@ -735,12 +780,12 @@ export default function NewAssessment() {
                 <ul className="mt-3 max-h-72 overflow-y-auto space-y-1.5">
                   {filtered.length === 0 && (
                     <li className="text-sm text-ink-400 py-4 text-center">
-                      No matching patient.{' '}
+                      {t('newAssessment.noMatchingPatient')}{' '}
                       <button
                         className="text-care-700 hover:underline"
                         onClick={() => setStep('new-patient')}
                       >
-                        Register a new patient
+                        {t('newAssessment.registerNewPatient')}
                       </button>
                       .
                     </li>
@@ -759,7 +804,7 @@ export default function NewAssessment() {
                           {option.age_years
                             ? `${option.age_years}y`
                             : `${option.age_months}m`}{' '}
-                          · {option.assessment_count} previous assessment(s)
+                          · {t('newAssessment.previousAssessmentCount', { count: option.assessment_count })}
                         </div>
                       </button>
                     </li>
@@ -769,30 +814,75 @@ export default function NewAssessment() {
                   className="btn-ghost mt-3 w-full"
                   onClick={() => setStep('choose')}
                 >
-                  Back
+                  {t('common:actions.back')}
                 </button>
               </Card>
             )}
 
-            {patient && (
+            {patient && !assessmentType && (
               <Card
-                title="Assessment"
+                title={t('newAssessment.assessmentType')}
                 action={
                   <button
                     className="text-xs text-ink-400 hover:text-ink-600"
                     onClick={() => setPatient(null)}
                   >
-                    Change patient
+                    {t('common:actions.changePatient')}
                   </button>
+                }
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    className="rounded-lg border border-ink-200 p-5 text-left hover:border-care-500 hover:bg-care-50/50 transition-colors"
+                    onClick={() => setAssessmentType('general')}
+                  >
+                    <div className="text-sm font-semibold text-ink-800">
+                      {t('newAssessment.generalAssessment')}
+                    </div>
+                    <p className="mt-1 text-xs text-ink-600">
+                      {t('newAssessment.generalAssessmentDescription')}
+                    </p>
+                  </button>
+                  <button
+                    className="rounded-lg border border-ink-200 p-5 text-left hover:border-care-500 hover:bg-care-50/50 transition-colors"
+                    onClick={() => setAssessmentType('pregnancy')}
+                  >
+                    <div className="text-sm font-semibold text-ink-800">{t('newAssessment.pregnancy')}</div>
+                    <p className="mt-1 text-xs text-ink-600">
+                      {t('newAssessment.pregnancyDescription')}
+                    </p>
+                  </button>
+                </div>
+              </Card>
+            )}
+
+            {patient && assessmentType === 'general' && (
+              <Card
+                title={t('newAssessment.assessment')}
+                action={
+                  <div className="flex items-center gap-3">
+                    <button
+                      className="text-xs text-ink-400 hover:text-ink-600"
+                      onClick={() => setAssessmentType(null)}
+                    >
+                      {t('common:actions.changeAssessmentType')}
+                    </button>
+                    <button
+                      className="text-xs text-ink-400 hover:text-ink-600"
+                      onClick={() => setPatient(null)}
+                    >
+                      {t('common:actions.changePatient')}
+                    </button>
+                  </div>
                 }
               >
                 <form onSubmit={runAgents} className="space-y-5">
                   <fieldset>
-                    <legend className="label">Patient details</legend>
+                    <legend className="label">{t('newAssessment.patientDetails')}</legend>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="label" htmlFor="pd_height">
-                          Height (cm)
+                          {t('newAssessment.heightCm')}
                         </label>
                         <input
                           id="pd_height"
@@ -806,7 +896,7 @@ export default function NewAssessment() {
                       </div>
                       <div>
                         <label className="label" htmlFor="pd_weight">
-                          Weight (kg)
+                          {t('newAssessment.weightKg')}
                         </label>
                         <input
                           id="pd_weight"
@@ -820,7 +910,7 @@ export default function NewAssessment() {
                       </div>
                       <div>
                         <label className="label" htmlFor="pd_phone">
-                          Phone number
+                          {t('newAssessment.phoneNumber')}
                         </label>
                         <input
                           id="pd_phone"
@@ -832,12 +922,12 @@ export default function NewAssessment() {
                       </div>
                       <div>
                         <label className="label" htmlFor="pd_location">
-                          House location
+                          {t('newAssessment.houseLocation')}
                         </label>
                         <input
                           id="pd_location"
                           className="input"
-                          placeholder="e.g. Near temple / House 24"
+                          placeholder={t('newAssessment.houseLocationPlaceholderShort')}
                           value={patientDetails.house_location}
                           onChange={(e) => setPatientDetail('house_location', e.target.value)}
                         />
@@ -846,7 +936,7 @@ export default function NewAssessment() {
                   </fieldset>
 
                   <div>
-                    <span className="label">Symptoms</span>
+                    <span className="label">{t('newAssessment.symptoms')}</span>
                     <div className="flex flex-wrap gap-1.5">
                       {SYMPTOM_OPTIONS.map((symptom) => {
                         const on = form.symptoms.includes(symptom)
@@ -861,7 +951,7 @@ export default function NewAssessment() {
                                 : 'bg-white border-ink-200 text-ink-600 hover:border-care-500'
                             }`}
                           >
-                            {symptom.replace(/_/g, ' ')}
+                            {symptomLabel(t, symptom)}
                           </button>
                         )
                       })}
@@ -877,32 +967,30 @@ export default function NewAssessment() {
                             : 'bg-white border-dashed border-ink-300 text-ink-600 hover:border-care-500'
                         }`}
                       >
-                        other
+                        {t('newAssessment.other')}
                       </button>
                     </div>
 
                     {form.other_selected && (
                       <div className="mt-3">
                         <label className="label" htmlFor="other_symptom">
-                          Please describe the symptom *
+                          {t('newAssessment.describeSymptom')} *
                         </label>
                         <textarea
                           id="other_symptom"
                           rows={2}
                           className="input"
-                          placeholder="For example: persistent skin irritation and swelling around the left arm."
+                          placeholder={t('newAssessment.describeSymptomPlaceholder')}
                           value={form.other_text}
                           onChange={(e) => set('other_text', e.target.value)}
                         />
                         {otherMissingText ? (
                           <p className="mt-1 text-xs text-red-600">
-                            Describe the symptom, or clear the “other” option.
+                            {t('newAssessment.describeSymptomError')}
                           </p>
                         ) : (
                           <p className="mt-1 text-xs text-ink-400">
-                            Kept with the assessment as supplementary context.
-                            Triage support still comes from the recorded
-                            symptoms, duration and vital signs.
+                            {t('newAssessment.describeSymptomHelp')}
                           </p>
                         )}
                       </div>
@@ -911,7 +999,7 @@ export default function NewAssessment() {
 
                   <div>
                     <label className="label" htmlFor="duration">
-                      Duration (days)
+                      {t('newAssessment.durationDays')}
                     </label>
                     <input
                       id="duration"
@@ -939,7 +1027,7 @@ export default function NewAssessment() {
                           }
                         />
                         <span className="text-xs font-medium text-ink-600">
-                          Optional: add symptom history by day
+                          {t('newAssessment.dayWiseToggle')}
                         </span>
                       </label>
 
@@ -948,7 +1036,7 @@ export default function NewAssessment() {
                           {TIMELINE_DAYS.map((day) => (
                             <div key={day}>
                               <label className="label" htmlFor={`day-${day}`}>
-                                Day {day}
+                                {t('newAssessment.day', { n: day })}
                               </label>
                               <textarea
                                 id={`day-${day}`}
@@ -956,8 +1044,8 @@ export default function NewAssessment() {
                                 className="input bg-white"
                                 placeholder={
                                   day === 1
-                                    ? 'For example: fever and mild headache.'
-                                    : 'Leave blank if the patient does not remember.'
+                                    ? t('newAssessment.dayPlaceholderFirst')
+                                    : t('newAssessment.dayPlaceholderOther')
                                 }
                                 value={form.day_details[day] ?? ''}
                                 onChange={(e) =>
@@ -967,8 +1055,7 @@ export default function NewAssessment() {
                             </div>
                           ))}
                           <p className="text-xs text-ink-400">
-                            Every day is optional — fill in only what the
-                            patient recalls.
+                            {t('newAssessment.dayWiseHelp')}
                           </p>
                         </div>
                       )}
@@ -977,22 +1064,13 @@ export default function NewAssessment() {
 
                   <fieldset>
                     <legend className="label">
-                      Vital signs (where available)
+                      {t('newAssessment.vitalSigns')}
                     </legend>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {(
-                        [
-                          ['temperature_c', 'Temp °C', '0.1'],
-                          ['pulse_bpm', 'Pulse /min', '1'],
-                          ['respiratory_rate', 'Resp /min', '1'],
-                          ['systolic_bp', 'Systolic', '1'],
-                          ['diastolic_bp', 'Diastolic', '1'],
-                          ['spo2', 'SpO₂ %', '1'],
-                        ] as const
-                      ).map(([key, label, step2]) => (
+                      {VITAL_FIELDS.map(([key, labelKey, step2]) => (
                         <div key={key}>
                           <label className="label" htmlFor={key}>
-                            {label}
+                            {t(`newAssessment.${labelKey}`)}
                           </label>
                           <input
                             id={key}
@@ -1008,7 +1086,7 @@ export default function NewAssessment() {
 
                     <div className="mt-3">
                       <label className="label" htmlFor="sugar_mg_dl">
-                        Blood Sugar (mg/dL)
+                        {t('newAssessment.bloodSugar')}
                       </label>
                       <input
                         id="sugar_mg_dl"
@@ -1022,9 +1100,9 @@ export default function NewAssessment() {
 
                       {form.sugar_mg_dl.trim() !== '' && (
                         <div className="mt-2">
-                          <span className="label">Measurement</span>
+                          <span className="label">{t('newAssessment.measurement')}</span>
                           <div className="flex flex-wrap gap-3">
-                            {SUGAR_MEASUREMENT_OPTIONS.map(([value, label]) => (
+                            {SUGAR_MEASUREMENT_OPTIONS.map((value) => (
                               <label
                                 key={value}
                                 className="flex items-center gap-1.5 text-xs text-ink-700"
@@ -1035,13 +1113,13 @@ export default function NewAssessment() {
                                   checked={form.blood_sugar_measurement_type === value}
                                   onChange={() => set('blood_sugar_measurement_type', value)}
                                 />
-                                {label}
+                                {t(`newAssessment.${SUGAR_MEASUREMENT_KEYS[value]}`)}
                               </label>
                             ))}
                           </div>
                           {sugarMissingMeasurement && (
                             <p className="mt-1 text-xs text-red-600">
-                              Select when this reading was taken.
+                              {t('newAssessment.measurementRequired')}
                             </p>
                           )}
                         </div>
@@ -1051,7 +1129,7 @@ export default function NewAssessment() {
 
                   <div>
                     <label className="label" htmlFor="notes">
-                      Notes
+                      {t('newAssessment.notes')}
                     </label>
                     <textarea
                       id="notes"
@@ -1069,7 +1147,7 @@ export default function NewAssessment() {
                     className="btn-care w-full"
                     disabled={!canRun || busy !== null}
                   >
-                    {busy === 'preview' ? 'Processing…' : 'Get AI suggestion'}
+                    {busy === 'preview' ? t('newAssessment.processing') : t('newAssessment.getAiSuggestion')}
                   </button>
                 </form>
               </Card>
@@ -1077,24 +1155,24 @@ export default function NewAssessment() {
           </div>
 
           <div className="space-y-6">
-            {!support ? (
-              <Card title="Previous Assessments">
+            {assessmentType === 'general' && (!support ? (
+              <Card title={t('patientHistory.title')}>
                 {!patient ? (
                   <p className="text-sm text-ink-400 py-8 text-center">
-                    Select a patient to view previous assessments.
+                    {t('patientHistory.selectPatientPrompt')}
                   </p>
                 ) : !historyReady ? (
                   history.error ? (
                     <ErrorNote message={history.error} onRetry={history.reload} />
                   ) : (
-                    <Loading label="Loading history…" />
+                    <Loading label={t('patientHistory.loadingHistory')} />
                   )
                 ) : (
                   <PreviousAssessmentsList assessments={history.data?.assessments ?? []} />
                 )}
               </Card>
             ) : (
-              <Card title="Triage support">
+              <Card title={t('triageSupport.title')}>
                 <TriageSupportPanel
                   support={support}
                   vitals={{
@@ -1133,21 +1211,35 @@ export default function NewAssessment() {
                       disabled={busy !== null}
                     >
                       {busy === 'submit'
-                        ? 'Saving…'
-                        : 'Accept & Record Assessment'}
+                        ? t('newAssessment.saving')
+                        : t('newAssessment.acceptAndRecord')}
                     </button>
                     <button
                       className="btn-ghost"
                       onClick={() => setSupport(null)}
                       disabled={busy !== null}
                     >
-                      Revise Assessment
+                      {t('newAssessment.reviseAssessment')}
                     </button>
                   </div>
                 )}
               </Card>
-            )}
+            ))}
           </div>
+        </div>
+      )}
+
+      {step === 'assessment' && patient && assessmentType === 'pregnancy' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-ink-600">
+              {patient.patient_code} · {patient.display_name}
+            </p>
+            <button className="btn-ghost text-xs" onClick={() => setAssessmentType(null)}>
+              {t('common:actions.changeAssessmentType')}
+            </button>
+          </div>
+          <PregnancyAssessmentFlow patientId={patient.id} />
         </div>
       )}
     </div>

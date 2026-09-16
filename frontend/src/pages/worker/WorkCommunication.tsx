@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { Card, Empty, ErrorNote, Loading } from '@/components/ui'
 import { useWorkCommunicationStore } from '@/store/workCommunication'
@@ -25,17 +26,9 @@ const STATUS_STYLES: Record<WorkflowStatus, string> = {
   REJECTED: 'bg-red-100 text-red-700',
 }
 
-const STATUS_LABELS: Record<WorkflowStatus, string> = {
-  SUBMITTED: 'Submitted',
-  UNDER_REVIEW: 'Under review',
-  APPROVED: 'Approved',
-  RETURNED_FOR_CORRECTION: 'Needs correction',
-  RESUBMITTED: 'Resubmitted',
-  REJECTED: 'Rejected',
-}
-
 function StatusPill({ status }: { status: WorkflowStatus }) {
-  return <span className={`pill ${STATUS_STYLES[status]}`}>{STATUS_LABELS[status]}</span>
+  const { t: tc } = useTranslation('common')
+  return <span className={`pill ${STATUS_STYLES[status]}`}>{tc(`status.${status}`)}</span>
 }
 
 function readFileAsDataUri(file: File): Promise<string> {
@@ -51,6 +44,8 @@ function readFileAsDataUri(file: File): Promise<string> {
 // Supervisor Communication
 // ---------------------------------------------------------------------------
 function SupervisorCommunicationSection() {
+  const { t } = useTranslation('worker')
+  const { t: tc } = useTranslation('common')
   const {
     officerName,
     messages,
@@ -106,31 +101,31 @@ function SupervisorCommunicationSection() {
   }
 
   return (
-    <Card title="Supervisor Communication">
+    <Card title={t('workCommunication.tabs.communication')}>
       <p className="text-sm text-ink-600 -mt-1 mb-4">
         {officerName
-          ? `Private conversation with your Health Officer — ${officerName}.`
-          : 'Private conversation with your assigned Health Officer.'}
+          ? t('workCommunication.messages.privateConversationWith', { officerName })
+          : t('workCommunication.messages.privateConversationGeneric')}
       </p>
 
       <form onSubmit={handleSearch} className="mb-3 flex gap-2">
         <input
           className="input flex-1"
-          placeholder="Search conversation…"
+          placeholder={t('workCommunication.messages.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <button type="submit" className="btn-ghost">
-          Search
+          {tc('actions.search')}
         </button>
       </form>
 
       {messagesLoading ? (
-        <Loading label="Loading messages…" />
+        <Loading label={t('workCommunication.messages.loading')} />
       ) : messagesError ? (
         <ErrorNote message={messagesError} onRetry={() => loadMyMessages()} />
       ) : messages.length === 0 ? (
-        <Empty>No messages yet.</Empty>
+        <Empty>{t('workCommunication.messages.empty')}</Empty>
       ) : (
         <ul className="max-h-[420px] space-y-3 overflow-y-auto rounded-md border border-ink-100 p-3">
           {messages.map((message) => (
@@ -144,7 +139,7 @@ function SupervisorCommunicationSection() {
             >
               <div className="flex items-center justify-between gap-2 text-xs text-ink-500">
                 <span className="font-medium text-ink-700">
-                  {message.is_from_officer ? 'Health Officer' : 'You'}
+                  {message.is_from_officer ? tc('role.HEALTH_OFFICER') : t('workCommunication.messages.you')}
                 </span>
                 <span>{new Date(message.created_at).toLocaleString()}</span>
               </div>
@@ -157,11 +152,13 @@ function SupervisorCommunicationSection() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  📎 {message.attachment_filename || 'Attachment'}
+                  📎 {message.attachment_filename || t('workCommunication.messages.attachmentFallback')}
                 </a>
               )}
               {!message.is_from_officer && (
-                <div className="mt-1 text-[11px] text-ink-400">{message.is_read ? 'Read' : 'Sent'}</div>
+                <div className="mt-1 text-[11px] text-ink-400">
+                  {message.is_read ? t('workCommunication.messages.read') : t('workCommunication.messages.sent')}
+                </div>
               )}
             </li>
           ))}
@@ -171,20 +168,20 @@ function SupervisorCommunicationSection() {
       <form onSubmit={handleSend} className="mt-4 space-y-2 border-t border-ink-100 pt-4">
         <input
           className="input w-full"
-          placeholder="Subject (optional)"
+          placeholder={t('workCommunication.messages.subjectPlaceholder')}
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
         />
         <textarea
           className="input w-full"
           rows={3}
-          placeholder="Write a message to your Health Officer…"
+          placeholder={t('workCommunication.messages.bodyPlaceholder')}
           value={body}
           onChange={(e) => setBody(e.target.value)}
         />
         <div className="flex flex-wrap items-center gap-2">
           <label className="btn-ghost cursor-pointer py-1.5 text-xs">
-            Attach document
+            {t('workCommunication.messages.attachDocument')}
             <input
               type="file"
               className="hidden"
@@ -194,7 +191,7 @@ function SupervisorCommunicationSection() {
           </label>
           {file && <span className="text-xs text-ink-500">{file.name}</span>}
           <button type="submit" className="btn-care ml-auto" disabled={sendingMessage || !body.trim()}>
-            {sendingMessage ? 'Sending…' : 'Send'}
+            {sendingMessage ? t('shared.sending') : tc('actions.send')}
           </button>
         </div>
         {sendMessageError && <p className="text-xs text-red-700">{sendMessageError}</p>}
@@ -211,6 +208,8 @@ const REPORT_FILTERS: Array<WorkflowStatus | 'ALL'> = [
 ]
 
 function ReportApprovalSection() {
+  const { t } = useTranslation('worker')
+  const { t: tc } = useTranslation('common')
   const { reportApprovals, reportApprovalsLoading, reportApprovalsError, loadMyReportApprovals } =
     useWorkCommunicationStore()
   const [filter, setFilter] = useState<WorkflowStatus | 'ALL'>('ALL')
@@ -221,9 +220,9 @@ function ReportApprovalSection() {
   }, [filter])
 
   return (
-    <Card title="Report Approval Tracker">
+    <Card title={t('workCommunication.approvals.cardTitle')}>
       <p className="text-sm text-ink-600 -mt-1 mb-4">
-        Track what happens to a report after you submit it.
+        {t('workCommunication.approvals.description')}
       </p>
 
       <div className="mb-4 flex flex-wrap gap-1.5">
@@ -233,40 +232,44 @@ function ReportApprovalSection() {
             className={`pill ${filter === value ? 'bg-care-600 text-white' : 'bg-ink-100 text-ink-600'}`}
             onClick={() => setFilter(value)}
           >
-            {value === 'ALL' ? 'All' : STATUS_LABELS[value]}
+            {value === 'ALL' ? t('workCommunication.approvals.allFilter') : tc(`status.${value}`)}
           </button>
         ))}
       </div>
 
       {reportApprovalsLoading ? (
-        <Loading label="Loading reports…" />
+        <Loading label={t('workCommunication.approvals.loading')} />
       ) : reportApprovalsError ? (
         <ErrorNote message={reportApprovalsError} onRetry={() => loadMyReportApprovals()} />
       ) : reportApprovals.length === 0 ? (
-        <Empty>No reports are currently awaiting approval.</Empty>
+        <Empty>{t('workCommunication.approvals.empty')}</Empty>
       ) : (
         <div className="space-y-3">
           {reportApprovals.map((approval) => (
             <div key={approval.id} className="rounded-lg border border-ink-200 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <div className="font-medium text-ink-800">Community report — {approval.week_label}</div>
+                  <div className="font-medium text-ink-800">
+                    {t('workCommunication.approvals.communityReportWeek', { week: approval.week_label })}
+                  </div>
                   <div className="text-xs text-ink-500">
-                    Submitted {new Date(approval.created_at).toLocaleDateString()} · Last updated{' '}
-                    {new Date(approval.updated_at).toLocaleDateString()}
+                    {t('workCommunication.approvals.submittedUpdated', {
+                      submittedDate: new Date(approval.created_at).toLocaleDateString(),
+                      updatedDate: new Date(approval.updated_at).toLocaleDateString(),
+                    })}
                   </div>
                 </div>
                 <StatusPill status={approval.status} />
               </div>
               {approval.supervisor_comment && (
                 <p className="mt-2 rounded-md border border-ink-100 bg-ink-50 px-3 py-2 text-sm text-ink-700">
-                  <span className="font-medium">Supervisor comment: </span>
+                  <span className="font-medium">{t('workCommunication.supervisorComment')} </span>
                   {approval.supervisor_comment}
                 </p>
               )}
               {approval.status === 'RETURNED_FOR_CORRECTION' && (
                 <Link to="/worker/community-report" className="btn-care mt-3 inline-block py-1.5 text-xs">
-                  Resubmit this report
+                  {t('workCommunication.approvals.resubmit')}
                 </Link>
               )}
             </div>
@@ -281,6 +284,8 @@ function ReportApprovalSection() {
 // Correction Requests
 // ---------------------------------------------------------------------------
 function RequestCorrectionForm({ onDone }: { onDone: () => void }) {
+  const { t } = useTranslation('worker')
+  const { t: tc } = useTranslation('common')
   const { correctableRecords, correctableRecordsLoading, loadCorrectableRecords, submittingCorrection, submitCorrection } =
     useWorkCommunicationStore()
   const [selected, setSelected] = useState<CorrectableRecord | null>(null)
@@ -306,16 +311,16 @@ function RequestCorrectionForm({ onDone }: { onDone: () => void }) {
       })
       onDone()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to submit this correction request.')
+      setError(err instanceof Error ? err.message : t('workCommunication.corrections.submitError'))
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-ink-200 p-4">
       <div>
-        <label className="label">Record</label>
+        <label className="label">{t('workCommunication.corrections.recordLabel')}</label>
         {correctableRecordsLoading ? (
-          <Loading label="Loading your records…" />
+          <Loading label={t('workCommunication.corrections.loadingRecords')} />
         ) : (
           <select
             className="input w-full"
@@ -325,7 +330,7 @@ function RequestCorrectionForm({ onDone }: { onDone: () => void }) {
               setSelected(found ?? null)
             }}
           >
-            <option value="">Select a submitted record…</option>
+            <option value="">{t('workCommunication.corrections.selectRecordPlaceholder')}</option>
             {correctableRecords.map((record) => (
               <option key={`${record.record_type}:${record.record_id}`} value={`${record.record_type}:${record.record_id}`}>
                 {record.label}
@@ -337,7 +342,7 @@ function RequestCorrectionForm({ onDone }: { onDone: () => void }) {
 
       {selected && Object.keys(selected.snapshot).length > 0 && (
         <div className="rounded-md border border-ink-100 bg-ink-50 px-3 py-2 text-xs text-ink-700">
-          <div className="mb-1 font-medium text-ink-500">Current information</div>
+          <div className="mb-1 font-medium text-ink-500">{t('workCommunication.corrections.currentInformation')}</div>
           {Object.entries(selected.snapshot).map(([field, value]) => (
             <div key={field}>
               {field}: <span className="font-medium">{value}</span>
@@ -347,11 +352,11 @@ function RequestCorrectionForm({ onDone }: { onDone: () => void }) {
       )}
 
       <div>
-        <label className="label">What is wrong?</label>
+        <label className="label">{t('workCommunication.corrections.whatIsWrong')}</label>
         <textarea className="input w-full" rows={2} value={mistake} onChange={(e) => setMistake(e.target.value)} />
       </div>
       <div>
-        <label className="label">Correct information</label>
+        <label className="label">{t('workCommunication.corrections.correctInformation')}</label>
         <textarea className="input w-full" rows={2} value={correction} onChange={(e) => setCorrection(e.target.value)} />
       </div>
 
@@ -359,10 +364,10 @@ function RequestCorrectionForm({ onDone }: { onDone: () => void }) {
 
       <div className="flex gap-2">
         <button type="submit" className="btn-care" disabled={!selected || submittingCorrection}>
-          {submittingCorrection ? 'Submitting…' : 'Submit Correction Request'}
+          {submittingCorrection ? t('workCommunication.corrections.submitting') : t('workCommunication.corrections.submitButton')}
         </button>
         <button type="button" className="btn-ghost" onClick={onDone}>
-          Cancel
+          {tc('actions.cancel')}
         </button>
       </div>
     </form>
@@ -387,6 +392,7 @@ function CorrectionHistory({ correctionId }: { correctionId: number }) {
 }
 
 function CorrectionRequestsSection() {
+  const { t } = useTranslation('worker')
   const { corrections, correctionsLoading, correctionsError, loadMyCorrections } = useWorkCommunicationStore()
   const [showForm, setShowForm] = useState(false)
   const [expanded, setExpanded] = useState<number | null>(null)
@@ -397,15 +403,14 @@ function CorrectionRequestsSection() {
   }, [])
 
   return (
-    <Card title="Correction Requests">
+    <Card title={t('workCommunication.tabs.corrections')}>
       <p className="text-sm text-ink-600 -mt-1 mb-4">
-        Request and track corrections to records you have already submitted. This does not change the original
-        record until a Health Officer approves the correction.
+        {t('workCommunication.corrections.description')}
       </p>
 
       {!showForm && (
         <button className="btn-care mb-4" onClick={() => setShowForm(true)}>
-          Request Correction
+          {t('workCommunication.corrections.requestButton')}
         </button>
       )}
       {showForm && (
@@ -415,11 +420,11 @@ function CorrectionRequestsSection() {
       )}
 
       {correctionsLoading ? (
-        <Loading label="Loading correction requests…" />
+        <Loading label={t('workCommunication.corrections.loading')} />
       ) : correctionsError ? (
         <ErrorNote message={correctionsError} onRetry={() => loadMyCorrections()} />
       ) : corrections.length === 0 ? (
-        <Empty>No correction requests.</Empty>
+        <Empty>{t('workCommunication.corrections.empty')}</Empty>
       ) : (
         <div className="space-y-3">
           {corrections.map((correction) => (
@@ -428,22 +433,24 @@ function CorrectionRequestsSection() {
                 <div>
                   <div className="font-medium text-ink-800">{correction.record_label}</div>
                   <div className="text-xs text-ink-500">
-                    Requested {new Date(correction.created_at).toLocaleDateString()}
+                    {t('workCommunication.corrections.requestedDate', {
+                      date: new Date(correction.created_at).toLocaleDateString(),
+                    })}
                   </div>
                 </div>
                 <StatusPill status={correction.status} />
               </div>
               <p className="mt-2 text-sm text-ink-700">
-                <span className="font-medium">Issue: </span>
+                <span className="font-medium">{t('workCommunication.corrections.issueLabel')} </span>
                 {correction.mistake_description}
               </p>
               <p className="mt-1 text-sm text-ink-700">
-                <span className="font-medium">Proposed correction: </span>
+                <span className="font-medium">{t('workCommunication.corrections.proposedCorrectionLabel')} </span>
                 {correction.proposed_correction}
               </p>
               {correction.supervisor_comment && (
                 <p className="mt-2 rounded-md border border-ink-100 bg-ink-50 px-3 py-2 text-sm text-ink-700">
-                  <span className="font-medium">Supervisor comment: </span>
+                  <span className="font-medium">{t('workCommunication.supervisorComment')} </span>
                   {correction.supervisor_comment}
                 </p>
               )}
@@ -451,7 +458,9 @@ function CorrectionRequestsSection() {
                 className="btn-ghost mt-2 py-1 text-xs"
                 onClick={() => setExpanded(expanded === correction.id ? null : correction.id)}
               >
-                {expanded === correction.id ? 'Hide history' : 'View History'}
+                {expanded === correction.id
+                  ? t('workCommunication.corrections.hideHistory')
+                  : t('workCommunication.corrections.viewHistory')}
               </button>
               {expanded === correction.id && <CorrectionHistory correctionId={correction.id} />}
             </div>
@@ -468,20 +477,21 @@ function CorrectionRequestsSection() {
 type Section = 'communication' | 'reports' | 'corrections'
 
 export default function WorkCommunicationPage() {
+  const { t } = useTranslation('worker')
   const [section, setSection] = useState<Section>('communication')
 
   const tabs: Array<{ id: Section; label: string; avatar?: boolean }> = [
-    { id: 'communication', label: 'Supervisor Communication' },
-    { id: 'reports', label: 'Report Approvals' },
-    { id: 'corrections', label: 'Correction Requests' },
+    { id: 'communication', label: t('workCommunication.tabs.communication') },
+    { id: 'reports', label: t('workCommunication.tabs.reports') },
+    { id: 'corrections', label: t('workCommunication.tabs.corrections') },
   ]
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Work &amp; Communication</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t('workCommunication.title')}</h1>
         <p className="text-sm text-ink-600 mt-0.5">
-          Message your supervisor, track report approvals, and request corrections.
+          {t('workCommunication.subtitle')}
         </p>
       </div>
 

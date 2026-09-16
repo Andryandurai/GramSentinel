@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import {
   Card,
@@ -13,6 +14,7 @@ import { api } from '@/services/api'
 import type { Assessment, FollowUp, Patient } from '@/types'
 
 export default function PatientDetail() {
+  const { t } = useTranslation('worker')
   const { id } = useParams<{ id: string }>()
   const { data, loading, error, reload } = useAsync<{
     patient: Patient
@@ -26,7 +28,7 @@ export default function PatientDetail() {
     }
   }>(() => api.get(`/patients/${id}/`), [id])
 
-  if (loading) return <Loading label="Loading patient record…" />
+  if (loading) return <Loading label={t('patientDetail.loadingRecord')} />
   if (error) return <ErrorNote message={error} onRetry={reload} />
   if (!data) return null
 
@@ -42,7 +44,7 @@ export default function PatientDetail() {
             to="/worker/dashboard"
             className="text-xs text-ink-400 hover:text-ink-600"
           >
-            ← Dashboard
+            ← {t('patientDetail.backToDashboard')}
           </Link>
           <h1 className="text-xl font-semibold tracking-tight mt-1">
             {patient.patient_code}
@@ -50,26 +52,26 @@ export default function PatientDetail() {
           <p className="text-sm text-ink-600">
             {patient.display_name} ·{' '}
             {patient.age_years
-              ? `${patient.age_years} years`
-              : `${patient.age_months} months`}{' '}
+              ? t('patientDetail.ageYears', { count: patient.age_years })
+              : t('patientDetail.ageMonths', { count: patient.age_months })}{' '}
             · {patient.village_name}
           </p>
         </div>
         <Link to="/worker/assessment/new" className="btn-care ml-auto">
-          New assessment
+          {t('patientDetail.newAssessment')}
         </Link>
       </div>
 
       {/* Follow-ups for this patient — what the dashboard's Pending
           Follow-ups card links through to. */}
       <Card
-        title={`Follow-ups (${followups.length})`}
+        title={t('patientDetail.followupsCount', { count: followups.length })}
         action={
           followupSummary?.pending_count ? (
             <span className="text-xs text-ink-400">
-              {followupSummary.pending_count} pending
+              {t('patientDetail.pendingCount', { count: followupSummary.pending_count })}
               {followupSummary.next_due_date
-                ? ` · next ${followupSummary.next_due_date}`
+                ? ` · ${t('patientDetail.nextDue', { date: followupSummary.next_due_date })}`
                 : ''}
             </span>
           ) : null
@@ -78,7 +80,7 @@ export default function PatientDetail() {
         {followups.length === 0 ? (
           <Empty>
             {followupSummary?.empty_message ||
-              'No follow-ups recorded for this patient.'}
+              t('patientDetail.noFollowupsRecorded')}
           </Empty>
         ) : (
           <ul className="space-y-2">
@@ -100,7 +102,7 @@ export default function PatientDetail() {
                   </span>
                   {followup.assessment && (
                     <span className="ml-auto text-xs text-ink-400">
-                      from assessment #{followup.assessment}
+                      {t('patientDetail.fromAssessment', { id: followup.assessment })}
                     </span>
                   )}
                 </div>
@@ -113,20 +115,19 @@ export default function PatientDetail() {
         )}
         {assessments.length === 0 && followups.length > 0 && (
           <p className="mt-3 text-xs text-ink-400">
-            No assessment has been recorded for this patient yet, so there is no
-            previous encounter to show against these follow-ups.
+            {t('patientDetail.noAssessmentYetNote')}
           </p>
         )}
         {followupSummary?.last_assessment_date && (
           <p className="mt-3 border-t border-ink-200 pt-3 text-xs text-ink-400">
-            Most recent assessment: {followupSummary.last_assessment_date}.
+            {t('patientDetail.mostRecentAssessment', { date: followupSummary.last_assessment_date })}
           </p>
         )}
       </Card>
 
-      <Card title={`Encounter history (${assessments.length})`}>
+      <Card title={t('patientDetail.encounterHistoryCount', { count: assessments.length })}>
         {assessments.length === 0 ? (
-          <Empty>No assessments recorded for this patient.</Empty>
+          <Empty>{t('patientDetail.noAssessmentsRecorded')}</Empty>
         ) : (
           <ol className="space-y-3">
             {assessments.map((assessment) => (
@@ -140,12 +141,12 @@ export default function PatientDetail() {
                     {assessment.encounter_date}
                   </span>
                   <span className="text-xs text-ink-400">
-                    {assessment.duration_days} day(s) ·{' '}
+                    {t('dashboard.dayCount', { count: assessment.duration_days })} ·{' '}
                     {assessment.primary_category.toLowerCase()}
                   </span>
                   {assessment.escalation_forced && (
                     <span className="pill bg-red-100 text-red-700">
-                      escalation forced
+                      {t('dashboard.escalationForced')}
                     </span>
                   )}
                   <span className="ml-auto text-xs text-ink-400">
@@ -181,7 +182,7 @@ export default function PatientDetail() {
                 {assessment.other_symptom_text && (
                   <p className="mt-3 text-sm text-ink-800">
                     <span className="text-xs font-medium text-ink-500">
-                      Other:{' '}
+                      {t('patientDetail.otherLabel')}{' '}
                     </span>
                     {assessment.other_symptom_text}
                   </p>
@@ -190,13 +191,13 @@ export default function PatientDetail() {
                 {assessment.symptom_timeline?.length > 0 && (
                   <div className="mt-3">
                     <div className="text-xs font-medium text-ink-500">
-                      Day-wise details
+                      {t('patientDetail.dayWiseDetails')}
                     </div>
                     <ul className="mt-1 space-y-0.5">
                       {assessment.symptom_timeline.map((entry) => (
                         <li key={entry.day} className="text-sm text-ink-800">
                           <span className="text-xs font-medium text-ink-500">
-                            Day {entry.day} —{' '}
+                            {t('patientDetail.dayPrefix', { day: entry.day })}{' '}
                           </span>
                           {entry.detail}
                         </li>
@@ -207,8 +208,7 @@ export default function PatientDetail() {
 
                 {assessment.aggregated_at && (
                   <p className="mt-3 text-xs text-care-700 border-t border-ink-100 pt-2">
-                    Contributed to the community signal as an anonymised count
-                    only.
+                    {t('patientDetail.contributedAnonymised')}
                   </p>
                 )}
               </li>

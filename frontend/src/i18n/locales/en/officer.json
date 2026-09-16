@@ -1,0 +1,398 @@
+{
+  "shared": {
+    "refresh": "Refresh",
+    "review": "Review →",
+    "scopeAllVillages": "All villages in your district",
+    "scopeYourArea": "Your area",
+    "districtWide": "District-wide",
+    "reportedCount": "{{count}} reported",
+    "reportedCount_other": "{{count}} reported",
+    "flaggedUnusual": "flagged unusual",
+    "newReportBadge": "New report",
+    "reportedBy": "Reported by {{name}}",
+    "workerNote": "Worker note:",
+    "workerNotes": "Worker notes:",
+    "trendSummary": "{{total}} reported across {{count}} week",
+    "trendSummary_other": "{{total}} reported across {{count}} weeks",
+    "excludedFromCorroboration": "Excluded from independent corroboration"
+  },
+  "alertStatus": {
+    "DETECTED": "Detected",
+    "UNDER_INVESTIGATION": "Under investigation",
+    "CLOSED": "Closed"
+  },
+  "outcome": {
+    "VALID_SIGNAL": {
+      "label": "Valid signal",
+      "help": "The alert was justified and the investigation was warranted. This is not confirmation of any disease or outbreak."
+    },
+    "FALSE_ALERT": {
+      "label": "False alert",
+      "help": "Investigation found no meaningful underlying pattern."
+    },
+    "RESOLVED": {
+      "label": "Resolved",
+      "help": "The situation was addressed or explained and needs no further action."
+    }
+  },
+  "evidenceCardStatus": {
+    "ANOMALY_DETECTED": "Anomaly detected",
+    "CORROBORATING": "Corroborating",
+    "SUPPORTING_CONTEXT": "Supporting context",
+    "NORMAL": "Normal",
+    "NOT_REPORTED": "Not reported",
+    "INSUFFICIENT_DATA": "Insufficient data",
+    "EXPECTED_UNAVAILABLE": "Expected unavailable",
+    "EXPECTED_VARIATION": "Expected variation"
+  },
+  "dashboard": {
+    "title": "Community intelligence",
+    "loading": "Loading community intelligence…",
+    "subtitleDistrictWide": "{{district}} — all villages",
+    "districtFallback": "District",
+    "subtitleVillage": "{{village}} · {{district}}",
+    "signalDialog": {
+      "heading": "New local signal report",
+      "heading_other": "{{count}} new local signal reports",
+      "singleMessage": "{{village}} Health Worker has reported an above-baseline local signal.",
+      "fields": {
+        "signal": "Signal",
+        "reported": "Reported",
+        "baseline": "Baseline",
+        "change": "Change"
+      },
+      "viewReport": "View Report",
+      "viewReport_other": "View Reports",
+      "dismiss": "Dismiss"
+    },
+    "newReportsBadge": "{{count}} new",
+    "newReportsMessage": "A new community report has been submitted by a worker in your area.",
+    "newReportsMessage_other": "{{count}} new community reports have been submitted by workers in your area.",
+    "newSignalReportsMessage": "New local signal report from a Health Worker in your area.",
+    "newSignalReportsMessage_other": "{{count}} new local signal reports from Health Workers in your area.",
+    "stats": {
+      "activeAlerts": "Active alerts",
+      "highSeverity": "High severity",
+      "underInvestigation": "Under investigation",
+      "villagesMonitored": "Villages monitored",
+      "humanReviewRate": "Alerts requiring human review"
+    },
+    "sourceFreshness": {
+      "title": "Source freshness",
+      "description": "How recently each source last reported — a recent update does not by itself mean an alert is warranted, and an old one does not by itself mean the situation is unsafe."
+    },
+    "trend": {
+      "title": "Community reported signals over time",
+      "description": "Actual signals recorded through Health Worker reports for your monitored community.",
+      "emptyFallback": "No community reports recorded for this period."
+    },
+    "activeAlertsCard": {
+      "outcomesSummary": "{{valid}} valid · {{falseAlert}} false · {{resolved}} resolved",
+      "empty": "No active alerts. Nothing has met the corroboration threshold.",
+      "sources": "{{count}} independent source",
+      "sources_other": "{{count}} independent sources",
+      "crossLevel": "Cross-level:",
+      "confidence": "Confidence:"
+    }
+  },
+  "communityData": {
+    "periodOption": "Last {{days}} days",
+    "title": "Community health data",
+    "loading": "Loading community data…",
+    "reportedRange": "Reported {{start}} to {{end}}, compared with the {{days}} days before it.",
+    "empty": "No community data available for this period.",
+    "emptyHint": "Try a longer period, or wait for the next community report from your area.",
+    "stats": {
+      "increasing": "Signals increasing",
+      "stable": "Signals stable",
+      "decreasing": "Signals decreasing",
+      "casesThisPeriod": "Reported cases this period"
+    },
+    "noPreviousPeriodData": "No reports exist for the previous {{days}} days, so trends cannot be calculated for this period yet.",
+    "table": {
+      "title": "Reported community health signals",
+      "columns": {
+        "signal": "Health signal",
+        "current": "Current",
+        "previous": "Previous",
+        "change": "Change",
+        "trend": "Trend"
+      },
+      "noted": "{{count}} noted",
+      "noted_other": "{{count}} noted",
+      "new": "new"
+    },
+    "chart": {
+      "titleFallback": "Reported cases over time",
+      "severityLabel": "Severity",
+      "signalLabel": "Health signal",
+      "clear": "Clear",
+      "noReportsSuffix": " — no reports",
+      "emptyFallback": "Insufficient data for this selection.",
+      "emptyHintFallback": "Try a wider selection or a longer period.",
+      "insufficientData": "Insufficient data"
+    },
+    "observations": {
+      "title": "Observations from your workers"
+    }
+  },
+  "communityReports": {
+    "title": "Community reports",
+    "loading": "Loading community reports…",
+    "highSignalCard": {
+      "title": "High local signal reports ({{count}})",
+      "empty": "No local signals have been flagged for your area.",
+      "aboveBaseline": "above baseline",
+      "fields": {
+        "source": "Source:",
+        "baseline": "Baseline:",
+        "reported": "Reported:",
+        "change": "Change:"
+      }
+    },
+    "submittedCard": {
+      "title": "Submitted reports ({{count}})",
+      "empty": "No community reports have been submitted for your area.",
+      "totalCases": "{{count}} reported case in total",
+      "totalCases_other": "{{count}} reported cases in total"
+    }
+  },
+  "alertHistory": {
+    "title": "Alert history",
+    "loading": "Loading alert history…",
+    "subtitle": "Past alerts with their recorded investigation outcomes.",
+    "allAlerts": "All alerts ({{count}})",
+    "empty": "No alerts have been raised yet.",
+    "columns": {
+      "alert": "Alert",
+      "week": "Week",
+      "severity": "Severity",
+      "safety": "Safety",
+      "sources": "Sources",
+      "status": "Status",
+      "outcome": "Outcome"
+    }
+  },
+  "alertDetail": {
+    "loading": "Loading alert…",
+    "backToDashboard": "← Dashboard",
+    "subtitle": "{{village}} · {{cluster}} · {{week}} ({{start}} to {{end}}) · confidence {{confidence}}",
+    "whyCard": {
+      "title": "Why was this alert generated?",
+      "corroborating": "Corroborating ({{count}})",
+      "supportingContext": "Supporting context",
+      "notCounted": "Does not count toward corroboration.",
+      "notReported": "Not reported",
+      "recordedAsMissing": "Recorded as missing, never as zero."
+    },
+    "crossLevel": {
+      "title": "Cross-Level Intelligence — {{verdict}}"
+    },
+    "relationships": {
+      "summary": "Evidence relationships — {{agree}} agree · {{disagree}} disagree",
+      "disagreeMessage": "At least one source disagrees with the rest — see the evidence view for why.",
+      "agreeMessage": "The comparable sources for this alert agree with each other."
+    },
+    "openEvidenceView": "Open full evidence view",
+    "humanDecision": {
+      "title": "Human decision",
+      "recorded": "Outcome recorded — feedback stored",
+      "notesLabel": "Investigation notes",
+      "notesPlaceholder": "What did you or the field team find?",
+      "updateError": "Could not update.",
+      "recordError": "Could not record.",
+      "markInvestigating": "Mark under investigation",
+      "updating": "Updating…",
+      "recordOutcomeLabel": "Record the outcome after real-world investigation",
+      "investigationNote": "Real-world investigation happens outside this platform, by people rather than software.",
+      "closedNote": "This alert is closed and its outcome has been recorded."
+    }
+  },
+  "evidenceView": {
+    "loading": "Loading evidence…",
+    "backToAlert": "← Alert",
+    "title": "Evidence view",
+    "sourceCard": {
+      "title": "Source-by-source evidence ({{count}} sources)",
+      "footer": "{{count}} independent source counts toward corroboration. Weather is context only. Sources that did not submit are shown as missing rather than zero.",
+      "footer_other": "{{count}} independent sources count toward corroboration. Weather is context only. Sources that did not submit are shown as missing rather than zero."
+    },
+    "relationshipMap": {
+      "title": "Evidence relationship map",
+      "onlyOneSource": "Only one source has usable data for this window, so no agreement/disagreement relationship can be established yet.",
+      "summary": "{{agree}} agree · {{disagree}} disagree · {{notComparable}} not comparable",
+      "descriptionPrefix": "Each source below is compared against",
+      "descriptionSuffix": ", the source that most likely drove this alert — the one with the largest rise against its own baseline.",
+      "disagreementWarning": "Sources disagree — investigate why. This does not mean either source is wrong; it means the pattern needs a closer look before acting on it.",
+      "notComparableLabel": "Not directly comparable",
+      "footer": "This map is decision support only. It never declares an outbreak, closes an alert, or changes the deterministic safety engine's verdict — the health officer decides what to investigate.",
+      "agrees": "Agrees",
+      "disagrees": "Disagrees",
+      "reasonLabel": "Reason:"
+    },
+    "evidenceCard": {
+      "corroborating": "corroborating",
+      "baseline": "Baseline",
+      "current": "Current",
+      "change": "Change",
+      "notSubmitted": "not submitted",
+      "dataQuality": "data quality {{quality}}",
+      "operationalContextTitle": "Operational context",
+      "excluded": "Excluded from independent corroboration.",
+      "producedBy": "produced by {{agent}}"
+    },
+    "crossLevel": {
+      "title": "Cross-Level Intelligence",
+      "verdict": "Verdict — {{verdict}}",
+      "disclaimer": "This comparison is performed on aggregated counts only. No patient record crosses from RuralCare into community analysis, so the linkage happens without centralising identifiable data."
+    },
+    "safetyGate": {
+      "title": "Safety Gate",
+      "none": "No safety check recorded."
+    },
+    "guidance": {
+      "title": "Investigation guidance",
+      "description": "Grounded guidance retrieved from curated surveillance and investigation reference material — informational only. It does not change the evidence, the safety verdict, or the alert above."
+    },
+    "agentTrace": {
+      "title": "Agent handoffs ({{count}} invocations)",
+      "llmUsed": "LLM used for narrative wording only",
+      "noLlmUsed": "Fully deterministic run — no LLM used"
+    },
+    "humanReview": {
+      "title": "Human review required"
+    }
+  },
+  "team": {
+    "title": "Health team",
+    "loading": "Loading team profiles…",
+    "fields": {
+      "employeeId": "Employee ID",
+      "qualification": "Qualification",
+      "experience": "Experience",
+      "contact": "Contact",
+      "email": "Email",
+      "facility": "Facility"
+    },
+    "experienceYears": "{{count}} year",
+    "experienceYears_other": "{{count}} years",
+    "noDetails": "This colleague has not filled in their profile details yet.",
+    "workerCount": "{{count}} worker",
+    "workerCount_other": "{{count}} workers",
+    "officerCount": "{{count}} health officer",
+    "officerCount_other": "{{count}} health officers",
+    "headings": {
+      "workers": "CHW / PHC Workers",
+      "officers": "Health Officers"
+    },
+    "noneAssigned": "None assigned to this area."
+  },
+  "teamWorkspace": {
+    "title": "Team Workspace",
+    "subtitle": "Review messages, report approvals, and correction requests from your team.",
+    "communication": {
+      "title": "Worker Messages",
+      "noWorkers": "No workers found.",
+      "selectWorker": "Select a worker to view the conversation.",
+      "noMessages": "No messages yet",
+      "you": "You",
+      "attachDocument": "Attach document",
+      "attachmentFallback": "Attachment",
+      "replyPlaceholder": "Reply…",
+      "sending": "Sending…",
+      "fileReadError": "Could not read that file."
+    },
+    "reports": {
+      "title": "Report Approvals",
+      "loading": "Loading reports…",
+      "empty": "No reports are currently awaiting approval."
+    },
+    "corrections": {
+      "title": "Correction Requests",
+      "loading": "Loading correction requests…",
+      "empty": "No correction requests.",
+      "original": "Original",
+      "issueLabel": "Issue:",
+      "proposedLabel": "Proposed correction:"
+    },
+    "transition": {
+      "commentPlaceholder": "Comment (shown to the worker)",
+      "actions": {
+        "markUnderReview": "Mark Under Review",
+        "approve": "Approve",
+        "returnForCorrection": "Return for Correction",
+        "reject": "Reject"
+      }
+    }
+  },
+  "operationalContext": {
+    "title": "Operational context",
+    "loading": "Loading operational context…",
+    "subtitle": "{{village}} — record a known reason a source should not count toward independent corroboration for a specific period. Raw reported values are always preserved.",
+    "dataSourcesTitle": "Data sources",
+    "noSources": "No data sources registered for this village.",
+    "mode": {
+      "TEMPORARILY_UNAVAILABLE": "Temporarily unavailable",
+      "EXPECTED_VARIATION": "Expected unusual activity"
+    },
+    "dialog": {
+      "reasonRequired": "A reason is required — e.g. \"School holiday\".",
+      "invalidRange": "The period cannot end before it starts.",
+      "subtitle": "Configure operational context",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "e.g. School holiday",
+      "fromLabel": "From",
+      "untilLabel": "Until",
+      "notesLabel": "Notes (optional)",
+      "helper": "The source remains visible and its reported values are preserved. This only changes how the reading is interpreted for the period above — it will not count toward independent corroboration.",
+      "saveButton": "Save context"
+    },
+    "row": {
+      "autoResumes": "Automatically resumes after {{date}}",
+      "restoreNow": "Restore now",
+      "normalNote": "Signals interpreted normally.",
+      "configure": "Configure"
+    }
+  },
+  "myProfile": {
+    "title": "My profile",
+    "loading": "Loading your profile…",
+    "photo": {
+      "readError": "That file could not be read.",
+      "readImageError": "That file could not be read as an image.",
+      "wrongType": "Choose a {{type}} image.",
+      "tooLarge": "That image is too large. Choose one under {{size}}.",
+      "genericReadError": "That image could not be read."
+    },
+    "saveSuccess": "Your profile has been updated.",
+    "photoCard": {
+      "title": "Photograph",
+      "replacePhoto": "Replace photo",
+      "uploadPhoto": "Upload photo",
+      "remove": "Remove",
+      "helper": "{{acceptedLabel}}, up to {{maxSize}}. Larger images are resized before upload.",
+      "previewOnly": "Preview only — save below to keep this photograph.",
+      "privacyNote": "Your photograph is visible to the health officer for your area and to your administrator. It is not published anywhere public."
+    },
+    "detailsCard": {
+      "title": "Professional details"
+    },
+    "fields": {
+      "fullName": "Full name",
+      "employeeId": "Employee / worker ID",
+      "contactNumber": "Contact number",
+      "workEmail": "Work email",
+      "qualification": "Qualification",
+      "experienceYears": "Years of experience"
+    },
+    "assignedSection": {
+      "title": "Assigned by your administrator",
+      "role": "Role",
+      "villageArea": "Village / area",
+      "facility": "Facility",
+      "username": "Username"
+    },
+    "saveButton": "Save profile",
+    "lastUpdated": "Last updated {{datetime}}"
+  }
+}

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { Avatar, Card, Empty, ErrorNote, Loading } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
@@ -11,18 +13,19 @@ import type { StaffDirectory, StaffProfile } from '@/types'
  * district-wide view, exactly as it has everywhere else in the portal.
  */
 function ProfileCard({ profile }: { profile: StaffProfile }) {
+  const { t } = useTranslation('officer')
   const details: Array<[string, string]> = [
-    ['Employee ID', profile.staff_id],
-    ['Qualification', profile.qualification],
+    [t('team.fields.employeeId'), profile.staff_id],
+    [t('team.fields.qualification'), profile.qualification],
     [
-      'Experience',
+      t('team.fields.experience'),
       profile.experience_years === null || profile.experience_years === undefined
         ? ''
-        : `${profile.experience_years} year${profile.experience_years === 1 ? '' : 's'}`,
+        : t('team.experienceYears', { count: profile.experience_years }),
     ],
-    ['Contact', profile.phone_number],
-    ['Email', profile.email],
-    ['Facility', profile.facility_name ?? ''],
+    [t('team.fields.contact'), profile.phone_number],
+    [t('team.fields.email'), profile.email],
+    [t('team.fields.facility'), profile.facility_name ?? ''],
   ]
   const filled = details.filter(([, value]) => Boolean(value))
 
@@ -40,7 +43,7 @@ function ProfileCard({ profile }: { profile: StaffProfile }) {
           </div>
           <div className="text-xs text-ink-600">{profile.role_label}</div>
           <div className="text-xs text-ink-400">
-            {profile.village_name ?? 'District-wide'}
+            {profile.village_name ?? t('shared.districtWide')}
             {profile.village_label ? ` · ${profile.village_label}` : ''}
           </div>
         </div>
@@ -57,7 +60,7 @@ function ProfileCard({ profile }: { profile: StaffProfile }) {
         </dl>
       ) : (
         <p className="mt-3 border-t border-ink-100 pt-3 text-xs text-ink-400">
-          This colleague has not filled in their profile details yet.
+          {t('team.noDetails')}
         </p>
       )}
     </div>
@@ -65,26 +68,26 @@ function ProfileCard({ profile }: { profile: StaffProfile }) {
 }
 
 export default function OfficerTeamPage() {
+  const { t } = useTranslation('officer')
   const { data, loading, error, reload } = useAsync<StaffDirectory>(() =>
     api.get('/auth/staff-profiles/'),
   )
 
-  if (loading && !data) return <Loading label="Loading team profiles…" />
+  if (loading && !data) return <Loading label={t('team.loading')} />
   if (error && !data) return <ErrorNote message={error} onRetry={reload} />
   if (!data) return null
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Health team</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t('team.title')}</h1>
         <p className="text-sm text-ink-600 mt-0.5">
           {data.scope.is_district_wide
-            ? 'All villages in your district'
-            : (data.scope.village_name ?? 'Your area')}
+            ? t('shared.scopeAllVillages')
+            : (data.scope.village_name ?? t('shared.scopeYourArea'))}
           {' · '}
-          {data.counts.workers} worker{data.counts.workers === 1 ? '' : 's'} ·{' '}
-          {data.counts.officers} health officer
-          {data.counts.officers === 1 ? '' : 's'}
+          {t('team.workerCount', { count: data.counts.workers })}{' · '}
+          {t('team.officerCount', { count: data.counts.officers })}
         </p>
       </div>
 
@@ -95,7 +98,7 @@ export default function OfficerTeamPage() {
       )}
 
       {data.is_empty ? (
-        <Card title="Health team">
+        <Card title={t('team.title')}>
           <Empty>{data.empty_message}</Empty>
         </Card>
       ) : (
@@ -110,14 +113,14 @@ export default function OfficerTeamPage() {
           >
             <div className="space-y-4">
               {[
-                ['CHW / PHC Workers', group.workers] as const,
-                ['Health Officers', group.officers] as const,
+                [t('team.headings.workers'), group.workers] as const,
+                [t('team.headings.officers'), group.officers] as const,
               ].map(([heading, people]) => (
                 <div key={heading}>
                   <div className="label">{heading}</div>
                   {people.length === 0 ? (
                     <p className="text-sm text-ink-400">
-                      None assigned to this area.
+                      {t('team.noneAssigned')}
                     </p>
                   ) : (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

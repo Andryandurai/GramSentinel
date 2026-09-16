@@ -229,6 +229,7 @@ class FollowUpSerializer(serializers.ModelSerializer):
             "assessment",
             "due_date",
             "status",
+            "priority",
             "followup_status",
             "followup_status_label",
             "days_until_due",

@@ -1,0 +1,556 @@
+{
+  "page": {
+    "subtitle": "GramSentinel इंटेलिजेंस सिमुलेटर — सिंथेटिक प्रदर्शन परिदृश्य। यह किसी वास्तविक परिचालन डेटा को नहीं छूता।",
+    "loadingScenarios": "सिमुलेशन परिदृश्य लोड हो रहे हैं…",
+    "selectPrompt": "शुरू करने के लिए ऊपर एक परिदृश्य चुनें।",
+    "aria": {
+      "controls": "सिमुलेशन नियंत्रण",
+      "intelligence": "सिमुलेशन इंटेलिजेंस",
+      "alert": "अलर्ट इंटेलिजेंस"
+    }
+  },
+  "scope": {
+    "title": "वर्तमान परिचालन क्षेत्र",
+    "noVillage": "कोई गांव निर्धारित नहीं",
+    "note": "यह केवल आपके निर्धारित क्षेत्र तक सीमित है। यहां गांव बदलने का कोई विकल्प नहीं है।"
+  },
+  "scenarioSelector": {
+    "label": "परिदृश्य",
+    "placeholder": "एक परिदृश्य चुनें…",
+    "starting": "शुरू हो रहा है…",
+    "startError": "सिमुलेशन शुरू नहीं किया जा सका।"
+  },
+  "scenarioTypes": {
+    "EMERGING_SIGNAL": "उभरता सामुदायिक संकेत",
+    "STABLE_COMMUNITY": "स्थिर समुदाय",
+    "WEAK_EVIDENCE": "कमजोर प्रमाण",
+    "MISSING_DATA": "अनुपलब्ध डेटा",
+    "SOURCE_DISAGREEMENT": "स्रोतों में असहमति",
+    "WHAT_IF": "यदि-तो विश्लेषण",
+    "REPLAY": "रीप्ले",
+    "LIVE_EMERGENCE": "लाइव संकेत उद्भव"
+  },
+  "pipeline": {
+    "heading": "बहु-एजेंट प्रोसेसिंग क्रम",
+    "legend": {
+      "deterministic": "नियतात्मक",
+      "llmAssisted": "LLM-सहायित शब्दावली"
+    },
+    "notYetRun": "अभी तक नहीं चला",
+    "notYetRunHint": "यह सत्र अगले सप्ताह आगे बढ़ने पर चलेगा।",
+    "notSubmitted": "जमा नहीं किया गया",
+    "noPriorWeek": "तुलना के लिए कोई पिछला सप्ताह नहीं",
+    "checksHumanReview": "{{count}} जांचें · मानव समीक्षा आवश्यक",
+    "evidenceSummary": "{{reported}} स्रोत(स्रोतों) ने रिपोर्ट की, इस सप्ताह {{missing}} अनुपलब्ध रहे।"
+  },
+  "stages": {
+    "ingestion": "डेटा इनजेशन",
+    "signal_analysis": "संकेत विश्लेषण",
+    "correlation": "सहसंबंध",
+    "evidence": "प्रमाण",
+    "safety": "सुरक्षा"
+  },
+  "trend": {
+    "SIGNAL_DETECTED": "संकेत का पता चला",
+    "INCREASING": "बढ़ रहा है",
+    "STABLE": "स्थिर",
+    "NORMAL": "सामान्य"
+  },
+  "evidenceStrength": {
+    "STRONG": "मजबूत",
+    "MODERATE": "मध्यम",
+    "WEAK": "कमजोर"
+  },
+  "timeline": {
+    "empty": "इस सत्र के लिए अभी तक कोई रिपोर्टिंग सप्ताह उपलब्ध नहीं है।",
+    "xAxisLabel": "रिपोर्टिंग सप्ताह",
+    "yAxisLabel": "रिपोर्ट किए गए मामले",
+    "tooltipNotReported": "रिपोर्ट नहीं किया गया",
+    "tooltipReported": "{{value}} रिपोर्ट किया गया",
+    "tooltipDefaultSignal": "संकेत",
+    "weekRow": "सप्ताह {{week}}",
+    "notReported": "रिपोर्ट नहीं किया गया"
+  },
+  "constellation": {
+    "primarySignalLabel": "प्राथमिक संकेत — {{signal}}",
+    "unknownSignal": "अज्ञात",
+    "empty": "यह सत्र सप्ताह 1 से आगे बढ़ने के बाद प्रमाण संबंध दिखाई देंगे।"
+  },
+  "sourceFusion": {
+    "empty": "यह सत्र सप्ताह 1 से आगे बढ़ने के बाद स्रोत तुलना दिखाई देगी।",
+    "headers": {
+      "source": "स्रोत",
+      "status": "स्थिति",
+      "thisWeek": "इस सप्ताह",
+      "reason": "कारण"
+    },
+    "syntheticNote": "सिंथेटिक सिमुलेशन स्रोत",
+    "notSubmitted": "जमा नहीं किया गया"
+  },
+  "dataQuality": {
+    "reportingCompleteness": "रिपोर्टिंग पूर्णता",
+    "historicalWindow": "ऐतिहासिक अवधि",
+    "duplicatesChecked": "डुप्लिकेट रिपोर्ट जांची गईं",
+    "yes": "हां",
+    "notTracked": "इस सिमुलेशन में ट्रैक नहीं किया गया",
+    "perSourceCompleteness": "प्रति-स्रोत पूर्णता",
+    "weeksCompleteness": "{{reported}}/{{expected}} सप्ताह ({{pct}}%)",
+    "missingReporting": "अनुपलब्ध रिपोर्टिंग",
+    "missingNeverZero": "अनुपलब्ध रिपोर्ट को कभी भी रिपोर्ट किए गए शून्य के रूप में नहीं माना जाता।"
+  },
+  "whyModal": {
+    "trigger": "मुझे यह क्यों दिख रहा है?",
+    "heading": "मुझे यह क्यों दिख रहा है?",
+    "close": "बंद करें",
+    "fields": {
+      "signal": "संकेत",
+      "supportingSources": "समर्थक स्रोत",
+      "conflictingSources": "विरोधाभासी स्रोत",
+      "insufficientSources": "अपर्याप्त / अनुपलब्ध स्रोत",
+      "reportingPeriods": "रिपोर्टिंग अवधि",
+      "dataQuality": "डेटा गुणवत्ता",
+      "evidenceStrength": "प्रारंभिक प्रमाण शक्ति",
+      "safetyStatus": "सुरक्षा स्थिति",
+      "routingReason": "रूटिंग कारण",
+      "suggestedVerification": "सुझाई गई सत्यापन"
+    },
+    "none": "कोई नहीं",
+    "footer": "यह एक सिंथेटिक सिमुलेशन है। प्रमाण केवल रिपोर्ट किए गए डेटा को दर्शाता है — यह न तो निदान है, न ही पुष्ट प्रकोप। किसी भी कार्रवाई से पहले सुरक्षा सत्यापन के लिए हमेशा मानव समीक्षा आवश्यक है।"
+  },
+  "safetyChecks": {
+    "village_scope_verified": "संकेत अधिकृत गांव क्षेत्र से संबंधित है",
+    "reporting_period_validated": "रिपोर्टिंग अवधि सत्यापित",
+    "duplicate_records_checked": "डुप्लिकेट रिकॉर्ड जांचे गए",
+    "sufficient_historical_window": "पर्याप्त ऐतिहासिक अवधि",
+    "source_relationships_evaluated": "स्रोत संबंधों का मूल्यांकन किया गया",
+    "missing_data_assessed": "अनुपलब्ध डेटा का आकलन किया गया",
+    "no_individual_diagnosis_generated": "कोई व्यक्तिगत निदान उत्पन्न नहीं किया गया",
+    "no_autonomous_outbreak_declaration": "कोई स्वायत्त प्रकोप घोषणा नहीं",
+    "human_review_required": "मानव समीक्षा आवश्यक"
+  },
+  "safetyBanner": {
+    "PASS": {
+      "headline": "पास — मानव समीक्षा आवश्यक",
+      "detail": "सभी नौ सुरक्षा जांचें सफल रहीं। संकेत को अभी भी अधिकृत अधिकारी समीक्षा की आवश्यकता है।"
+    },
+    "INSUFFICIENT": {
+      "headline": "अपर्याप्त — जांच के लिए मानव सत्यापन आवश्यक",
+      "detail": "अपग्रेडेशन के लिए प्रमाण अपर्याप्त है। सुझाव: निगरानी जारी रखें और उपलब्ध स्रोतों से सत्यापन करें।"
+    },
+    "BLOCK": {
+      "headline": "अवरुद्ध — सुरक्षा शर्तें पूरी नहीं हुईं",
+      "detail": "एक या अधिक सुरक्षा जांचें विफल रहीं। यह संकेत इस रूप में आगे नहीं बढ़ सकता।"
+    }
+  },
+  "safetyGate": {
+    "heading": "सुरक्षा सत्यापन",
+    "notEvaluated": "इस सप्ताह के लिए सुरक्षा का अभी तक मूल्यांकन नहीं किया गया है।",
+    "evidenceStrengthLabel": "प्रमाण शक्ति:"
+  },
+  "intelligence": {
+    "heading": "संकेत इंटेलिजेंस",
+    "headingReplay": "संकेत इंटेलिजेंस — रीप्ले",
+    "loading": "संकेत इंटेलिजेंस लोड हो रहा है…",
+    "sectionTimeline": "सामुदायिक संकेत समयरेखा",
+    "sectionConstellation": "प्रमाण मानचित्र",
+    "sectionSourceFusion": "स्रोत तुलना",
+    "sectionDataQuality": "डेटा गुणवत्ता दृश्य"
+  },
+  "replay": {
+    "liveControlsAria": "लाइव सिमुलेशन नियंत्रण",
+    "navAria": "सिमुलेशन रीप्ले नेविगेशन",
+    "liveWeek": "लाइव सप्ताह {{week}} / {{total}}",
+    "paused": "रोका गया",
+    "pause": "⏸ रोकें",
+    "resume": "▶ फिर से शुरू करें",
+    "stop": "■ रोकें",
+    "weekOf": "सप्ताह {{week}} / {{max}}",
+    "previous": "◀ पिछला",
+    "play": "▶ चलाएं",
+    "next": "अगला ▶",
+    "reset": "↻ रीसेट करें",
+    "speed": "गति:",
+    "heading": "रीप्ले",
+    "backToLive": "लाइव पर वापस जाएं",
+    "summaryLine": "सप्ताह {{week}} / {{max}} · गति {{speed}}x"
+  },
+  "live": {
+    "status": {
+      "IDLE": "कनेक्ट नहीं है",
+      "CONNECTING": "कनेक्ट हो रहा है…",
+      "CONNECTED": "कनेक्ट हो गया",
+      "DISCONNECTED": "डिस्कनेक्ट हो गया",
+      "RECONNECTING": "फिर से कनेक्ट हो रहा है…",
+      "ERROR": "कनेक्शन त्रुटि"
+    },
+    "heading": "लाइव स्ट्रीमिंग",
+    "liveBadge": "● लाइव",
+    "paused": "रोका गया",
+    "goLive": "लाइव जाएं",
+    "reconnect": "फिर से कनेक्ट करें",
+    "start": "शुरू करें",
+    "pause": "रोकें",
+    "resume": "फिर से शुरू करें",
+    "stop": "रोकें",
+    "disconnect": "डिस्कनेक्ट करें"
+  },
+  "whatIf": {
+    "missing": "अनुपलब्ध",
+    "evaluating": "काल्पनिक जानकारी का मूल्यांकन हो रहा है…",
+    "apply": "जांच इनपुट लागू करें",
+    "reset": "जांच इनपुट रीसेट करें",
+    "notReported": "रिपोर्ट नहीं किया गया",
+    "noneApplied": "अभी तक कोई जांच इनपुट लागू नहीं किया गया है।",
+    "hypotheticalBadge": "काल्पनिक",
+    "signalDetectedHeading": "काल्पनिक संकेत का पता चला",
+    "signalDetectedDetail": "यह केवल सिमुलेशन परिणाम है — मूल सत्र की अपनी संकेत स्थिति अपरिवर्तित है।",
+    "evidenceLabel": "प्रमाण",
+    "safetyLabel": "सुरक्षा",
+    "supportingLabel": "समर्थन करता है",
+    "conflictingLabel": "विरोधाभासी",
+    "none": "कोई नहीं",
+    "impactOfInput": "इनपुट का प्रभाव",
+    "evidenceChangeLine": "प्रमाण: {{before}} → {{after}}",
+    "safetyChangeLine": "सुरक्षा: {{before}} → {{after}}",
+    "blockedMessage": "सुरक्षा सत्यापन लंबित होने के कारण संकेत प्रोसेसिंग अवरुद्ध है।",
+    "resultHeading": "यदि-तो परिणाम",
+    "hypotheticalSimulationBadge": "काल्पनिक सिमुलेशन",
+    "hypotheticalDetail": "काल्पनिक परिदृश्य — यह कोई वास्तविक अलर्ट नहीं बनाता और न ही किसी पुष्ट प्रकोप को दर्शाता है।",
+    "pipelineHeading": "काल्पनिक बहु-एजेंट प्रोसेसिंग क्रम",
+    "safetyEvalHeading": "काल्पनिक सुरक्षा मूल्यांकन",
+    "description": "जांचें कि अतिरिक्त या अनुपलब्ध जानकारी इस संकेत के प्रमाण को कैसे बदल सकती है। यह मूल सिमुलेशन को नहीं बदलता।",
+    "detailsSummary": "सत्यापित करें / यदि-तो जानकारी"
+  },
+  "counterfactual": {
+    "optionIncrease": "{{source}} बढ़ता है",
+    "optionStable": "{{source}} स्थिर रहता है",
+    "optionBegins": "{{source}} रिपोर्ट करना शुरू करता है",
+    "strengthenHeading": "इस संकेत को क्या मजबूत कर सकता है?",
+    "weakenHeading": "इस संकेत को क्या कमजोर कर सकता है?",
+    "noStrengthenOptions": "इस सप्ताह मजबूत करने के लिए कोई स्रोत उपलब्ध नहीं है।",
+    "noWeakenOptions": "इस सप्ताह कमजोर करने के लिए कोई स्रोत उपलब्ध नहीं है।",
+    "hypotheticalValueLabel": "काल्पनिक मान",
+    "run": "प्रति-तथ्यात्मक जांच चलाएं",
+    "running": "चल रहा है…",
+    "reset": "प्रति-तथ्यात्मक जांच रीसेट करें",
+    "sectionHeading": "प्रति-तथ्यात्मक जांच",
+    "sectionSubtitle": "इस संकेत के प्रमाण को क्या बदल सकता है?",
+    "currentEvidence": "वर्तमान प्रमाण",
+    "supportingInline": "समर्थन करता है:",
+    "conflictingInline": "विरोधाभासी:",
+    "none": "कोई नहीं",
+    "disabledReplay": "वर्तमान सप्ताह पर प्रति-तथ्यात्मक जांच चलाने के लिए रीप्ले से बाहर निकलें।",
+    "disabledLive": "प्रति-तथ्यात्मक जांच चलाने के लिए लाइव उद्भव को रोकें या बंद करें।",
+    "resultBadge": "काल्पनिक / केवल सिमुलेशन",
+    "resultDetail": "परिदृश्य सिमुलेशन — यह कोई वास्तविक अलर्ट नहीं बनाता और इसे कभी भी परिचालन संकेत के रूप में नहीं दिखाया जाता।",
+    "table": {
+      "result": "परिणाम",
+      "original": "मूल",
+      "hypothetical": "काल्पनिक",
+      "trend": "रुझान",
+      "supportingSources": "समर्थक स्रोत",
+      "conflictingSources": "विरोधाभासी स्रोत",
+      "missingSources": "अनुपलब्ध स्रोत",
+      "evidence": "प्रमाण",
+      "safety": "सुरक्षा",
+      "humanReview": "मानव समीक्षा"
+    },
+    "required": "आवश्यक",
+    "hypotheticalValuesApplied": "काल्पनिक मान लागू किए गए",
+    "whyChanged": "मूल्यांकन क्यों बदला?",
+    "whatChanged": "क्या बदला?",
+    "safetyDetail": "सुरक्षा विवरण",
+    "noChangeApplied": "कोई काल्पनिक परिवर्तन लागू नहीं किया गया, इसलिए मूल्यांकन अपरिवर्तित है।",
+    "supportingIncrease": "इस काल्पनिक परिवर्तन से {{count}} अतिरिक्त समर्थक स्रोत जुड़ते हैं, इसलिए संकेत को अधिक स्वतंत्र स्रोतों से पुष्टि मिलती है।",
+    "supportingDecrease": "इस काल्पनिक परिवर्तन से {{count}} समर्थक स्रोत हटते हैं, इसलिए संकेत को कम स्वतंत्र पुष्टि मिलती है।",
+    "conflictingIncrease": "एक काल्पनिक स्रोत अब रुझान के विपरीत है, जिससे प्रमाण की मजबूती कम होती है।",
+    "missingIncrease": "पहले रिपोर्ट किया गया स्रोत अब काल्पनिक रूप से अनुपलब्ध है, जिससे रिपोर्टिंग पूर्णता कमजोर होती है।",
+    "missingDecrease": "पहले अनुपलब्ध स्रोत अब काल्पनिक रूप से रिपोर्ट करता है, जिससे रिपोर्टिंग पूर्णता में सुधार होता है।",
+    "noEffect": "नीचे दिए गए काल्पनिक मान लागू किए गए, लेकिन उन्होंने यह नहीं बदला कि कौन से स्रोत इस संकेत का समर्थन या विरोध करते हैं, इसलिए प्रमाण मूल्यांकन अपरिवर्तित रहता है।",
+    "safetyMoved": "इस काल्पनिक प्रमाण के आधार पर सुरक्षा {{before}} से {{after}} में बदल गई।",
+    "diffLine": "{{label}}: {{before}} → {{after}} ({{sign}}{{delta}})",
+    "evidenceDiffLine": "प्रमाण: {{before}} → {{after}}",
+    "safetyDiffLine": "सुरक्षा: {{before}} → {{after}}",
+    "summary": {
+      "title": "प्रति-तथ्यात्मक",
+      "original": "मूल",
+      "hypothetical": "काल्पनिक",
+      "noChange": "कोई काल्पनिक परिवर्तन लागू नहीं किया गया।",
+      "changedBecause": "परिवर्तन का कारण: {{reason}}",
+      "valuesApplied": "काल्पनिक मान लागू किए गए — नीचे पूरी तुलना देखें।",
+      "safety": "सुरक्षा",
+      "humanReview": "मानव समीक्षा"
+    }
+  },
+  "session": {
+    "heading": "सिमुलेशन",
+    "advance": "अगला सप्ताह (आगे बढ़ें)",
+    "loading": "लोड हो रहा है…",
+    "reset": "सिमुलेशन रीसेट करें",
+    "complete": "सिमुलेशन पूर्ण — केवल सिंथेटिक रीप्ले, कोई परिचालन अलर्ट या जांच नहीं बनाई गई।",
+    "infoHeading": "सत्र",
+    "scenario": "परिदृश्य",
+    "status": "स्थिति",
+    "week": "सप्ताह",
+    "scenarioStatus": "परिदृश्य स्थिति"
+  },
+  "currentWeek": {
+    "heading": "सामुदायिक संकेत सारांश",
+    "currentSignals": "वर्तमान सिंथेटिक संकेत",
+    "sourceReports": "इस सप्ताह की स्रोत रिपोर्टें",
+    "notSubmitted": "जमा नहीं किया गया"
+  },
+  "investigate": {
+    "button": "संकेत की जांच करें",
+    "blockedTitle": "सुरक्षा गेट अवरुद्ध होने पर जांच उपलब्ध नहीं है।",
+    "blockedMessage": "सुरक्षा = अवरुद्ध होने पर उपलब्ध नहीं है। कारण के लिए सुरक्षा गेट अनुभाग देखें।"
+  },
+  "investigationHint": {
+    "openNotebook": "प्राथमिकता देखने के लिए जांच नोटबुक खोलें।",
+    "notOpened": "इस सत्र के लिए अभी तक कोई जांच नहीं खोली गई है।"
+  },
+  "alertPanel": {
+    "empty": "जब इस सत्र में दिखाने के लिए डेटा होगा तो अलर्ट इंटेलिजेंस दिखाई देगा।",
+    "heading": "अधिकारी इंटेलिजेंस और प्रतिक्रिया",
+    "evidenceStrength": "प्रमाण शक्ति",
+    "recommendedNextStep": "अनुशंसित अगला कदम",
+    "investigationPriority": "जांच प्राथमिकता",
+    "supportingSources": "समर्थक स्रोत",
+    "conflictingSources": "विरोधाभासी स्रोत",
+    "none": "कोई नहीं",
+    "dataQuality": "डेटा गुणवत्ता",
+    "percentComplete": "{{pct}}% पूर्ण",
+    "missingReports": "{{count}} रिपोर्ट(ें) अनुपलब्ध — डेटा गुणवत्ता दृश्य देखें।",
+    "whyThisAlert": "यह अलर्ट क्यों?",
+    "safetyStatus": "सुरक्षा स्थिति",
+    "notEvaluated": "इस सप्ताह के लिए अभी तक मूल्यांकन नहीं किया गया।",
+    "investigationStatus": "जांच स्थिति"
+  },
+  "recommendation": {
+    "sentence": {
+      "CONTINUE_MONITORING": "नियमित निगरानी जारी रखें; प्रमाण अभी और कार्रवाई की आवश्यकता नहीं दर्शाता।",
+      "REQUEST_MORE_DATA": "निष्कर्ष निकालने से पहले संबंधित स्रोतों से अतिरिक्त रिपोर्टिंग का अनुरोध करें।",
+      "VERIFY_WITH_PHC": "विरोधाभासी स्रोत रिपोर्टों की समीक्षा करें और PHC के साथ संकेत सत्यापित करें।",
+      "CONDUCT_FIELD_VERIFICATION": "आगे अपग्रेडेशन से पहले PHC के साथ संकेत सत्यापित करें और क्षेत्रीय सत्यापन करें।",
+      "REQUEST_LABORATORY_VERIFICATION": "रिपोर्ट किए गए संकेत की पुष्टि के लिए प्रयोगशाला सत्यापन का अनुरोध करें।",
+      "ESCALATE_FOR_HUMAN_REVIEW": "मानव सार्वजनिक स्वास्थ्य समीक्षा के लिए अपग्रेड करें।",
+      "CLOSE_AS_INSUFFICIENT_EVIDENCE": "निगरानी जारी रखें; अपग्रेडेशन के लिए प्रमाण अभी भी अपर्याप्त है।"
+    }
+  },
+  "decision": {
+    "CONTINUE_MONITORING": "निगरानी जारी रखें",
+    "REQUEST_MORE_DATA": "अधिक डेटा का अनुरोध करें",
+    "VERIFY_WITH_PHC": "PHC के साथ सत्यापित करें",
+    "CONDUCT_FIELD_VERIFICATION": "क्षेत्रीय सत्यापन करें",
+    "REQUEST_LABORATORY_VERIFICATION": "प्रयोगशाला सत्यापन का अनुरोध करें",
+    "ESCALATE_FOR_HUMAN_REVIEW": "मानव समीक्षा के लिए अपग्रेड करें",
+    "CLOSE_AS_INSUFFICIENT_EVIDENCE": "अपर्याप्त प्रमाण के रूप में बंद करें"
+  },
+  "feedbackLabels": {
+    "usefulness": {
+      "VERY_USEFUL": "बहुत उपयोगी",
+      "USEFUL": "उपयोगी",
+      "PARTIALLY_USEFUL": "आंशिक रूप से उपयोगी",
+      "NOT_USEFUL": "उपयोगी नहीं"
+    },
+    "evidenceSufficiency": {
+      "SUFFICIENT": "पर्याप्त",
+      "PARTIALLY_SUFFICIENT": "आंशिक रूप से पर्याप्त",
+      "INSUFFICIENT": "अपर्याप्त"
+    },
+    "yesPartiallyNo": {
+      "YES": "हां",
+      "PARTIALLY": "आंशिक रूप से",
+      "NO": "नहीं"
+    },
+    "yesNo": {
+      "YES": "हां",
+      "NO": "नहीं"
+    }
+  },
+  "signalState": {
+    "detected": "संकेत का पता चला",
+    "current": "वर्तमान संकेत",
+    "week": "सप्ताह",
+    "currentValue": "वर्तमान",
+    "previousValue": "पिछला",
+    "changeLabel": "परिवर्तन:"
+  },
+  "mode": {
+    "replay": "◷ रीप्ले",
+    "liveSimulation": "● लाइव सिमुलेशन",
+    "liveError": "● लाइव — त्रुटि",
+    "livePrefix": "● लाइव — {{status}}",
+    "counterfactual": "◆ प्रति-तथ्यात्मक",
+    "whatIf": "◆ यदि-तो"
+  },
+  "notebook": {
+    "sections": {
+      "overview": "अवलोकन",
+      "timeline": "संकेत समयरेखा",
+      "evidence": "प्रमाण स्रोत",
+      "contradictions": "विरोधाभास",
+      "context": "सामुदायिक संदर्भ",
+      "notes": "क्षेत्रीय टिप्पणियां",
+      "checklist": "सत्यापन चेकलिस्ट",
+      "decision": "निर्णय कार्यक्षेत्र",
+      "recommendation": "अंतिम सिफारिश",
+      "feedback": "प्रतिक्रिया और गुणवत्ता"
+    },
+    "header": {
+      "title": "जांच नोटबुक",
+      "weekLabel": "सप्ताह {{week}}"
+    },
+    "aria": {
+      "nav": "जांच नेविगेशन",
+      "content": "जांच सामग्री",
+      "summary": "जांच सारांश",
+      "footer": "जांच नेविगेशन नियंत्रण"
+    },
+    "nav": {
+      "heading": "जांच अनुभाग",
+      "statusLine": "स्थिति: {{status}}"
+    },
+    "summary": {
+      "heading": "सारांश",
+      "signal": "संकेत",
+      "trend": "रुझान",
+      "evidence": "प्रमाण",
+      "priority": "प्राथमिकता",
+      "safety": "सुरक्षा",
+      "progress": "प्रगति",
+      "checklistCount": "{{checked}} / {{total}} चेकलिस्ट आइटम पूर्ण",
+      "safetyBlock": "सुरक्षा अवरोध — इस संकेत के लिए अपग्रेडेशन उपलब्ध नहीं है।"
+    },
+    "overview": {
+      "title": "जांच अवलोकन",
+      "id": "जांच आईडी",
+      "village": "गांव",
+      "scenario": "परिदृश्य",
+      "currentWeek": "वर्तमान सप्ताह",
+      "signalCategory": "संकेत श्रेणी",
+      "trend": "रुझान",
+      "evidenceStrength": "प्रमाण शक्ति",
+      "priority": "जांच प्राथमिकता",
+      "safetyResult": "सुरक्षा परिणाम",
+      "supporting": "समर्थन करता है:",
+      "conflicting": "विरोधाभासी:",
+      "insufficient": "अपर्याप्त:",
+      "none": "कोई नहीं"
+    },
+    "timeline": {
+      "title": "संकेत समयरेखा",
+      "sourceEvolution": "स्रोत विकास",
+      "inspectWeek": "एक सप्ताह की जांच करें:",
+      "backToCurrent": "वर्तमान पर वापस जाएं",
+      "viewingHistorical": "◷ ऐतिहासिक सप्ताह {{week}} देख रहे हैं — केवल पढ़ने योग्य रीप्ले, कुछ भी नहीं बदलता।",
+      "tableSource": "स्रोत",
+      "tableValue": "मान",
+      "tableReported": "रिपोर्ट किया गया",
+      "notReported": "रिपोर्ट नहीं किया गया",
+      "reported": "रिपोर्ट किया गया",
+      "empty": "इस सत्र के लिए अभी तक कोई रिपोर्टिंग सप्ताह उपलब्ध नहीं है।"
+    },
+    "pipelineCard": {
+      "title": "यह इंटेलिजेंस कैसे तैयार किया गया"
+    },
+    "evidence": {
+      "empty": "इस सत्र के लिए अभी तक कोई प्रमाण उपलब्ध नहीं है।"
+    },
+    "contradictions": {
+      "title": "विरोधाभास",
+      "none": "कोई विरोधाभासी स्रोत संबंध नहीं मिला।",
+      "inspectorTitle": "विरोधाभास निरीक्षक",
+      "suggestedVerification": "सुझाई गई सत्यापन"
+    },
+    "context": {
+      "title": "सामुदायिक संदर्भ",
+      "empty": "इस परिदृश्य के लिए कोई सिंथेटिक सामुदायिक संदर्भ दर्ज नहीं किया गया।",
+      "badge": "सिंथेटिक सिमुलेशन संदर्भ",
+      "weekNote": "सप्ताह {{week}}: {{note}}"
+    },
+    "fieldNotes": {
+      "notesTitle": "जांच टिप्पणियां",
+      "placeholder": "सामान्य टिप्पणियां, संकेत व्याख्या, डेटा विसंगतियां, सामुदायिक अवलोकन, सत्यापन टिप्पणियां, सिफारिश टिप्पणियां…",
+      "saving": "सहेजा जा रहा है…",
+      "savedAuto": "आपके टाइप करते ही स्वतः सहेजा जाता है।",
+      "observationsTitle": "सिम्युलेटेड क्षेत्रीय अवलोकन",
+      "noObservations": "कोई सिम्युलेटेड क्षेत्रीय अवलोकन दर्ज नहीं किया गया।",
+      "weekSource": "सप्ताह {{week}} · {{source}}",
+      "badge": "सिम्युलेटेड क्षेत्रीय अवलोकन",
+      "weekPlaceholder": "सप्ताह",
+      "sourcePlaceholder": "स्रोत (जैसे CHW)",
+      "notesPlaceholder": "अवलोकन टिप्पणियां",
+      "add": "जोड़ें",
+      "requiredError": "सप्ताह, स्रोत और टिप्पणियां सभी आवश्यक हैं।",
+      "saveError": "इस अवलोकन को सहेजा नहीं जा सका।"
+    },
+    "checklist": {
+      "title": "सत्यापन चेकलिस्ट",
+      "progressLine": "{{checked}} / {{total}} पूर्ण — जांच प्रगति: {{percent}}%"
+    },
+    "decision": {
+      "evidenceSummaryTitle": "प्रमाण सारांश",
+      "evidence": "प्रमाण",
+      "safety": "सुरक्षा",
+      "dataQuality": "डेटा गुणवत्ता",
+      "checklist": "चेकलिस्ट",
+      "whatIfTitle": "यदि-तो तुलना",
+      "whatIfEmpty": "अभी तक कोई काल्पनिक तुलना नहीं चलाई गई — सिमुलेशन लैब से एक चलाएं।",
+      "evidenceStrength": "प्रमाण शक्ति",
+      "original": "मूल: {{value}}",
+      "whatIfValue": "यदि-तो: {{value}}",
+      "changedSources": "बदले गए स्रोत",
+      "none": "कोई नहीं",
+      "workspaceTitle": "निर्णय कार्यक्षेत्र",
+      "systemIntelligenceBadge": "सिस्टम इंटेलिजेंस",
+      "safetyBlockTitle": "सुरक्षा अवरोध",
+      "safetyBlockMessage": "सुरक्षा गेट परिणाम अवरुद्ध होने पर इस जांच को अंतिम रूप नहीं दिया जा सकता। क्या विफल हुआ यह देखने के लिए सुरक्षा गेट अनुभाग की समीक्षा करें, और निर्णय दर्ज करने से पहले उसे हल करें।",
+      "systemSuggested": "सिस्टम द्वारा सुझाया गया अगला कदम:",
+      "suggestionOnly": "— यह केवल एक सुझाव है; अंतिम निर्णय आप चुनते हैं।",
+      "officerDecisionBadge": "अधिकारी निर्णय",
+      "reasonPlaceholder": "इस निर्णय के लिए वैकल्पिक कारण…",
+      "recordError": "यह निर्णय दर्ज नहीं किया जा सका। कृपया पुनः प्रयास करें।",
+      "recorded": "दर्ज किया गया:",
+      "recordedBy": "{{by}} द्वारा",
+      "recordedOn": "{{date}} को"
+    },
+    "recommendation": {
+      "title": "अंतिम सिफारिश",
+      "noDecision": "अभी तक कोई निर्णय दर्ज नहीं किया गया — निर्णय कार्यक्षेत्र अनुभाग देखें।",
+      "officerDecision": "अधिकारी निर्णय:",
+      "footer": "यह केवल निर्णय-सहायता है — यह एक प्रमाण-आधारित सुझाव है, कभी भी स्वायत्त कार्रवाई नहीं।"
+    },
+    "feedback": {
+      "title": "अधिकारी प्रतिक्रिया",
+      "badge": "सिमुलेशन मूल्यांकन",
+      "description": "यह इस संकेत की जांच करने के आपके अपने अनुभव का वर्णन करता है — यह चिकित्सकीय रूप से सही था या नहीं इसका निर्णय नहीं है। यह दर्ज किए गए निर्णय, प्रमाण या सुरक्षा परिणाम को कभी नहीं बदलता।",
+      "usefulnessQuestion": "यह संकेत कितना उपयोगी था?",
+      "evidenceSufficiencyQuestion": "प्रमाण पर्याप्तता",
+      "recommendationHelpfulQuestion": "क्या सुझाया गया अगला कदम सहायक था?",
+      "additionalVerificationQuestion": "क्या अतिरिक्त सत्यापन आवश्यक है?",
+      "commentLabel": "टिप्पणी (वैकल्पिक)",
+      "save": "प्रतिक्रिया सहेजें",
+      "saved": "प्रतिक्रिया सहेजी गई ✓",
+      "loading": "प्रतिक्रिया लोड हो रही है…"
+    },
+    "liveUpdate": {
+      "banner": "नया संकेत डेटा उपलब्ध — सप्ताह {{week}} पूर्ण हुआ। प्रमाण और सुरक्षा अपडेट की गई।",
+      "refresh": "जांच संदर्भ रीफ्रेश करें",
+      "dismiss": "खारिज करें"
+    },
+    "footer": {
+      "back": "◀ सिमुलेशन पर वापस जाएं",
+      "previous": "◀ पिछला",
+      "next": "अगला अनुभाग ▶",
+      "exportReport": "रिपोर्ट निर्यात करें",
+      "generating": "बना रहा है…",
+      "disclaimer": "केवल सिंथेटिक सिमुलेशन — वास्तविक निगरानी डेटा नहीं। सिस्टम प्रमाण को व्यवस्थित करता है और सत्यापन कदम सुझाता है; हर अंतिम निर्णय स्वास्थ्य अधिकारी लेते हैं।"
+    },
+    "errors": {
+      "invalidLink": "यह जांच लिंक अमान्य है।",
+      "loading": "जांच लोड हो रही है…",
+      "openFromLab": "इसे यहां लोड करने के लिए सिमुलेशन लैब से इस जांच को खोलें।"
+    }
+  }
+}

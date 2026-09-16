@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { AgentTrace } from '@/components/AgentTrace'
 import { RagGuidancePanel } from '@/components/RagGuidancePanel'
@@ -37,6 +38,7 @@ const STATUS_STYLES: Record<string, string> = {
  * explicit "Agrees" / "Disagrees" label, never colour alone.
  */
 function RelationshipEdgeRow({ edge }: { edge: EvidenceRelationshipEdge }) {
+  const { t } = useTranslation('officer')
   const [open, setOpen] = useState(false)
   const agree = edge.relationship === 'AGREE'
 
@@ -53,7 +55,7 @@ function RelationshipEdgeRow({ edge }: { edge: EvidenceRelationshipEdge }) {
         <span
           className={`pill ${agree ? 'bg-care-100 text-care-700' : 'bg-amber-100 text-amber-800'}`}
         >
-          {agree ? '✓ Agrees' : '⚠ Disagrees'}
+          {agree ? `✓ ${t('evidenceView.relationshipMap.agrees')}` : `⚠ ${t('evidenceView.relationshipMap.disagrees')}`}
         </span>
         <span className="text-sm font-medium">{edge.source_b}</span>
         <span className="ml-auto text-ink-400 text-xs">{open ? '▾' : '▸'}</span>
@@ -73,7 +75,7 @@ function RelationshipEdgeRow({ edge }: { edge: EvidenceRelationshipEdge }) {
             </div>
           </div>
           <div>
-            <span className="font-semibold text-ink-700">Reason: </span>
+            <span className="font-semibold text-ink-700">{t('evidenceView.relationshipMap.reasonLabel')} </span>
             <span className="text-ink-600">{edge.reason}</span>
           </div>
           {edge.investigate && (
@@ -88,6 +90,7 @@ function RelationshipEdgeRow({ edge }: { edge: EvidenceRelationshipEdge }) {
 }
 
 function NotComparableRow({ item }: { item: EvidenceRelationshipContext }) {
+  const { t } = useTranslation('officer')
   const [open, setOpen] = useState(false)
   return (
     <li className="rounded-lg border border-ink-200 bg-ink-50/60">
@@ -97,7 +100,7 @@ function NotComparableRow({ item }: { item: EvidenceRelationshipContext }) {
         aria-expanded={open}
       >
         <span className="text-sm font-medium">{item.source_name}</span>
-        <span className="pill bg-ink-100 text-ink-500">Not directly comparable</span>
+        <span className="pill bg-ink-100 text-ink-500">{t('evidenceView.relationshipMap.notComparableLabel')}</span>
         <span className="ml-auto text-ink-400 text-xs">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
@@ -120,14 +123,14 @@ function EvidenceRelationshipMap({
 }: {
   relationships: EvidenceRelationships
 }) {
+  const { t } = useTranslation('officer')
   const { anchor, edges, context, summary } = relationships
 
   if (!anchor) {
     return (
-      <Card title="Evidence relationship map">
+      <Card title={t('evidenceView.relationshipMap.title')}>
         <p className="text-sm text-ink-600">
-          Only one source has usable data for this window, so no
-          agreement/disagreement relationship can be established yet.
+          {t('evidenceView.relationshipMap.onlyOneSource')}
         </p>
       </Card>
     )
@@ -135,26 +138,26 @@ function EvidenceRelationshipMap({
 
   return (
     <Card
-      title="Evidence relationship map"
+      title={t('evidenceView.relationshipMap.title')}
       action={
         <span className="text-xs text-ink-400">
-          {summary.agree_count} agree · {summary.disagree_count} disagree ·{' '}
-          {summary.not_comparable_count} not comparable
+          {t('evidenceView.relationshipMap.summary', {
+            agree: summary.agree_count,
+            disagree: summary.disagree_count,
+            notComparable: summary.not_comparable_count,
+          })}
         </span>
       }
     >
       <p className="text-sm text-ink-600">
-        Each source below is compared against{' '}
-        <span className="font-semibold">{anchor.source_kind_display}</span>,
-        the source that most likely drove this alert — the one with the
-        largest rise against its own baseline.
+        {t('evidenceView.relationshipMap.descriptionPrefix')}{' '}
+        <span className="font-semibold">{anchor.source_kind_display}</span>
+        {t('evidenceView.relationshipMap.descriptionSuffix')}
       </p>
 
       {summary.has_disagreement && (
         <p className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          Sources disagree — investigate why. This does not mean either
-          source is wrong; it means the pattern needs a closer look before
-          acting on it.
+          {t('evidenceView.relationshipMap.disagreementWarning')}
         </p>
       )}
 
@@ -171,7 +174,7 @@ function EvidenceRelationshipMap({
 
       {context.length > 0 && (
         <>
-          <div className="label mt-4">Not directly comparable</div>
+          <div className="label mt-4">{t('evidenceView.relationshipMap.notComparableLabel')}</div>
           <ul className="mt-1 space-y-2">
             {context.map((item) => (
               <NotComparableRow key={item.source_kind} item={item} />
@@ -181,9 +184,7 @@ function EvidenceRelationshipMap({
       )}
 
       <p className="mt-4 border-t border-ink-200 pt-3 text-xs text-ink-400">
-        This map is decision support only. It never declares an outbreak,
-        closes an alert, or changes the deterministic safety engine's
-        verdict — the health officer decides what to investigate.
+        {t('evidenceView.relationshipMap.footer')}
       </p>
     </Card>
   )
@@ -191,6 +192,7 @@ function EvidenceRelationshipMap({
 
 /** One agent's structured finding, rendered the way it was produced. */
 function EvidenceCardView({ card }: { card: EvidenceCard }) {
+  const { t } = useTranslation('officer')
   return (
     <article
       className={`rounded-lg border p-4 ${
@@ -201,7 +203,7 @@ function EvidenceCardView({ card }: { card: EvidenceCard }) {
         <span className="font-semibold text-sm">{card.source_kind}</span>
         {card.is_corroborating && (
           <span className="pill bg-sentinel-100 text-sentinel-700">
-            corroborating
+            {t('evidenceView.evidenceCard.corroborating')}
           </span>
         )}
         <span className="ml-auto text-xs font-mono text-ink-400">
@@ -213,21 +215,21 @@ function EvidenceCardView({ card }: { card: EvidenceCard }) {
 
       <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
         <div>
-          <dt className="text-xs text-ink-400">Baseline</dt>
+          <dt className="text-xs text-ink-400">{t('evidenceView.evidenceCard.baseline')}</dt>
           <dd className="font-mono">{card.baseline ?? '—'}</dd>
         </div>
         <div>
-          <dt className="text-xs text-ink-400">Current</dt>
+          <dt className="text-xs text-ink-400">{t('evidenceView.evidenceCard.current')}</dt>
           <dd className="font-mono">
             {card.current_value === null ? (
-              <span className="italic text-ink-400">not submitted</span>
+              <span className="italic text-ink-400">{t('evidenceView.evidenceCard.notSubmitted')}</span>
             ) : (
               `${card.current_value}${card.unit ? ` ${card.unit}` : ''}`
             )}
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-ink-400">Change</dt>
+          <dt className="text-xs text-ink-400">{t('evidenceView.evidenceCard.change')}</dt>
           <dd>
             <Delta value={card.change_pct} />
           </dd>
@@ -235,9 +237,11 @@ function EvidenceCardView({ card }: { card: EvidenceCard }) {
       </dl>
 
       <div className="mt-3 flex items-center gap-2 text-xs">
-        <span className="font-semibold">{card.status.replace(/_/g, ' ')}</span>
+        <span className="font-semibold">{t(`evidenceCardStatus.${card.status}`)}</span>
         <span className="text-ink-400">·</span>
-        <span className="text-ink-600">data quality {card.data_quality}</span>
+        <span className="text-ink-600">
+          {t('evidenceView.evidenceCard.dataQuality', { quality: card.data_quality })}
+        </span>
       </div>
 
       {card.freshness && (
@@ -248,13 +252,13 @@ function EvidenceCardView({ card }: { card: EvidenceCard }) {
 
       {card.operational_context && 'reason' in card.operational_context && (
         <div className="mt-2 rounded-md border border-sky-200 bg-sky-50 px-2.5 py-2 text-xs text-sky-900">
-          <div className="font-semibold">Operational context</div>
+          <div className="font-semibold">{t('evidenceView.evidenceCard.operationalContextTitle')}</div>
           <div className="mt-0.5">{card.operational_context.reason}</div>
           <div className="mt-0.5 text-sky-700">
             {card.operational_context.starts_on} → {card.operational_context.ends_on}
           </div>
           <div className="mt-1 text-sky-700">
-            Excluded from independent corroboration.
+            {t('evidenceView.evidenceCard.excluded')}
           </div>
         </div>
       )}
@@ -264,20 +268,21 @@ function EvidenceCardView({ card }: { card: EvidenceCard }) {
       </p>
 
       <p className="mt-2 text-xs text-ink-400 font-mono">
-        produced by {card.produced_by_agent}
+        {t('evidenceView.evidenceCard.producedBy', { agent: card.produced_by_agent })}
       </p>
     </article>
   )
 }
 
 export default function EvidenceView() {
+  const { t } = useTranslation('officer')
   const { id } = useParams<{ id: string }>()
   const { data, loading, error, reload } = useAsync<AlertEvidenceResponse>(
     () => api.get(`/alerts/${id}/evidence/`),
     [id],
   )
 
-  if (loading) return <Loading label="Loading evidence…" />
+  if (loading) return <Loading label={t('evidenceView.loading')} />
   if (error) return <ErrorNote message={error} onRetry={reload} />
   if (!data) return null
 
@@ -290,11 +295,11 @@ export default function EvidenceView() {
           to={`/officer/alerts/${id}`}
           className="text-xs text-ink-400 hover:text-ink-600"
         >
-          ← Alert
+          {t('evidenceView.backToAlert')}
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold tracking-tight">
-            Evidence view
+            {t('evidenceView.title')}
           </h1>
           <SeverityPill severity={alert.severity} />
         </div>
@@ -303,39 +308,35 @@ export default function EvidenceView() {
         </p>
       </div>
 
-      <Card title={`Source-by-source evidence (${data.evidence.length} sources)`}>
+      <Card title={t('evidenceView.sourceCard.title', { count: data.evidence.length })}>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {data.evidence.map((card) => (
             <EvidenceCardView key={card.id} card={card} />
           ))}
         </div>
         <p className="text-xs text-ink-400 mt-4">
-          {why.corroborating_count} independent source(s) count toward
-          corroboration. Weather is context only. Sources that did not submit
-          are shown as missing rather than zero.
+          {t('evidenceView.sourceCard.footer', { count: why.corroborating_count })}
         </p>
       </Card>
 
       <EvidenceRelationshipMap relationships={data.relationships} />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="Cross-Level Intelligence">
+        <Card title={t('evidenceView.crossLevel.title')}>
           <div className="rounded-md border border-violet-200 bg-violet-50 p-3">
             <div className="text-xs font-semibold text-violet-800">
-              Verdict — {data.cross_level.verdict.toLowerCase()}
+              {t('evidenceView.crossLevel.verdict', { verdict: data.cross_level.verdict.toLowerCase() })}
             </div>
             <p className="text-sm text-violet-900 mt-1 leading-relaxed">
               {data.cross_level.statement}
             </p>
           </div>
           <p className="text-xs text-ink-400 mt-3 leading-relaxed">
-            This comparison is performed on aggregated counts only. No patient
-            record crosses from RuralCare into community analysis, so the
-            linkage happens without centralising identifiable data.
+            {t('evidenceView.crossLevel.disclaimer')}
           </p>
         </Card>
 
-        <Card title="Safety Gate">
+        <Card title={t('evidenceView.safetyGate.title')}>
           {safety ? (
             <SafetyPanel
               verdict={safety.verdict}
@@ -344,16 +345,14 @@ export default function EvidenceView() {
               reasons={safety.reasons}
             />
           ) : (
-            <p className="text-sm text-ink-400">No safety check recorded.</p>
+            <p className="text-sm text-ink-400">{t('evidenceView.safetyGate.none')}</p>
           )}
         </Card>
       </div>
 
-      <Card title="Investigation guidance">
+      <Card title={t('evidenceView.guidance.title')}>
         <p className="text-xs text-ink-600 -mt-1">
-          Grounded guidance retrieved from curated surveillance and
-          investigation reference material — informational only. It does
-          not change the evidence, the safety verdict, or the alert above.
+          {t('evidenceView.guidance.description')}
         </p>
         <RagGuidancePanel
           fetcher={() =>
@@ -364,12 +363,12 @@ export default function EvidenceView() {
       </Card>
 
       <Card
-        title={`Agent handoffs (${data.agent_trace.length} invocations)`}
+        title={t('evidenceView.agentTrace.title', { count: data.agent_trace.length })}
         action={
           <span className="text-xs text-ink-400">
             {alert.narrative_used_llm
-              ? 'LLM used for narrative wording only'
-              : 'Fully deterministic run — no LLM used'}
+              ? t('evidenceView.agentTrace.llmUsed')
+              : t('evidenceView.agentTrace.noLlmUsed')}
           </span>
         }
       >
@@ -378,7 +377,7 @@ export default function EvidenceView() {
 
       <div className="rounded-lg border border-sentinel-200 bg-sentinel-50 px-4 py-3">
         <div className="text-sm font-semibold text-sentinel-700">
-          Human review required
+          {t('evidenceView.humanReview.title')}
         </div>
         <p className="text-sm text-sentinel-900 mt-1">
           {data.human_review.note}

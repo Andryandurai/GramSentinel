@@ -24,6 +24,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { Card, Empty, ErrorNote, Loading, SyntheticBadge } from '@/components/ui'
 import {
@@ -64,13 +65,6 @@ const SECTIONS = [
 
 type SectionKey = (typeof SECTIONS)[number]['key']
 
-const TREND_LABEL: Record<string, string> = {
-  NORMAL: 'Normal',
-  STABLE: 'Stable',
-  INCREASING: 'Increasing',
-  SIGNAL_DETECTED: 'Signal Detected',
-}
-
 function evidencePillClass(strength: string | null): string {
   switch (strength) {
     case 'STRONG':
@@ -102,11 +96,12 @@ function gatePillClass(gate: string | null): string {
  *  "one investigation workspace with section navigation", not nine pages. */
 function SectionNav() {
   const { investigationSection, setInvestigationSection, investigation } = useSimulationStore()
+  const { t } = useTranslation('simulation')
 
   return (
-    <nav aria-label="Investigation sections" className="space-y-1">
+    <nav aria-label={t('notebook.nav.heading')} className="space-y-1">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-600">
-        Investigation Sections
+        {t('notebook.nav.heading')}
       </h3>
       <ul className="mt-2 space-y-1">
         {SECTIONS.map((section) => (
@@ -121,14 +116,14 @@ function SectionNav() {
               }`}
               onClick={() => setInvestigationSection(section.key)}
             >
-              {section.label}
+              {t(`notebook.sections.${section.key}`)}
             </button>
           </li>
         ))}
       </ul>
       {investigation && (
         <p className="mt-3 border-t border-ink-200 pt-2 text-[11px] text-ink-400">
-          Status: {investigation.status_display}
+          {t('notebook.nav.statusLine', { status: investigation.status_display })}
         </p>
       )}
     </nav>
@@ -140,6 +135,8 @@ function SectionNav() {
  *  every section already reads; nothing computed twice. */
 function InvestigationSummaryPanel() {
   const { investigation, intelligence } = useSimulationStore()
+  const { t } = useTranslation('simulation')
+  const { t: tc } = useTranslation('common')
   if (!investigation) return null
 
   const overview = investigation.overview
@@ -147,42 +144,50 @@ function InvestigationSummaryPanel() {
 
   return (
     <div className="space-y-3 text-xs">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-600">Summary</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-600">
+        {t('notebook.summary.heading')}
+      </h3>
       <dl className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <dt className="text-ink-500">Signal</dt>
+          <dt className="text-ink-500">{t('notebook.summary.signal')}</dt>
           <dd className="font-medium text-ink-800">{overview.primary_signal ?? '—'}</dd>
         </div>
         <div className="flex items-center justify-between">
-          <dt className="text-ink-500">Trend</dt>
+          <dt className="text-ink-500">{t('notebook.summary.trend')}</dt>
           <dd className="font-medium text-ink-800">
-            {overview.trend ? TREND_LABEL[overview.trend] ?? overview.trend : '—'}
+            {overview.trend ? t(`trend.${overview.trend}`, { defaultValue: overview.trend }) : '—'}
           </dd>
         </div>
         <div className="flex items-center justify-between">
-          <dt className="text-ink-500">Evidence</dt>
+          <dt className="text-ink-500">{t('notebook.summary.evidence')}</dt>
           <dd>
             <span className={`pill ${evidencePillClass(overview.evidence_strength)}`}>
-              {overview.evidence_strength ?? '—'}
+              {overview.evidence_strength
+                ? t(`evidenceStrength.${overview.evidence_strength}`, {
+                    defaultValue: overview.evidence_strength,
+                  })
+                : '—'}
             </span>
           </dd>
         </div>
         <div className="flex items-center justify-between">
-          <dt className="text-ink-500">Priority</dt>
+          <dt className="text-ink-500">{t('notebook.summary.priority')}</dt>
           <dd className="font-medium text-ink-800">{overview.investigation_priority || '—'}</dd>
         </div>
         <div className="flex items-center justify-between">
-          <dt className="text-ink-500">Safety</dt>
+          <dt className="text-ink-500">{t('notebook.summary.safety')}</dt>
           <dd>
             <span className={`pill ${gatePillClass(overview.safety_gate_result)}`}>
-              {overview.safety_gate_result ?? '—'}
+              {overview.safety_gate_result
+                ? tc(`status.${overview.safety_gate_result}`, { defaultValue: overview.safety_gate_result })
+                : '—'}
             </span>
           </dd>
         </div>
       </dl>
       <div className="border-t border-ink-200 pt-2">
         <div className="flex items-center justify-between text-ink-500">
-          <span>Progress</span>
+          <span>{t('notebook.summary.progress')}</span>
           <span className="font-mono font-semibold text-ink-800">{progress.percent}%</span>
         </div>
         <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-ink-100">
@@ -192,12 +197,12 @@ function InvestigationSummaryPanel() {
           />
         </div>
         <p className="mt-1 text-[11px] text-ink-400">
-          {progress.checked} / {progress.total} checklist items completed
+          {t('notebook.summary.checklistCount', { checked: progress.checked, total: progress.total })}
         </p>
       </div>
       {intelligence?.safety.gate_result === 'BLOCK' && (
         <p className="rounded-md border border-red-200 bg-red-50 px-2 py-1.5 text-[11px] text-red-800">
-          SAFETY BLOCK — escalation is not available for this signal.
+          {t('notebook.summary.safetyBlock')}
         </p>
       )}
     </div>
@@ -206,72 +211,82 @@ function InvestigationSummaryPanel() {
 
 function OverviewSection() {
   const { investigation, intelligence } = useSimulationStore()
+  const { t } = useTranslation('simulation')
+  const { t: tc } = useTranslation('common')
   if (!investigation) return null
   const overview = investigation.overview
 
   return (
     <div className="space-y-4">
-      <Card title="Investigation Overview">
+      <Card title={t('notebook.overview.title')}>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
           <div className="flex justify-between">
-            <dt className="text-ink-500">Investigation ID</dt>
+            <dt className="text-ink-500">{t('notebook.overview.id')}</dt>
             <dd className="font-mono">{overview.investigation_id}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">Village</dt>
+            <dt className="text-ink-500">{t('notebook.overview.village')}</dt>
             <dd>{overview.village_name}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">Scenario</dt>
+            <dt className="text-ink-500">{t('notebook.overview.scenario')}</dt>
             <dd>{overview.scenario_name}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">Current Week</dt>
+            <dt className="text-ink-500">{t('notebook.overview.currentWeek')}</dt>
             <dd className="font-mono">
               {overview.week} / {overview.total_weeks}
             </dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">Signal Category</dt>
+            <dt className="text-ink-500">{t('notebook.overview.signalCategory')}</dt>
             <dd>{overview.primary_signal ?? '—'}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">Trend</dt>
-            <dd>{overview.trend ? TREND_LABEL[overview.trend] ?? overview.trend : '—'}</dd>
+            <dt className="text-ink-500">{t('notebook.overview.trend')}</dt>
+            <dd>{overview.trend ? t(`trend.${overview.trend}`, { defaultValue: overview.trend }) : '—'}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">Evidence Strength</dt>
+            <dt className="text-ink-500">{t('notebook.overview.evidenceStrength')}</dt>
             <dd>
               <span className={`pill ${evidencePillClass(overview.evidence_strength)}`}>
-                {overview.evidence_strength ?? '—'}
+                {overview.evidence_strength
+                  ? t(`evidenceStrength.${overview.evidence_strength}`, {
+                      defaultValue: overview.evidence_strength,
+                    })
+                  : '—'}
               </span>
             </dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">Investigation Priority</dt>
+            <dt className="text-ink-500">{t('notebook.overview.priority')}</dt>
             <dd>{overview.investigation_priority || '—'}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink-500">Safety Result</dt>
+            <dt className="text-ink-500">{t('notebook.overview.safetyResult')}</dt>
             <dd>
               <span className={`pill ${gatePillClass(overview.safety_gate_result)}`}>
-                {overview.safety_gate_result ?? '—'}
+                {overview.safety_gate_result
+                  ? tc(`status.${overview.safety_gate_result}`, {
+                      defaultValue: overview.safety_gate_result,
+                    })
+                  : '—'}
               </span>
             </dd>
           </div>
         </dl>
         <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
           <p>
-            <span className="font-medium text-ink-600">Supporting:</span>{' '}
-            {overview.sources_supporting.join(', ') || 'none'}
+            <span className="font-medium text-ink-600">{t('notebook.overview.supporting')}</span>{' '}
+            {overview.sources_supporting.join(', ') || t('notebook.overview.none')}
           </p>
           <p>
-            <span className="font-medium text-ink-600">Conflicting:</span>{' '}
-            {overview.sources_conflicting.join(', ') || 'none'}
+            <span className="font-medium text-ink-600">{t('notebook.overview.conflicting')}</span>{' '}
+            {overview.sources_conflicting.join(', ') || t('notebook.overview.none')}
           </p>
           <p>
-            <span className="font-medium text-ink-600">Insufficient:</span>{' '}
-            {overview.sources_insufficient.join(', ') || 'none'}
+            <span className="font-medium text-ink-600">{t('notebook.overview.insufficient')}</span>{' '}
+            {overview.sources_insufficient.join(', ') || t('notebook.overview.none')}
           </p>
         </div>
       </Card>
@@ -293,19 +308,20 @@ function TimelineSection() {
     stepReplay,
     exitReplay,
   } = useSimulationStore()
+  const { t } = useTranslation('simulation')
 
   if (!intelligence) {
-    return <Empty>No reporting weeks are available yet for this session.</Empty>
+    return <Empty>{t('notebook.timeline.empty')}</Empty>
   }
 
   const viewing = replayWeek !== null ? replayIntelligence : intelligence
 
   return (
     <div className="space-y-4">
-      <Card title="Signal Timeline">
+      <Card title={t('notebook.timeline.title')}>
         <SignalTimelineChart timeline={intelligence.timeline} />
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-ink-500">Inspect a week:</span>
+          <span className="text-xs text-ink-500">{t('notebook.timeline.inspectWeek')}</span>
           {intelligence.timeline.map((point) => (
             <button
               key={point.week}
@@ -323,25 +339,25 @@ function TimelineSection() {
           ))}
           {replayWeek !== null && (
             <button type="button" className="pill bg-ink-100 text-ink-600" onClick={exitReplay}>
-              Back to current
+              {t('notebook.timeline.backToCurrent')}
             </button>
           )}
         </div>
         {replayWeek !== null && (
           <p className="mt-2 text-xs text-amber-800">
-            ◷ Viewing historical week {replayWeek} — read-only replay, nothing changes.
+            {t('notebook.timeline.viewingHistorical', { week: replayWeek })}
           </p>
         )}
       </Card>
 
       {viewing && (
-        <Card title="Source Evolution">
+        <Card title={t('notebook.timeline.sourceEvolution')}>
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-ink-500">
-                <th className="py-1 pr-2 font-medium">Source</th>
-                <th className="py-1 pr-2 font-medium">Value</th>
-                <th className="py-1 font-medium">Reported</th>
+                <th className="py-1 pr-2 font-medium">{t('notebook.timeline.tableSource')}</th>
+                <th className="py-1 pr-2 font-medium">{t('notebook.timeline.tableValue')}</th>
+                <th className="py-1 font-medium">{t('notebook.timeline.tableReported')}</th>
               </tr>
             </thead>
             <tbody>
@@ -353,9 +369,9 @@ function TimelineSection() {
                   </td>
                   <td className="py-1">
                     {entry.reported === false ? (
-                      <span className="text-ink-400">Not reported</span>
+                      <span className="text-ink-400">{t('notebook.timeline.notReported')}</span>
                     ) : (
-                      'Reported'
+                      t('notebook.timeline.reported')
                     )}
                   </td>
                 </tr>
@@ -374,10 +390,11 @@ function TimelineSection() {
  *  execution trace. */
 function PipelineTransparencyCard() {
   const { agentRuns, pipelineError } = useSimulationStore()
+  const { t } = useTranslation('simulation')
   if (!agentRuns.length) return null
 
   return (
-    <Card title="How This Intelligence Was Produced">
+    <Card title={t('notebook.pipelineCard.title')}>
       <AgentPipelineView agentRuns={agentRuns} pipelineError={pipelineError} />
     </Card>
   )
@@ -385,8 +402,9 @@ function PipelineTransparencyCard() {
 
 function EvidenceSection() {
   const { intelligence, replayWeek, replayIntelligence } = useSimulationStore()
+  const { t } = useTranslation('simulation')
   const viewing = replayWeek !== null ? replayIntelligence : intelligence
-  if (!viewing) return <Empty>No evidence available yet for this session.</Empty>
+  if (!viewing) return <Empty>{t('notebook.evidence.empty')}</Empty>
 
   return (
     <div className="space-y-4">
@@ -406,29 +424,33 @@ function EvidenceSection() {
 
 function ContradictionsSection() {
   const { investigation } = useSimulationStore()
+  const { t } = useTranslation('simulation')
+  const { t: tc } = useTranslation('common')
   if (!investigation) return null
   const { contradictions } = investigation
 
   if (!contradictions.length) {
     return (
-      <Card title="Contradictions">
-        <Empty>No conflicting source relationship detected.</Empty>
+      <Card title={t('notebook.contradictions.title')}>
+        <Empty>{t('notebook.contradictions.none')}</Empty>
       </Card>
     )
   }
 
   return (
-    <Card title="Contradiction Inspector">
+    <Card title={t('notebook.contradictions.inspectorTitle')}>
       <div className="space-y-3">
         {contradictions.map((entry) => (
           <div key={entry.source} className="rounded-md border border-amber-200 bg-amber-50 p-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-ink-800">{entry.source}</span>
-              <span className="pill bg-amber-100 text-amber-800">{entry.relation}</span>
+              <span className="pill bg-amber-100 text-amber-800">
+                {tc(`status.${entry.relation}`, { defaultValue: entry.relation })}
+              </span>
             </div>
             <p className="mt-1 text-xs text-ink-700">{entry.reason}</p>
             <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-ink-500">
-              Suggested verification
+              {t('notebook.contradictions.suggestedVerification')}
             </p>
             <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-ink-600">
               {entry.suggested_verification.map((prompt) => (
@@ -444,22 +466,23 @@ function ContradictionsSection() {
 
 function CommunityContextSection() {
   const { investigation } = useSimulationStore()
+  const { t } = useTranslation('simulation')
   if (!investigation) return null
   const entries = investigation.community_context
 
   return (
-    <Card title="Community Context">
+    <Card title={t('notebook.context.title')}>
       {entries.length === 0 ? (
-        <Empty>No synthetic community context recorded for this scenario.</Empty>
+        <Empty>{t('notebook.context.empty')}</Empty>
       ) : (
         <ul className="space-y-2">
           {entries.map((entry, index) => (
             <li key={index} className="rounded-md border border-ink-200 bg-ink-50 p-2.5 text-sm">
               <span className="pill bg-ink-100 text-ink-600 text-[10px] font-medium">
-                SYNTHETIC SIMULATION CONTEXT
+                {t('notebook.context.badge')}
               </span>
               <p className="mt-1 text-ink-700">
-                Week {entry.week}: {entry.note}
+                {t('notebook.context.weekNote', { week: entry.week, note: entry.note })}
               </p>
             </li>
           ))}
@@ -481,6 +504,7 @@ function FieldNotesSection() {
   const [draftNotes, setDraftNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const { t } = useTranslation('simulation')
 
   if (!investigation) return null
 
@@ -488,7 +512,7 @@ function FieldNotesSection() {
     setSubmitError(null)
     const week = Number(draftWeek)
     if (!week || !draftSource.trim() || !draftNotes.trim()) {
-      setSubmitError('Week, source, and notes are all required.')
+      setSubmitError(t('notebook.fieldNotes.requiredError'))
       return
     }
     setSubmitting(true)
@@ -498,7 +522,7 @@ function FieldNotesSection() {
       setDraftSource('')
       setDraftNotes('')
     } catch {
-      setSubmitError('Unable to save this observation.')
+      setSubmitError(t('notebook.fieldNotes.saveError'))
     } finally {
       setSubmitting(false)
     }
@@ -506,31 +530,29 @@ function FieldNotesSection() {
 
   return (
     <div className="space-y-4">
-      <Card title="Investigation Notes">
+      <Card title={t('notebook.fieldNotes.notesTitle')}>
         <textarea
           className="input min-h-[140px] w-full"
-          placeholder="General notes, signal interpretation, data inconsistencies, community observations, verification notes, recommendation notes…"
+          placeholder={t('notebook.fieldNotes.placeholder')}
           defaultValue={investigation.notes}
           onChange={(event) => saveInvestigationNotes(event.target.value)}
         />
         <p className="mt-1 text-[11px] text-ink-400">
-          {investigationSaving ? 'Saving…' : 'Saved automatically as you type.'}
+          {investigationSaving ? t('notebook.fieldNotes.saving') : t('notebook.fieldNotes.savedAuto')}
         </p>
       </Card>
 
-      <Card title="Simulated Field Observations">
+      <Card title={t('notebook.fieldNotes.observationsTitle')}>
         {investigation.observations.length === 0 ? (
-          <Empty>No simulated field observations recorded.</Empty>
+          <Empty>{t('notebook.fieldNotes.noObservations')}</Empty>
         ) : (
           <ul className="mb-3 space-y-2">
             {investigation.observations.map((obs) => (
               <li key={obs.id} className="rounded-md border border-ink-200 p-2.5 text-sm">
                 <div className="flex items-center justify-between text-xs text-ink-500">
-                  <span>
-                    Week {obs.week} · {obs.source}
-                  </span>
+                  <span>{t('notebook.fieldNotes.weekSource', { week: obs.week, source: obs.source })}</span>
                   <span className="pill bg-ink-100 text-ink-600 text-[10px] font-medium">
-                    SIMULATED FIELD OBSERVATION
+                    {t('notebook.fieldNotes.badge')}
                   </span>
                 </div>
                 <p className="mt-1 text-ink-700">{obs.notes}</p>
@@ -542,20 +564,20 @@ function FieldNotesSection() {
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-[5rem_8rem_1fr_auto]">
           <input
             className="input"
-            placeholder="Week"
+            placeholder={t('notebook.fieldNotes.weekPlaceholder')}
             inputMode="numeric"
             value={draftWeek}
             onChange={(event) => setDraftWeek(event.target.value)}
           />
           <input
             className="input"
-            placeholder="Source (e.g. CHW)"
+            placeholder={t('notebook.fieldNotes.sourcePlaceholder')}
             value={draftSource}
             onChange={(event) => setDraftSource(event.target.value)}
           />
           <input
             className="input"
-            placeholder="Observation notes"
+            placeholder={t('notebook.fieldNotes.notesPlaceholder')}
             value={draftNotes}
             onChange={(event) => setDraftNotes(event.target.value)}
           />
@@ -565,7 +587,7 @@ function FieldNotesSection() {
             disabled={submitting}
             onClick={() => void handleAddObservation()}
           >
-            Add
+            {t('notebook.fieldNotes.add')}
           </button>
         </div>
         {submitError && <p className="mt-2 text-xs text-red-700">{submitError}</p>}
@@ -576,13 +598,18 @@ function FieldNotesSection() {
 
 function ChecklistSection() {
   const { investigation, investigationSaving, updateInvestigationChecklist } = useSimulationStore()
+  const { t } = useTranslation('simulation')
   if (!investigation) return null
   const { items, values, progress } = investigation.checklist
 
   return (
-    <Card title="Verification Checklist">
+    <Card title={t('notebook.checklist.title')}>
       <p className="text-xs text-ink-500">
-        {progress.checked} / {progress.total} completed — Investigation Progress: {progress.percent}%
+        {t('notebook.checklist.progressLine', {
+          checked: progress.checked,
+          total: progress.total,
+          percent: progress.percent,
+        })}
       </p>
       <ul className="mt-3 space-y-1.5">
         {items.map((item) => (
@@ -608,37 +635,48 @@ function ChecklistSection() {
 
 function WhatIfComparisonCard() {
   const { whatIfResult } = useSimulationStore()
+  const { t } = useTranslation('simulation')
+  const { t: tc } = useTranslation('common')
   if (!whatIfResult) {
     return (
-      <Card title="What-If Comparison">
-        <Empty>No hypothetical comparison has been run yet — run one from Simulation Lab.</Empty>
+      <Card title={t('notebook.decision.whatIfTitle')}>
+        <Empty>{t('notebook.decision.whatIfEmpty')}</Empty>
       </Card>
     )
   }
 
+  const evidenceLabel = (value: string | null) =>
+    value ? t(`evidenceStrength.${value}`, { defaultValue: value }) : '—'
+  const gateLabel = (value: string | null) =>
+    value ? tc(`status.${value}`, { defaultValue: value }) : '—'
+
   return (
-    <Card title="What-If Comparison">
-      <p className="pill bg-ink-100 text-ink-600 font-semibold">HYPOTHETICAL</p>
+    <Card title={t('notebook.decision.whatIfTitle')}>
+      <p className="pill bg-ink-100 text-ink-600 font-semibold">{t('whatIf.hypotheticalBadge')}</p>
       <dl className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
         <div>
-          <dt className="text-ink-500">Evidence Strength</dt>
+          <dt className="text-ink-500">{t('notebook.decision.evidenceStrength')}</dt>
           <dd className="mt-0.5">
-            Original: {whatIfResult.original.evidence_strength ?? '—'}
+            {t('notebook.decision.original', { value: evidenceLabel(whatIfResult.original.evidence_strength) })}
             <br />
-            What-If: {whatIfResult.hypothetical.safety.evidence_strength ?? '—'}
+            {t('notebook.decision.whatIfValue', {
+              value: evidenceLabel(whatIfResult.hypothetical.safety.evidence_strength),
+            })}
           </dd>
         </div>
         <div>
-          <dt className="text-ink-500">Safety</dt>
+          <dt className="text-ink-500">{t('notebook.decision.safety')}</dt>
           <dd className="mt-0.5">
-            Original: {whatIfResult.original.gate_result ?? '—'}
+            {t('notebook.decision.original', { value: gateLabel(whatIfResult.original.gate_result) })}
             <br />
-            What-If: {whatIfResult.hypothetical.safety.gate_result ?? '—'}
+            {t('notebook.decision.whatIfValue', {
+              value: gateLabel(whatIfResult.hypothetical.safety.gate_result),
+            })}
           </dd>
         </div>
         <div>
-          <dt className="text-ink-500">Changed sources</dt>
-          <dd className="mt-0.5">{whatIfResult.changed_sources.join(', ') || 'none'}</dd>
+          <dt className="text-ink-500">{t('notebook.decision.changedSources')}</dt>
+          <dd className="mt-0.5">{whatIfResult.changed_sources.join(', ') || t('notebook.decision.none')}</dd>
         </div>
       </dl>
     </Card>
@@ -650,6 +688,8 @@ function DecisionSection() {
     useSimulationStore()
   const [reason, setReason] = useState('')
   const [decisionError, setDecisionError] = useState<string | null>(null)
+  const { t } = useTranslation('simulation')
+  const { t: tc } = useTranslation('common')
 
   if (!investigation || !intelligence) return null
 
@@ -661,28 +701,45 @@ function DecisionSection() {
     try {
       await recordInvestigationDecision(decision, reason)
     } catch {
-      setDecisionError('Unable to record this decision. Please try again.')
+      setDecisionError(t('notebook.decision.recordError'))
     }
   }
 
+  /** `t('decision.<KEY>')` mirrors `INVESTIGATION_DECISION_LABELS` exactly
+   *  (same seven backend enum keys, same English default) — the backend
+   *  `InvestigationDecisionValue` itself is never touched, only which
+   *  string is displayed for it. */
+  const decisionLabel = (value: InvestigationDecisionValue) =>
+    t(`decision.${value}`, { defaultValue: INVESTIGATION_DECISION_LABELS[value] })
+
   return (
     <div className="space-y-4">
-      <Card title="Evidence Summary">
+      <Card title={t('notebook.decision.evidenceSummaryTitle')}>
         <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
           <div>
-            <dt className="text-ink-500">Evidence</dt>
-            <dd className="font-medium">{intelligence.explanation.evidence_strength}</dd>
+            <dt className="text-ink-500">{t('notebook.decision.evidence')}</dt>
+            <dd className="font-medium">
+              {t(`evidenceStrength.${intelligence.explanation.evidence_strength}`, {
+                defaultValue: intelligence.explanation.evidence_strength,
+              })}
+            </dd>
           </div>
           <div>
-            <dt className="text-ink-500">Safety</dt>
-            <dd className="font-medium">{intelligence.safety.gate_result ?? '—'}</dd>
+            <dt className="text-ink-500">{t('notebook.decision.safety')}</dt>
+            <dd className="font-medium">
+              {intelligence.safety.gate_result
+                ? tc(`status.${intelligence.safety.gate_result}`, {
+                    defaultValue: intelligence.safety.gate_result,
+                  })
+                : '—'}
+            </dd>
           </div>
           <div>
-            <dt className="text-ink-500">Data Quality</dt>
+            <dt className="text-ink-500">{t('notebook.decision.dataQuality')}</dt>
             <dd className="font-medium">{intelligence.data_quality.completeness_pct}%</dd>
           </div>
           <div>
-            <dt className="text-ink-500">Checklist</dt>
+            <dt className="text-ink-500">{t('notebook.decision.checklist')}</dt>
             <dd className="font-medium">{investigation.checklist.progress.percent}%</dd>
           </div>
         </dl>
@@ -690,32 +747,33 @@ function DecisionSection() {
 
       <WhatIfComparisonCard />
 
-      <Card title="Decision Workspace">
-        <p className="pill bg-ink-100 text-ink-600 font-semibold">SYSTEM INTELLIGENCE</p>
+      <Card title={t('notebook.decision.workspaceTitle')}>
+        <p className="pill bg-ink-100 text-ink-600 font-semibold">
+          {t('notebook.decision.systemIntelligenceBadge')}
+        </p>
         <p className="mt-2 text-sm text-ink-700">{intelligence.explanation.routed_reason}</p>
 
         {blocked ? (
           <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-            <p className="font-semibold">SAFETY BLOCK</p>
-            <p className="mt-1">
-              This investigation cannot be finalized while the Safety Gate result is BLOCK. Review
-              the Safety Gate section to see what failed, and resolve it before recording a decision.
-            </p>
+            <p className="font-semibold">{t('notebook.decision.safetyBlockTitle')}</p>
+            <p className="mt-1">{t('notebook.decision.safetyBlockMessage')}</p>
           </div>
         ) : (
           <>
             {suggested && (
               <p className="mt-3 rounded-md border border-sentinel-200 bg-sentinel-50 px-3 py-2 text-xs text-sentinel-800">
-                System Suggested Next Step: <strong>{INVESTIGATION_DECISION_LABELS[suggested]}</strong>{' '}
-                — a suggestion only; you choose the final decision.
+                {t('notebook.decision.systemSuggested')} <strong>{decisionLabel(suggested)}</strong>{' '}
+                {t('notebook.decision.suggestionOnly')}
               </p>
             )}
 
-            <p className="mt-4 pill bg-ink-800 text-white font-semibold">OFFICER DECISION</p>
+            <p className="mt-4 pill bg-ink-800 text-white font-semibold">
+              {t('notebook.decision.officerDecisionBadge')}
+            </p>
             <textarea
               className="input mt-2 w-full"
               rows={2}
-              placeholder="Optional reason for this decision…"
+              placeholder={t('notebook.decision.reasonPlaceholder')}
               value={reason}
               onChange={(event) => setReason(event.target.value)}
             />
@@ -733,7 +791,7 @@ function DecisionSection() {
                     }`}
                     onClick={() => void handleDecide(decision)}
                   >
-                    {INVESTIGATION_DECISION_LABELS[decision]}
+                    {decisionLabel(decision)}
                   </button>
                 ),
               )}
@@ -744,10 +802,12 @@ function DecisionSection() {
 
         {investigation.decision.value && (
           <p className="mt-4 rounded-md border border-care-200 bg-care-50 px-3 py-2 text-xs text-care-800">
-            Recorded: <strong>{investigation.decision.value_display}</strong> by{' '}
-            {investigation.decision.decided_by ?? '—'}
+            {t('notebook.decision.recorded')} <strong>{investigation.decision.value_display}</strong>{' '}
+            {t('notebook.decision.recordedBy', { by: investigation.decision.decided_by ?? '—' })}
             {investigation.decision.decided_at &&
-              ` on ${new Date(investigation.decision.decided_at).toLocaleString()}`}
+              ` ${t('notebook.decision.recordedOn', {
+                date: new Date(investigation.decision.decided_at).toLocaleString(),
+              })}`}
             .
           </p>
         )}
@@ -758,25 +818,22 @@ function DecisionSection() {
 
 function RecommendationSection() {
   const { intelligence, investigation } = useSimulationStore()
+  const { t } = useTranslation('simulation')
   if (!intelligence || !investigation) return null
 
   return (
-    <Card title="Final Recommendation">
+    <Card title={t('notebook.recommendation.title')}>
       <p className="text-sm text-ink-700">{intelligence.explanation.suggested_verification}</p>
       {investigation.decision.value ? (
         <p className="mt-3 text-sm text-ink-800">
-          <span className="font-medium">Officer decision:</span>{' '}
+          <span className="font-medium">{t('notebook.recommendation.officerDecision')}</span>{' '}
           {investigation.decision.value_display}
           {investigation.decision.reason && ` — ${investigation.decision.reason}`}
         </p>
       ) : (
-        <p className="mt-3 text-xs text-ink-400">
-          No decision has been recorded yet — see the Decision Workspace section.
-        </p>
+        <p className="mt-3 text-xs text-ink-400">{t('notebook.recommendation.noDecision')}</p>
       )}
-      <p className="mt-3 text-[11px] text-ink-400">
-        Decision support only — this is an evidence-grounded suggestion, never an autonomous action.
-      </p>
+      <p className="mt-3 text-[11px] text-ink-400">{t('notebook.recommendation.footer')}</p>
     </Card>
   )
 }
@@ -834,12 +891,13 @@ function FeedbackSection() {
   const { feedback, feedbackLoading, feedbackSaving, feedbackError, saveFeedback } = useSimulationStore()
   const [comment, setComment] = useState(feedback?.comment ?? '')
   const [justSaved, setJustSaved] = useState(false)
+  const { t } = useTranslation('simulation')
 
   useEffect(() => {
     setComment(feedback?.comment ?? '')
   }, [feedback?.comment])
 
-  if (feedbackLoading && !feedback) return <Loading label="Loading feedback…" />
+  if (feedbackLoading && !feedback) return <Loading label={t('notebook.feedback.loading')} />
 
   async function handleFeedbackChange(patch: Parameters<typeof saveFeedback>[0]) {
     setJustSaved(false)
@@ -851,26 +909,62 @@ function FeedbackSection() {
     }
   }
 
+  /** `t('feedbackLabels.<group>.<KEY>')` mirrors each `FEEDBACK_*_LABELS`
+   *  constant exactly (same backend enum keys, English default via
+   *  `defaultValue`) — only the displayed word changes, never the value
+   *  sent to `saveFeedback`. */
+  const usefulnessLabels = (
+    Object.fromEntries(
+      (Object.keys(FEEDBACK_USEFULNESS_LABELS) as FeedbackUsefulness[]).map((key) => [
+        key,
+        t(`feedbackLabels.usefulness.${key}`, { defaultValue: FEEDBACK_USEFULNESS_LABELS[key] }),
+      ]),
+    ) as Record<FeedbackUsefulness, string>
+  )
+  const evidenceSufficiencyLabels = (
+    Object.fromEntries(
+      (Object.keys(FEEDBACK_EVIDENCE_SUFFICIENCY_LABELS) as FeedbackEvidenceSufficiency[]).map((key) => [
+        key,
+        t(`feedbackLabels.evidenceSufficiency.${key}`, {
+          defaultValue: FEEDBACK_EVIDENCE_SUFFICIENCY_LABELS[key],
+        }),
+      ]),
+    ) as Record<FeedbackEvidenceSufficiency, string>
+  )
+  const yesPartiallyNoLabels = (
+    Object.fromEntries(
+      (Object.keys(FEEDBACK_YES_PARTIALLY_NO_LABELS) as FeedbackYesPartiallyNo[]).map((key) => [
+        key,
+        t(`feedbackLabels.yesPartiallyNo.${key}`, { defaultValue: FEEDBACK_YES_PARTIALLY_NO_LABELS[key] }),
+      ]),
+    ) as Record<FeedbackYesPartiallyNo, string>
+  )
+  const yesNoLabels = (
+    Object.fromEntries(
+      (Object.keys(FEEDBACK_YES_NO_LABELS) as FeedbackYesNo[]).map((key) => [
+        key,
+        t(`feedbackLabels.yesNo.${key}`, { defaultValue: FEEDBACK_YES_NO_LABELS[key] }),
+      ]),
+    ) as Record<FeedbackYesNo, string>
+  )
+
   return (
-    <Card title="Officer Feedback">
-      <p className="pill bg-ink-100 text-ink-600 font-semibold">SIMULATION EVALUATION</p>
-      <p className="mt-2 text-xs text-ink-500">
-        This describes your own experience investigating this signal — not a verdict on whether it
-        was medically correct. It never changes the recorded decision, evidence, or safety result.
-      </p>
+    <Card title={t('notebook.feedback.title')}>
+      <p className="pill bg-ink-100 text-ink-600 font-semibold">{t('notebook.feedback.badge')}</p>
+      <p className="mt-2 text-xs text-ink-500">{t('notebook.feedback.description')}</p>
 
       <FeedbackChoiceGroup
-        label="How useful was this signal?"
+        label={t('notebook.feedback.usefulnessQuestion')}
         options={['VERY_USEFUL', 'USEFUL', 'PARTIALLY_USEFUL', 'NOT_USEFUL'] as const}
-        labels={FEEDBACK_USEFULNESS_LABELS}
+        labels={usefulnessLabels}
         value={feedback?.usefulness ?? ''}
         disabled={feedbackSaving}
         onSelect={(value: FeedbackUsefulness) => void handleFeedbackChange({ usefulness: value })}
       />
       <FeedbackChoiceGroup
-        label="Evidence sufficiency"
+        label={t('notebook.feedback.evidenceSufficiencyQuestion')}
         options={['SUFFICIENT', 'PARTIALLY_SUFFICIENT', 'INSUFFICIENT'] as const}
-        labels={FEEDBACK_EVIDENCE_SUFFICIENCY_LABELS}
+        labels={evidenceSufficiencyLabels}
         value={feedback?.evidence_sufficiency ?? ''}
         disabled={feedbackSaving}
         onSelect={(value: FeedbackEvidenceSufficiency) =>
@@ -878,9 +972,9 @@ function FeedbackSection() {
         }
       />
       <FeedbackChoiceGroup
-        label="Was the suggested next step helpful?"
+        label={t('notebook.feedback.recommendationHelpfulQuestion')}
         options={['YES', 'PARTIALLY', 'NO'] as const}
-        labels={FEEDBACK_YES_PARTIALLY_NO_LABELS}
+        labels={yesPartiallyNoLabels}
         value={feedback?.recommendation_helpful ?? ''}
         disabled={feedbackSaving}
         onSelect={(value: FeedbackYesPartiallyNo) =>
@@ -888,9 +982,9 @@ function FeedbackSection() {
         }
       />
       <FeedbackChoiceGroup
-        label="Additional verification required?"
+        label={t('notebook.feedback.additionalVerificationQuestion')}
         options={['YES', 'NO'] as const}
-        labels={FEEDBACK_YES_NO_LABELS}
+        labels={yesNoLabels}
         value={feedback?.additional_verification_required ?? ''}
         disabled={feedbackSaving}
         onSelect={(value: FeedbackYesNo) =>
@@ -899,7 +993,7 @@ function FeedbackSection() {
       />
 
       <div className="mt-4 border-t border-ink-200 pt-3">
-        <p className="text-xs font-medium text-ink-600">Comment (optional)</p>
+        <p className="text-xs font-medium text-ink-600">{t('notebook.feedback.commentLabel')}</p>
         <textarea
           className="input mt-1.5 w-full"
           rows={2}
@@ -913,10 +1007,10 @@ function FeedbackSection() {
             disabled={feedbackSaving}
             onClick={() => void handleFeedbackChange({ comment })}
           >
-            Save Feedback
+            {t('notebook.feedback.save')}
           </button>
           {justSaved && !feedbackSaving && (
-            <span className="text-xs text-care-700">Feedback saved ✓</span>
+            <span className="text-xs text-care-700">{t('notebook.feedback.saved')}</span>
           )}
         </div>
       </div>
@@ -949,6 +1043,7 @@ function LiveUpdateBanner() {
   const { liveStatus, liveWeek, sessionId, loadInvestigation } = useSimulationStore()
   const [dismissedWeek, setDismissedWeek] = useState<number | null>(null)
   const lastSeenWeek = useRef<number | null>(null)
+  const { t } = useTranslation('simulation')
 
   useEffect(() => {
     if (lastSeenWeek.current === null) lastSeenWeek.current = liveWeek
@@ -960,7 +1055,7 @@ function LiveUpdateBanner() {
 
   return (
     <div className="card mb-3 flex items-center justify-between gap-3 border border-sentinel-200 bg-sentinel-50 px-4 py-2.5 text-sm text-sentinel-800">
-      <span>NEW SIGNAL DATA AVAILABLE — Week {liveWeek} completed. Evidence and safety updated.</span>
+      <span>{t('notebook.liveUpdate.banner', { week: liveWeek })}</span>
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -970,14 +1065,14 @@ function LiveUpdateBanner() {
             lastSeenWeek.current = liveWeek
           }}
         >
-          Refresh Investigation Context
+          {t('notebook.liveUpdate.refresh')}
         </button>
         <button
           type="button"
           className="text-xs text-sentinel-600 underline"
           onClick={() => setDismissedWeek(liveWeek)}
         >
-          Dismiss
+          {t('notebook.liveUpdate.dismiss')}
         </button>
       </div>
     </div>
@@ -988,6 +1083,7 @@ export default function InvestigationNotebookPage() {
   const { sessionId: sessionIdParam } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
   const sessionId = Number(sessionIdParam)
+  const { t } = useTranslation('simulation')
 
   const {
     investigation,
@@ -1011,11 +1107,11 @@ export default function InvestigationNotebookPage() {
   }, [sessionId])
 
   if (!Number.isFinite(sessionId)) {
-    return <ErrorNote message="This investigation link is invalid." />
+    return <ErrorNote message={t('notebook.errors.invalidLink')} />
   }
 
   if (investigationLoading && !investigation) {
-    return <Loading label="Loading investigation…" />
+    return <Loading label={t('notebook.errors.loading')} />
   }
 
   if (investigationError && !investigation) {
@@ -1023,11 +1119,7 @@ export default function InvestigationNotebookPage() {
   }
 
   if (!investigation) {
-    return (
-      <Empty>
-        Open this investigation from the Simulation Lab to load it here.
-      </Empty>
-    )
+    return <Empty>{t('notebook.errors.openFromLab')}</Empty>
   }
 
   const currentIndex = SECTIONS.findIndex((section) => section.key === investigationSection)
@@ -1037,9 +1129,10 @@ export default function InvestigationNotebookPage() {
     <div className="flex flex-col gap-3">
       <div className="card flex flex-wrap items-center justify-between gap-2 px-4 py-3">
         <div>
-          <p className="text-sm font-semibold text-ink-800">Investigation Notebook</p>
+          <p className="text-sm font-semibold text-ink-800">{t('notebook.header.title')}</p>
           <p className="text-xs text-ink-500">
-            {investigation.overview.village_name} · Week {investigation.overview.week}
+            {investigation.overview.village_name} ·{' '}
+            {t('notebook.header.weekLabel', { week: investigation.overview.week })}
           </p>
         </div>
         <SyntheticBadge />
@@ -1050,21 +1143,21 @@ export default function InvestigationNotebookPage() {
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(200px,20%)_1fr_minmax(220px,23%)]">
         <aside
           className="card max-h-[calc(100vh-15rem)] min-h-[360px] overflow-y-auto p-4"
-          aria-label="Investigation navigation"
+          aria-label={t('notebook.aria.nav')}
         >
           <SectionNav />
         </aside>
 
         <main
           className="card max-h-[calc(100vh-15rem)] min-h-[360px] overflow-y-auto p-4"
-          aria-label="Investigation content"
+          aria-label={t('notebook.aria.content')}
         >
           <SectionComponent />
         </main>
 
         <aside
           className="card max-h-[calc(100vh-15rem)] min-h-[360px] overflow-y-auto p-4"
-          aria-label="Investigation summary"
+          aria-label={t('notebook.aria.summary')}
         >
           <InvestigationSummaryPanel />
         </aside>
@@ -1073,14 +1166,14 @@ export default function InvestigationNotebookPage() {
       <div
         className="card sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 px-4 py-3"
         role="toolbar"
-        aria-label="Investigation navigation controls"
+        aria-label={t('notebook.aria.footer')}
       >
         <button
           type="button"
           className="btn-ghost py-1.5"
           onClick={() => navigate(activeSession ? '/officer/simulation' : '/officer/simulation')}
         >
-          ◀ Back to Simulation
+          {t('notebook.footer.back')}
         </button>
         <div className="flex items-center gap-2">
           <button
@@ -1089,7 +1182,7 @@ export default function InvestigationNotebookPage() {
             disabled={currentIndex <= 0}
             onClick={() => setInvestigationSection(SECTIONS[Math.max(0, currentIndex - 1)].key)}
           >
-            ◀ Previous
+            {t('notebook.footer.previous')}
           </button>
           <button
             type="button"
@@ -1099,7 +1192,7 @@ export default function InvestigationNotebookPage() {
               setInvestigationSection(SECTIONS[Math.min(SECTIONS.length - 1, currentIndex + 1)].key)
             }
           >
-            Next Section ▶
+            {t('notebook.footer.next')}
           </button>
         </div>
         <button
@@ -1108,14 +1201,11 @@ export default function InvestigationNotebookPage() {
           disabled={investigationReportLoading}
           onClick={() => void exportInvestigationReport()}
         >
-          {investigationReportLoading ? 'Generating…' : 'Export Report'}
+          {investigationReportLoading ? t('notebook.footer.generating') : t('notebook.footer.exportReport')}
         </button>
       </div>
 
-      <p className="text-xs text-ink-400">
-        Synthetic simulation only — not real surveillance data. The system organizes evidence and
-        suggests verification steps; the Health Officer makes every final decision.
-      </p>
+      <p className="text-xs text-ink-400">{t('notebook.footer.disclaimer')}</p>
     </div>
   )
 }

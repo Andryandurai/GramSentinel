@@ -200,4 +200,5 @@ urlpatterns = [
     path("api/", include("knowledge.urls")),
     path("api/", include("workspace.urls")),
     path("api/", include("fieldops.urls")),
+    path("api/", include("pregnancy.urls")),
 ]

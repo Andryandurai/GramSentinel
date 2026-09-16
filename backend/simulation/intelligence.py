@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .models import SimulationAgentRun, SimulationSession, get_template_session
+from .models import SafetyGateResult, SimulationAgentRun, SimulationSession, get_template_session
 from .orchestrator import (
     RELATIONSHIP_CONFLICTING,
     RELATIONSHIP_INSUFFICIENT,
@@ -56,6 +56,29 @@ _TREND_PHRASES: dict[str, str] = {
     TREND_INCREASING: "Reported signals show a sustained increase",
     TREND_SIGNAL_DETECTED: "Reported signals show a sharp, sustained increase",
 }
+
+#: One deterministic, plain-language phrase per Phase 6 gate result — used
+#: only for the "Why am I seeing this?" `safety_status` sentence. Phase 6
+#: (`simulation.safety.SafetyEngine`) has been fully implemented since this
+#: module was first written; the gate result it actually persists
+#: (`SimulationAgentRun(agent_name="safety").output["gate_result"]`) is the
+#: single source of truth read below — never re-derived, never LLM-phrased.
+_SAFETY_STATUS_PHRASES: dict[str, str] = {
+    SafetyGateResult.PASS: (
+        "Safety evaluation: PASS. All deterministic checks were satisfied; "
+        "human review is still required before any action."
+    ),
+    SafetyGateResult.BLOCK: (
+        "Safety evaluation: BLOCK. One or more deterministic checks failed; "
+        "this signal cannot be escalated."
+    ),
+    SafetyGateResult.INSUFFICIENT: (
+        "Safety evaluation: INSUFFICIENT. The evidence does not yet meet the "
+        "threshold required for escalation."
+    ),
+}
+_SAFETY_STATUS_NOT_YET_RUN = "Safety evaluation has not yet run for this reporting week."
+_SAFETY_STATUS_FAILED = "Safety evaluation could not complete for this reporting week."
 
 #: Deterministic evidence-strength rule (task §16/§30 — no arbitrary score,
 #: no "AI confidence"). Inputs are exactly the counts already visible in the
@@ -238,7 +261,7 @@ def build_intelligence(
                 "evidence_strength": "WEAK",
                 "routed_reason": "No reported signal is available yet for this session.",
                 "suggested_verification": _VERIFICATION_BY_STRENGTH["WEAK"],
-                "safety_status": "Safety evaluation: Pending Phase 6.",
+                "safety_status": _SAFETY_STATUS_NOT_YET_RUN,
             },
         }
 
@@ -368,8 +391,11 @@ def build_intelligence(
     source_types = [source["source"] for source in data_quality["sources"]]
 
     # -----------------------------------------------------------------
-    # Why Am I Seeing This? — evidence-grounded, deterministic, and
-    # explicit that Safety Engine gating is still a Phase 6 stub.
+    # Why Am I Seeing This? — evidence-grounded and deterministic.
+    # `safety_status` below reads the real, persisted Phase 6
+    # `SafetyEngine` result for this week (`gate_result` on the "safety"
+    # `SimulationAgentRun` row) — Phase 6 is fully implemented; this is a
+    # read of its already-computed output, never a re-evaluation.
     # -----------------------------------------------------------------
     trend = timeline[-1]["status"] if timeline else TREND_NORMAL
     evidence_strength = _evidence_strength(trend, len(supporting_sources), len(conflicting_sources))
@@ -393,11 +419,15 @@ def build_intelligence(
     else:
         routed_reason = f"{signal_phrase}."
 
-    safety_status = (
-        latest_safety.output.get("explanation", "Safety evaluation: Pending Phase 6.")
-        if latest_safety
-        else "Safety evaluation: Pending Phase 6."
-    )
+    if latest_safety is None:
+        safety_status = _SAFETY_STATUS_NOT_YET_RUN
+    elif latest_safety.status != SimulationAgentRun.Status.COMPLETE:
+        safety_status = _SAFETY_STATUS_FAILED
+    else:
+        gate_result = (
+            latest_safety.output.get("gate_result") if isinstance(latest_safety.output, dict) else None
+        )
+        safety_status = _SAFETY_STATUS_PHRASES.get(gate_result, _SAFETY_STATUS_NOT_YET_RUN)
 
     explanation = {
         "signal": signal_sentence,
@@ -412,8 +442,8 @@ def build_intelligence(
         "evidence_strength": evidence_strength,
         "routed_reason": routed_reason,
         "suggested_verification": _VERIFICATION_BY_STRENGTH[evidence_strength],
-        # Truthful, never "passed"/"failed"/"approved" — the real Safety
-        # Engine is Phase 6 (task §14/§43).
+        # The real, persisted Phase 6 gate result (PASS/BLOCK/INSUFFICIENT)
+        # for this week — never a fabricated or optimistic default.
         "safety_status": safety_status,
     }
 

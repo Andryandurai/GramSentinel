@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import {
   Card,
@@ -19,11 +20,12 @@ const OUTCOME_STYLES: Record<string, string> = {
 }
 
 export default function AlertHistory() {
+  const { t } = useTranslation('officer')
   const { data, loading, error, reload } = useAsync<AlertSummary[]>(() =>
     api.get('/alerts/'),
   )
 
-  if (loading) return <Loading label="Loading alert history…" />
+  if (loading) return <Loading label={t('alertHistory.loading')} />
   if (error) return <ErrorNote message={error} onRetry={reload} />
 
   const alerts = data ?? []
@@ -31,27 +33,27 @@ export default function AlertHistory() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Alert history</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t('alertHistory.title')}</h1>
         <p className="text-sm text-ink-600 mt-0.5">
-          Past alerts with their recorded investigation outcomes.
+          {t('alertHistory.subtitle')}
         </p>
       </div>
 
-      <Card title={`All alerts (${alerts.length})`}>
+      <Card title={t('alertHistory.allAlerts', { count: alerts.length })}>
         {alerts.length === 0 ? (
-          <Empty>No alerts have been raised yet.</Empty>
+          <Empty>{t('alertHistory.empty')}</Empty>
         ) : (
           <div className="overflow-x-auto -mx-5">
             <table className="w-full min-w-[760px]">
               <thead>
                 <tr>
-                  <th className="table-head">Alert</th>
-                  <th className="table-head">Week</th>
-                  <th className="table-head">Severity</th>
-                  <th className="table-head">Safety</th>
-                  <th className="table-head">Sources</th>
-                  <th className="table-head">Status</th>
-                  <th className="table-head">Outcome</th>
+                  <th className="table-head">{t('alertHistory.columns.alert')}</th>
+                  <th className="table-head">{t('alertHistory.columns.week')}</th>
+                  <th className="table-head">{t('alertHistory.columns.severity')}</th>
+                  <th className="table-head">{t('alertHistory.columns.safety')}</th>
+                  <th className="table-head">{t('alertHistory.columns.sources')}</th>
+                  <th className="table-head">{t('alertHistory.columns.status')}</th>
+                  <th className="table-head">{t('alertHistory.columns.outcome')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -81,14 +83,14 @@ export default function AlertHistory() {
                       {alert.corroborating_source_count}
                     </td>
                     <td className="table-cell text-ink-600 text-xs">
-                      {alert.status.replace(/_/g, ' ').toLowerCase()}
+                      {t(`alertStatus.${alert.status}`)}
                     </td>
                     <td className="table-cell">
                       {alert.outcome ? (
                         <span
                           className={`pill ${OUTCOME_STYLES[alert.outcome]}`}
                         >
-                          {alert.outcome.replace(/_/g, ' ')}
+                          {t(`outcome.${alert.outcome}.label`)}
                         </span>
                       ) : (
                         <span className="text-xs text-ink-400">—</span>

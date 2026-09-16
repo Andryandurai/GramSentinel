@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { Card, Delta, Empty, ErrorNote, Loading } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
 import { api } from '@/services/api'
@@ -28,11 +30,12 @@ function formatWhen(value: string): string {
  * still deserves a human's eyes, it just does not become an alert.
  */
 export default function OfficerCommunityReports() {
+  const { t } = useTranslation('officer')
   const { data, loading, error, reload } = useAsync<Payload>(() =>
     api.get('/officer/community-reports/'),
   )
 
-  if (loading) return <Loading label="Loading community reports…" />
+  if (loading) return <Loading label={t('communityReports.loading')} />
   if (error) return <ErrorNote message={error} onRetry={reload} />
   if (!data) return null
 
@@ -41,22 +44,26 @@ export default function OfficerCommunityReports() {
       <div className="flex flex-wrap items-end gap-4">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
-            Community reports
+            {t('communityReports.title')}
           </h1>
           <p className="text-sm text-ink-600 mt-0.5">
             {data.scope.is_district_wide
-              ? 'All villages in your district'
+              ? t('shared.scopeAllVillages')
               : data.scope.village_name}
           </p>
         </div>
         <button className="btn-ghost ml-auto" onClick={reload}>
-          Refresh
+          {t('shared.refresh')}
         </button>
       </div>
 
-      <Card title={`High local signal reports (${data.local_signal_reports.length})`}>
+      <Card
+        title={t('communityReports.highSignalCard.title', {
+          count: data.local_signal_reports.length,
+        })}
+      >
         {data.local_signal_reports.length === 0 ? (
-          <Empty>No local signals have been flagged for your area.</Empty>
+          <Empty>{t('communityReports.highSignalCard.empty')}</Empty>
         ) : (
           <ul className="space-y-3">
             {data.local_signal_reports.map((report) => (
@@ -70,10 +77,12 @@ export default function OfficerCommunityReports() {
               >
                 <div className="flex flex-wrap items-center gap-2">
                   {!report.acknowledged && (
-                    <span className="pill bg-amber-600 text-white">New report</span>
+                    <span className="pill bg-amber-600 text-white">{t('shared.newReportBadge')}</span>
                   )}
                   <span className="text-sm font-semibold">{report.label}</span>
-                  <span className="pill bg-amber-100 text-amber-800">above baseline</span>
+                  <span className="pill bg-amber-100 text-amber-800">
+                    {t('communityReports.highSignalCard.aboveBaseline')}
+                  </span>
                   <span className="ml-auto text-xs text-ink-400 font-mono">
                     {report.week_label}
                   </span>
@@ -81,32 +90,35 @@ export default function OfficerCommunityReports() {
 
                 <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-600">
                   <span>{report.village_name}</span>
-                  <span>Reported by {report.worker_name}</span>
+                  <span>{t('shared.reportedBy', { name: report.worker_name })}</span>
                   <span>{formatWhen(report.created_at)}</span>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 rounded-md border border-ink-200 bg-white px-3 py-2 text-sm">
                   <span className="text-ink-600">
-                    Source: <span className="font-medium text-ink-800">{report.source_label}</span>
+                    {t('communityReports.highSignalCard.fields.source')}{' '}
+                    <span className="font-medium text-ink-800">{report.source_label}</span>
                   </span>
                   <span className="text-ink-600">
-                    Baseline: <span className="font-mono">{report.baseline ?? '—'}</span>
+                    {t('communityReports.highSignalCard.fields.baseline')}{' '}
+                    <span className="font-mono">{report.baseline ?? '—'}</span>
                   </span>
                   <span className="text-ink-600">
-                    Reported:{' '}
+                    {t('communityReports.highSignalCard.fields.reported')}{' '}
                     <span className="font-mono">
                       {report.value} {report.unit}
                     </span>
                   </span>
                   <span className="text-ink-600 flex items-center gap-1">
-                    Change: <Delta value={report.change_pct} />
+                    {t('communityReports.highSignalCard.fields.change')}{' '}
+                    <Delta value={report.change_pct} />
                   </span>
                 </div>
 
                 {report.note && (
                   <p className="mt-3 text-sm text-ink-600 border-t border-ink-100 pt-2">
                     <span className="text-xs font-medium text-ink-400">
-                      Worker note:{' '}
+                      {t('shared.workerNote')}{' '}
                     </span>
                     “{report.note}”
                   </p>
@@ -117,9 +129,9 @@ export default function OfficerCommunityReports() {
         )}
       </Card>
 
-      <Card title={`Submitted reports (${data.reports.length})`}>
+      <Card title={t('communityReports.submittedCard.title', { count: data.reports.length })}>
         {data.reports.length === 0 ? (
-          <Empty>No community reports have been submitted for your area.</Empty>
+          <Empty>{t('communityReports.submittedCard.empty')}</Empty>
         ) : (
           <ul className="space-y-3">
             {data.reports.map((report) => (
@@ -134,7 +146,7 @@ export default function OfficerCommunityReports() {
                 <div className="flex flex-wrap items-center gap-2">
                   {!report.acknowledged && (
                     <span className="pill bg-sentinel-600 text-white">
-                      New report
+                      {t('shared.newReportBadge')}
                     </span>
                   )}
                   <span className="text-sm font-semibold">
@@ -142,7 +154,7 @@ export default function OfficerCommunityReports() {
                   </span>
                   {report.unusual_observation && (
                     <span className="pill bg-amber-100 text-amber-800">
-                      flagged unusual
+                      {t('shared.flaggedUnusual')}
                     </span>
                   )}
                   <span className="ml-auto text-xs text-ink-400 font-mono">
@@ -151,9 +163,13 @@ export default function OfficerCommunityReports() {
                 </div>
 
                 <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-600">
-                  <span>Reported by {report.worker_name}</span>
+                  <span>{t('shared.reportedBy', { name: report.worker_name })}</span>
                   <span>{formatWhen(report.submitted_at)}</span>
-                  <span>{report.total_cases} reported case(s) in total</span>
+                  <span>
+                    {t('communityReports.submittedCard.totalCases', {
+                      count: report.total_cases,
+                    })}
+                  </span>
                 </div>
 
                 <ul className="mt-3 space-y-2">
@@ -167,7 +183,7 @@ export default function OfficerCommunityReports() {
                           {entry.label}
                         </span>
                         <span className="text-sm text-ink-600 font-mono">
-                          {entry.case_count} reported
+                          {t('shared.reportedCount', { count: entry.case_count })}
                         </span>
                       </div>
                       {entry.description && (
@@ -182,7 +198,7 @@ export default function OfficerCommunityReports() {
                 {report.notes && (
                   <p className="mt-3 text-sm text-ink-600 border-t border-ink-100 pt-2">
                     <span className="text-xs font-medium text-ink-400">
-                      Worker notes:{' '}
+                      {t('shared.workerNotes')}{' '}
                     </span>
                     {report.notes}
                   </p>

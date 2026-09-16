@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Card, Empty, ErrorNote, Loading } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
@@ -9,11 +10,6 @@ import type {
   OperationalContextMode,
   SourceOperationalContext,
 } from '@/types'
-
-const MODE_LABELS: Record<OperationalContextMode, string> = {
-  TEMPORARILY_UNAVAILABLE: 'Temporarily unavailable',
-  EXPECTED_VARIATION: 'Expected unusual activity',
-}
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -27,6 +23,8 @@ interface ConfigureDialogProps {
 }
 
 function ConfigureDialog({ source, existing, onClose, onSaved }: ConfigureDialogProps) {
+  const { t } = useTranslation('officer')
+  const { t: tc } = useTranslation('common')
   const [mode, setMode] = useState<OperationalContextMode>(existing?.mode ?? 'TEMPORARILY_UNAVAILABLE')
   const [reason, setReason] = useState(existing?.reason ?? '')
   const [notes, setNotes] = useState(existing?.notes ?? '')
@@ -38,11 +36,11 @@ function ConfigureDialog({ source, existing, onClose, onSaved }: ConfigureDialog
   async function save(event: FormEvent) {
     event.preventDefault()
     if (!reason.trim()) {
-      setError('A reason is required — e.g. "School holiday".')
+      setError(t('operationalContext.dialog.reasonRequired'))
       return
     }
     if (startsOn > endsOn) {
-      setError('The period cannot end before it starts.')
+      setError(t('operationalContext.dialog.invalidRange'))
       return
     }
     setBusy(true)
@@ -63,7 +61,7 @@ function ConfigureDialog({ source, existing, onClose, onSaved }: ConfigureDialog
       }
       onSaved()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save.')
+      setError(err instanceof Error ? err.message : tc('validation.genericSaveError'))
     } finally {
       setBusy(false)
     }
@@ -81,7 +79,7 @@ function ConfigureDialog({ source, existing, onClose, onSaved }: ConfigureDialog
       >
         <div>
           <h2 className="text-base font-semibold text-ink-900">{source.name}</h2>
-          <p className="text-xs text-ink-500">Configure operational context</p>
+          <p className="text-xs text-ink-500">{t('operationalContext.dialog.subtitle')}</p>
         </div>
 
         <div className="space-y-2">
@@ -91,7 +89,7 @@ function ConfigureDialog({ source, existing, onClose, onSaved }: ConfigureDialog
               checked={mode === 'TEMPORARILY_UNAVAILABLE'}
               onChange={() => setMode('TEMPORARILY_UNAVAILABLE')}
             />
-            Temporarily unavailable
+            {t('operationalContext.mode.TEMPORARILY_UNAVAILABLE')}
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -99,16 +97,16 @@ function ConfigureDialog({ source, existing, onClose, onSaved }: ConfigureDialog
               checked={mode === 'EXPECTED_VARIATION'}
               onChange={() => setMode('EXPECTED_VARIATION')}
             />
-            Expected unusual activity
+            {t('operationalContext.mode.EXPECTED_VARIATION')}
           </label>
         </div>
 
         <div>
-          <label className="label" htmlFor="oc-reason">Reason</label>
+          <label className="label" htmlFor="oc-reason">{t('operationalContext.dialog.reasonLabel')}</label>
           <input
             id="oc-reason"
             className="input"
-            placeholder="e.g. School holiday"
+            placeholder={t('operationalContext.dialog.reasonPlaceholder')}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
@@ -116,7 +114,7 @@ function ConfigureDialog({ source, existing, onClose, onSaved }: ConfigureDialog
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label" htmlFor="oc-start">From</label>
+            <label className="label" htmlFor="oc-start">{t('operationalContext.dialog.fromLabel')}</label>
             <input
               id="oc-start"
               type="date"
@@ -126,7 +124,7 @@ function ConfigureDialog({ source, existing, onClose, onSaved }: ConfigureDialog
             />
           </div>
           <div>
-            <label className="label" htmlFor="oc-end">Until</label>
+            <label className="label" htmlFor="oc-end">{t('operationalContext.dialog.untilLabel')}</label>
             <input
               id="oc-end"
               type="date"
@@ -138,7 +136,7 @@ function ConfigureDialog({ source, existing, onClose, onSaved }: ConfigureDialog
         </div>
 
         <div>
-          <label className="label" htmlFor="oc-notes">Notes (optional)</label>
+          <label className="label" htmlFor="oc-notes">{t('operationalContext.dialog.notesLabel')}</label>
           <textarea
             id="oc-notes"
             rows={2}
@@ -149,19 +147,17 @@ function ConfigureDialog({ source, existing, onClose, onSaved }: ConfigureDialog
         </div>
 
         <p className="text-xs text-ink-500">
-          The source remains visible and its reported values are preserved.
-          This only changes how the reading is interpreted for the period
-          above — it will not count toward independent corroboration.
+          {t('operationalContext.dialog.helper')}
         </p>
 
         {error && <ErrorNote message={error} />}
 
         <div className="flex gap-2">
           <button type="submit" className="btn-care flex-1" disabled={busy}>
-            {busy ? 'Saving…' : 'Save context'}
+            {busy ? tc('actions.saving') : t('operationalContext.dialog.saveButton')}
           </button>
           <button type="button" className="btn-ghost" onClick={onClose} disabled={busy}>
-            Cancel
+            {tc('actions.cancel')}
           </button>
         </div>
       </form>
@@ -178,6 +174,8 @@ function SourceRow({
   context: SourceOperationalContext | undefined
   onChanged: () => void
 }) {
+  const { t } = useTranslation('officer')
+  const { t: tc } = useTranslation('common')
   const [showDialog, setShowDialog] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -200,10 +198,10 @@ function SourceRow({
         <span className="font-medium text-sm">{source.name}</span>
         {active ? (
           <span className="pill bg-amber-100 text-amber-800">
-            {MODE_LABELS[context.mode]}
+            {t(`operationalContext.mode.${context.mode}`)}
           </span>
         ) : (
-          <span className="pill bg-care-100 text-care-700">Active</span>
+          <span className="pill bg-care-100 text-care-700">{tc('status.ACTIVE')}</span>
         )}
       </div>
 
@@ -211,8 +209,8 @@ function SourceRow({
         <>
           <p className="mt-1.5 text-sm text-ink-700">{context.reason}</p>
           <p className="text-xs text-ink-500">
-            {context.starts_on} → {context.ends_on} · Excluded from independent
-            corroboration · Automatically resumes after {context.ends_on}
+            {context.starts_on} → {context.ends_on} · {t('shared.excludedFromCorroboration')} ·{' '}
+            {t('operationalContext.row.autoResumes', { date: context.ends_on })}
           </p>
           <div className="mt-2 flex gap-2">
             <button
@@ -220,21 +218,21 @@ function SourceRow({
               onClick={() => setShowDialog(true)}
               disabled={busy}
             >
-              Edit
+              {tc('actions.edit')}
             </button>
             <button className="btn-ghost text-xs" onClick={restoreNow} disabled={busy}>
-              Restore now
+              {t('operationalContext.row.restoreNow')}
             </button>
           </div>
         </>
       ) : (
         <>
-          <p className="mt-1 text-xs text-ink-500">Signals interpreted normally.</p>
+          <p className="mt-1 text-xs text-ink-500">{t('operationalContext.row.normalNote')}</p>
           <button
             className="btn-ghost mt-2 text-xs"
             onClick={() => setShowDialog(true)}
           >
-            Configure
+            {t('operationalContext.row.configure')}
           </button>
         </>
       )}
@@ -255,6 +253,7 @@ function SourceRow({
 }
 
 export default function OperationalContextPage() {
+  const { t } = useTranslation('officer')
   const { user } = useAuth()
   const sources = useAsync<DataSourceRow[]>(
     () => api.get(user?.village_code ? `/data-sources/?village=${user.village_code}` : '/data-sources/'),
@@ -262,7 +261,7 @@ export default function OperationalContextPage() {
   )
   const contexts = useAsync<SourceOperationalContext[]>(() => api.get('/source-contexts/'))
 
-  if (sources.loading || contexts.loading) return <Loading label="Loading operational context…" />
+  if (sources.loading || contexts.loading) return <Loading label={t('operationalContext.loading')} />
   if (sources.error) return <ErrorNote message={sources.error} onRetry={sources.reload} />
   if (contexts.error) return <ErrorNote message={contexts.error} onRetry={contexts.reload} />
 
@@ -282,17 +281,17 @@ export default function OperationalContextPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Operational context</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t('operationalContext.title')}</h1>
         <p className="text-sm text-ink-600 mt-0.5">
-          {user?.village_name ?? 'Your area'} — record a known reason a source
-          should not count toward independent corroboration for a specific
-          period. Raw reported values are always preserved.
+          {t('operationalContext.subtitle', {
+            village: user?.village_name ?? t('shared.scopeYourArea'),
+          })}
         </p>
       </div>
 
-      <Card title="Data sources">
+      <Card title={t('operationalContext.dataSourcesTitle')}>
         {rows.length === 0 ? (
-          <Empty>No data sources registered for this village.</Empty>
+          <Empty>{t('operationalContext.noSources')}</Empty>
         ) : (
           <div className="space-y-3">
             {rows.map((source) => (

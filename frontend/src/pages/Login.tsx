@@ -1,6 +1,8 @@
 import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
+import { LanguageSelector } from '@/components/LanguageSelector'
 import { homeRouteFor, useAuth } from '@/store/auth'
 
 /** Demonstration credentials, grouped by area. */
@@ -28,6 +30,7 @@ const OTHER_ACCOUNTS = [{ username: 'admin', role: 'Administrator' }]
 const DEMO_PASSWORD = 'demo1234'
 
 export default function Login() {
+  const { t } = useTranslation()
   const { signIn, error, clearError, status } = useAuth()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
@@ -52,7 +55,10 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-ink-50 flex flex-col">
-      <main className="flex-1 flex items-center justify-center px-4 py-10">
+      <div className="flex justify-end px-4 py-3">
+        <LanguageSelector />
+      </div>
+      <main className="flex-1 flex items-center justify-center px-4 pb-10 pt-0">
         <div className="w-full max-w-md">
           {/* Identity */}
           <div className="text-center">
@@ -73,20 +79,20 @@ export default function Login() {
               </svg>
             </div>
             <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink-900">
-              GramSentinel
+              {t('app.name')}
             </h1>
-            <p className="text-sm text-ink-600">Rural Healthcare Intelligence</p>
+            <p className="text-sm text-ink-600">{t('app.tagline')}</p>
           </div>
 
           {/* Sign-in */}
           <div className="card mt-6">
             <div className="px-6 py-5">
-              <h2 className="text-sm font-semibold text-ink-800">Secure login</h2>
+              <h2 className="text-sm font-semibold text-ink-800">{t('auth.secureLogin')}</h2>
 
               <form onSubmit={handleSubmit} className="mt-5 space-y-4">
                 <div>
                   <label className="label" htmlFor="username">
-                    Username
+                    {t('auth.username')}
                   </label>
                   <input
                     id="username"
@@ -104,7 +110,7 @@ export default function Login() {
 
                 <div>
                   <label className="label" htmlFor="password">
-                    Password
+                    {t('auth.password')}
                   </label>
                   <input
                     id="password"
@@ -134,7 +140,7 @@ export default function Login() {
                   className="btn-sentinel w-full"
                   disabled={status === 'loading' || !username || !password}
                 >
-                  {status === 'loading' ? 'Signing in…' : 'Login'}
+                  {status === 'loading' ? t('auth.signingIn') : t('auth.login')}
                 </button>
               </form>
             </div>
@@ -149,10 +155,10 @@ export default function Login() {
                 aria-expanded={showAccounts}
               >
                 <span className="text-xs font-medium text-ink-600">
-                  Demonstration accounts
+                  {t('auth.demoAccounts')}
                 </span>
                 <span className="text-xs text-ink-400">
-                  {showAccounts ? 'Hide' : 'Show'}
+                  {showAccounts ? t('actions.hide') : t('actions.show')}
                 </span>
               </button>
 
@@ -217,11 +223,11 @@ export default function Login() {
                   </div>
 
                   <p className="text-xs text-ink-400">
-                    Password for all:{' '}
+                    {t('auth.demoPasswordLabel')}{' '}
                     <code className="font-mono text-ink-600">
                       {DEMO_PASSWORD}
                     </code>{' '}
-                    · Accounts are provisioned by an administrator.
+                    · {t('auth.demoAccountsNote')}
                   </p>
                 </div>
               )}

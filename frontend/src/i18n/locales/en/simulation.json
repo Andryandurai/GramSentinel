@@ -1,0 +1,556 @@
+{
+  "page": {
+    "subtitle": "GramSentinel Intelligence Simulator — synthetic demonstration scenarios. Does not touch any real operational data.",
+    "loadingScenarios": "Loading simulation scenarios…",
+    "selectPrompt": "Select a scenario above to begin.",
+    "aria": {
+      "controls": "Simulation controls",
+      "intelligence": "Simulation intelligence",
+      "alert": "Alert intelligence"
+    }
+  },
+  "scope": {
+    "title": "Current operational scope",
+    "noVillage": "No village assigned",
+    "note": "Fixed to your own assigned area. There is no option to switch village here."
+  },
+  "scenarioSelector": {
+    "label": "Scenario",
+    "placeholder": "Select a scenario…",
+    "starting": "Starting…",
+    "startError": "Could not start the simulation."
+  },
+  "scenarioTypes": {
+    "EMERGING_SIGNAL": "Emerging Community Signal",
+    "STABLE_COMMUNITY": "Stable Community",
+    "WEAK_EVIDENCE": "Weak Evidence",
+    "MISSING_DATA": "Missing Data",
+    "SOURCE_DISAGREEMENT": "Source Disagreement",
+    "WHAT_IF": "What-If",
+    "REPLAY": "Replay",
+    "LIVE_EMERGENCE": "Live Signal Emergence"
+  },
+  "pipeline": {
+    "heading": "Multi-agent pipeline",
+    "legend": {
+      "deterministic": "Deterministic",
+      "llmAssisted": "LLM-assisted wording"
+    },
+    "notYetRun": "Not yet run",
+    "notYetRunHint": "Runs the next time this session advances a week.",
+    "notSubmitted": "not submitted",
+    "noPriorWeek": "no prior week to compare",
+    "checksHumanReview": "{{count}} checks · human review required",
+    "evidenceSummary": "{{reported}} source(s) reported, {{missing}} missing this week."
+  },
+  "stages": {
+    "ingestion": "Data Ingestion",
+    "signal_analysis": "Signal Analysis",
+    "correlation": "Correlation",
+    "evidence": "Evidence",
+    "safety": "Safety"
+  },
+  "trend": {
+    "SIGNAL_DETECTED": "Signal Detected",
+    "INCREASING": "Increasing",
+    "STABLE": "Stable",
+    "NORMAL": "Normal"
+  },
+  "evidenceStrength": {
+    "STRONG": "Strong",
+    "MODERATE": "Moderate",
+    "WEAK": "Weak"
+  },
+  "timeline": {
+    "empty": "No reporting weeks are available yet for this session.",
+    "xAxisLabel": "Reporting Week",
+    "yAxisLabel": "Reported Cases",
+    "tooltipNotReported": "Not reported",
+    "tooltipReported": "{{value}} reported",
+    "tooltipDefaultSignal": "Signal",
+    "weekRow": "Week {{week}}",
+    "notReported": "not reported"
+  },
+  "constellation": {
+    "primarySignalLabel": "PRIMARY SIGNAL — {{signal}}",
+    "unknownSignal": "Unknown",
+    "empty": "Evidence relationships appear once this session has advanced past week 1."
+  },
+  "sourceFusion": {
+    "empty": "Source comparison appears once this session has advanced past week 1.",
+    "headers": {
+      "source": "Source",
+      "status": "Status",
+      "thisWeek": "This week",
+      "reason": "Reason"
+    },
+    "syntheticNote": "Synthetic simulation source",
+    "notSubmitted": "not submitted"
+  },
+  "dataQuality": {
+    "reportingCompleteness": "Reporting completeness",
+    "historicalWindow": "Historical window",
+    "duplicatesChecked": "Duplicate reports checked",
+    "yes": "Yes",
+    "notTracked": "Not tracked in this simulation",
+    "perSourceCompleteness": "Per-source completeness",
+    "weeksCompleteness": "{{reported}}/{{expected}} weeks ({{pct}}%)",
+    "missingReporting": "Missing reporting",
+    "missingNeverZero": "A missing report is never treated as a reported zero."
+  },
+  "whyModal": {
+    "trigger": "Why am I seeing this?",
+    "heading": "Why am I seeing this?",
+    "close": "Close",
+    "fields": {
+      "signal": "Signal",
+      "supportingSources": "Supporting sources",
+      "conflictingSources": "Conflicting sources",
+      "insufficientSources": "Insufficient / missing sources",
+      "reportingPeriods": "Reporting periods",
+      "dataQuality": "Data quality",
+      "evidenceStrength": "Preliminary evidence strength",
+      "safetyStatus": "Safety status",
+      "routingReason": "Routing reason",
+      "suggestedVerification": "Suggested verification"
+    },
+    "none": "None",
+    "footer": "This is a synthetic simulation. Evidence reflects reported data only — not a diagnosis, not a confirmed outbreak. Safety verification always requires human review before any action is taken."
+  },
+  "safetyChecks": {
+    "village_scope_verified": "Signal belongs to authorized village scope",
+    "reporting_period_validated": "Reporting period validated",
+    "duplicate_records_checked": "Duplicate records checked",
+    "sufficient_historical_window": "Sufficient historical window",
+    "source_relationships_evaluated": "Source relationships evaluated",
+    "missing_data_assessed": "Missing data assessed",
+    "no_individual_diagnosis_generated": "No individual diagnosis generated",
+    "no_autonomous_outbreak_declaration": "No autonomous outbreak declaration",
+    "human_review_required": "Human review required"
+  },
+  "safetyBanner": {
+    "PASS": {
+      "headline": "PASS — Human Review Required",
+      "detail": "All nine safety checks passed. The signal still requires authorized officer review."
+    },
+    "INSUFFICIENT": {
+      "headline": "INSUFFICIENT — Investigation requires human verification",
+      "detail": "Evidence is insufficient for escalation. Recommended: continue monitoring and verify with available sources."
+    },
+    "BLOCK": {
+      "headline": "BLOCK — Safety conditions not satisfied",
+      "detail": "One or more safety checks failed. This signal cannot proceed as-is."
+    }
+  },
+  "safetyGate": {
+    "heading": "Safety Verification",
+    "notEvaluated": "Safety has not been evaluated for this week yet.",
+    "evidenceStrengthLabel": "Evidence strength:"
+  },
+  "intelligence": {
+    "heading": "Signal Intelligence",
+    "headingReplay": "Signal Intelligence — Replay",
+    "loading": "Loading signal intelligence…",
+    "sectionTimeline": "Community Signal Timeline",
+    "sectionConstellation": "Evidence Constellation",
+    "sectionSourceFusion": "Source Fusion",
+    "sectionDataQuality": "Data Quality Lens"
+  },
+  "replay": {
+    "liveControlsAria": "Live simulation controls",
+    "navAria": "Simulation replay navigation",
+    "liveWeek": "LIVE WEEK {{week}} / {{total}}",
+    "paused": "PAUSED",
+    "pause": "⏸ Pause",
+    "resume": "▶ Resume",
+    "stop": "■ Stop",
+    "weekOf": "Week {{week}} / {{max}}",
+    "previous": "◀ Previous",
+    "play": "▶ Play",
+    "next": "Next ▶",
+    "reset": "↻ Reset",
+    "speed": "Speed:",
+    "heading": "Replay",
+    "backToLive": "Back to Live",
+    "summaryLine": "Week {{week}} / {{max}} · Speed {{speed}}x"
+  },
+  "live": {
+    "status": {
+      "IDLE": "Not connected",
+      "CONNECTING": "Connecting…",
+      "CONNECTED": "Connected",
+      "DISCONNECTED": "Disconnected",
+      "RECONNECTING": "Reconnecting…",
+      "ERROR": "Connection error"
+    },
+    "heading": "Live Streaming",
+    "liveBadge": "● LIVE",
+    "paused": "PAUSED",
+    "goLive": "Go Live",
+    "reconnect": "Reconnect",
+    "start": "Start",
+    "pause": "Pause",
+    "resume": "Resume",
+    "stop": "Stop",
+    "disconnect": "Disconnect"
+  },
+  "whatIf": {
+    "missing": "Missing",
+    "evaluating": "Evaluating hypothetical information…",
+    "apply": "Apply Investigation Input",
+    "reset": "Reset Investigation Input",
+    "notReported": "not reported",
+    "noneApplied": "No investigation input has been applied yet.",
+    "hypotheticalBadge": "HYPOTHETICAL",
+    "signalDetectedHeading": "HYPOTHETICAL SIGNAL DETECTED",
+    "signalDetectedDetail": "Simulation result only — the original session's own signal state is unchanged.",
+    "evidenceLabel": "Evidence",
+    "safetyLabel": "Safety",
+    "supportingLabel": "Supporting",
+    "conflictingLabel": "Conflicting",
+    "none": "None",
+    "impactOfInput": "Impact of Input",
+    "evidenceChangeLine": "Evidence: {{before}} → {{after}}",
+    "safetyChangeLine": "Safety: {{before}} → {{after}}",
+    "blockedMessage": "Signal processing is blocked pending safety verification.",
+    "resultHeading": "What-If Result",
+    "hypotheticalSimulationBadge": "HYPOTHETICAL SIMULATION",
+    "hypotheticalDetail": "Hypothetical scenario — does not create a real alert or represent a confirmed outbreak.",
+    "pipelineHeading": "Hypothetical Multi-Agent Pipeline",
+    "safetyEvalHeading": "Hypothetical Safety Evaluation",
+    "description": "Test how additional or missing information could change the evidence for this signal. This does not change the original simulation.",
+    "detailsSummary": "Verify / What-If Information"
+  },
+  "counterfactual": {
+    "optionIncrease": "{{source}} increases",
+    "optionStable": "{{source}} remains stable",
+    "optionBegins": "{{source}} begins reporting",
+    "strengthenHeading": "What could strengthen this signal?",
+    "weakenHeading": "What could weaken this signal?",
+    "noStrengthenOptions": "No sources available to strengthen this week.",
+    "noWeakenOptions": "No sources available to weaken this week.",
+    "hypotheticalValueLabel": "Hypothetical value",
+    "run": "Run Counterfactual",
+    "running": "Running…",
+    "reset": "Reset Counterfactual",
+    "sectionHeading": "Counterfactual Investigation",
+    "sectionSubtitle": "What could change the evidence for this signal?",
+    "currentEvidence": "Current evidence",
+    "supportingInline": "Supporting:",
+    "conflictingInline": "Conflicting:",
+    "none": "None",
+    "disabledReplay": "Exit Replay to run a counterfactual investigation on the current week.",
+    "disabledLive": "Pause or stop Live Emergence to run a counterfactual investigation.",
+    "resultBadge": "HYPOTHETICAL / SIMULATION ONLY",
+    "resultDetail": "Scenario simulation — does not create a real alert and is never shown as an operational signal.",
+    "table": {
+      "result": "Result",
+      "original": "Original",
+      "hypothetical": "Hypothetical",
+      "trend": "Trend",
+      "supportingSources": "Supporting sources",
+      "conflictingSources": "Conflicting sources",
+      "missingSources": "Missing sources",
+      "evidence": "Evidence",
+      "safety": "Safety",
+      "humanReview": "Human review"
+    },
+    "required": "Required",
+    "hypotheticalValuesApplied": "Hypothetical values applied",
+    "whyChanged": "Why did the assessment change?",
+    "whatChanged": "What changed?",
+    "safetyDetail": "Safety detail",
+    "noChangeApplied": "No hypothetical change was applied, so the assessment is unchanged.",
+    "supportingIncrease": "The hypothetical change adds {{count}} more supporting source(s), so the signal is corroborated by more independent sources.",
+    "supportingDecrease": "The hypothetical change removes {{count}} supporting source(s), so the signal has less independent corroboration.",
+    "conflictingIncrease": "A hypothetical source now conflicts with the trend, reducing the strength of the evidence.",
+    "missingIncrease": "A previously reported source is hypothetically missing, weakening reporting completeness.",
+    "missingDecrease": "A previously missing source hypothetically reports now, improving reporting completeness.",
+    "noEffect": "The hypothetical value(s) below were applied, but they did not change which sources support or conflict with this signal, so the evidence assessment stays the same.",
+    "safetyMoved": "Safety moved from {{before}} to {{after}} based on this hypothetical evidence.",
+    "diffLine": "{{label}}: {{before}} → {{after}} ({{sign}}{{delta}})",
+    "evidenceDiffLine": "Evidence: {{before}} → {{after}}",
+    "safetyDiffLine": "Safety: {{before}} → {{after}}",
+    "summary": {
+      "title": "Counterfactual",
+      "original": "Original",
+      "hypothetical": "Hypothetical",
+      "noChange": "No hypothetical change was applied.",
+      "changedBecause": "Changed because: {{reason}}",
+      "valuesApplied": "Hypothetical value(s) applied — see full comparison below.",
+      "safety": "Safety",
+      "humanReview": "Human review"
+    }
+  },
+  "session": {
+    "heading": "Simulation",
+    "advance": "Next Week (Advance)",
+    "loading": "Loading…",
+    "reset": "Reset Simulation",
+    "complete": "Simulation complete — synthetic replay only, no operational alert or investigation was created.",
+    "infoHeading": "Session",
+    "scenario": "Scenario",
+    "status": "Status",
+    "week": "Week",
+    "scenarioStatus": "Scenario status"
+  },
+  "currentWeek": {
+    "heading": "Community Signal Summary",
+    "currentSignals": "Current synthetic signals",
+    "sourceReports": "Source reports this week",
+    "notSubmitted": "not submitted"
+  },
+  "investigate": {
+    "button": "Investigate Signal",
+    "blockedTitle": "Investigation is unavailable while the Safety Gate is BLOCK.",
+    "blockedMessage": "Unavailable while Safety = BLOCK. Review the Safety Gate section for the reason."
+  },
+  "investigationHint": {
+    "openNotebook": "Open the Investigation Notebook to see prioritisation.",
+    "notOpened": "No investigation opened for this session yet."
+  },
+  "alertPanel": {
+    "empty": "Alert intelligence appears once this session has data to show.",
+    "heading": "Officer Intelligence & Response",
+    "evidenceStrength": "Evidence Strength",
+    "recommendedNextStep": "Recommended Next Step",
+    "investigationPriority": "Investigation Priority",
+    "supportingSources": "Supporting Sources",
+    "conflictingSources": "Conflicting Sources",
+    "none": "None",
+    "dataQuality": "Data Quality",
+    "percentComplete": "{{pct}}% complete",
+    "missingReports": "{{count}} missing report(s) — see Data Quality Lens.",
+    "whyThisAlert": "Why This Alert?",
+    "safetyStatus": "Safety Status",
+    "notEvaluated": "Not yet evaluated for this week.",
+    "investigationStatus": "Investigation Status"
+  },
+  "recommendation": {
+    "sentence": {
+      "CONTINUE_MONITORING": "Continue routine monitoring; evidence does not yet warrant further action.",
+      "REQUEST_MORE_DATA": "Request additional reporting from relevant sources before drawing a conclusion.",
+      "VERIFY_WITH_PHC": "Review the conflicting source reports and verify the signal with PHC.",
+      "CONDUCT_FIELD_VERIFICATION": "Verify the signal with PHC and conduct field verification before further escalation.",
+      "REQUEST_LABORATORY_VERIFICATION": "Request laboratory verification to confirm the reported signal.",
+      "ESCALATE_FOR_HUMAN_REVIEW": "Escalate for human public-health review.",
+      "CLOSE_AS_INSUFFICIENT_EVIDENCE": "Continue monitoring; evidence remains insufficient to escalate."
+    }
+  },
+  "decision": {
+    "CONTINUE_MONITORING": "Continue Monitoring",
+    "REQUEST_MORE_DATA": "Request More Data",
+    "VERIFY_WITH_PHC": "Verify with PHC",
+    "CONDUCT_FIELD_VERIFICATION": "Conduct Field Verification",
+    "REQUEST_LABORATORY_VERIFICATION": "Request Laboratory Verification",
+    "ESCALATE_FOR_HUMAN_REVIEW": "Escalate for Human Review",
+    "CLOSE_AS_INSUFFICIENT_EVIDENCE": "Close as Insufficient Evidence"
+  },
+  "feedbackLabels": {
+    "usefulness": {
+      "VERY_USEFUL": "Very Useful",
+      "USEFUL": "Useful",
+      "PARTIALLY_USEFUL": "Partially Useful",
+      "NOT_USEFUL": "Not Useful"
+    },
+    "evidenceSufficiency": {
+      "SUFFICIENT": "Sufficient",
+      "PARTIALLY_SUFFICIENT": "Partially Sufficient",
+      "INSUFFICIENT": "Insufficient"
+    },
+    "yesPartiallyNo": {
+      "YES": "Yes",
+      "PARTIALLY": "Partially",
+      "NO": "No"
+    },
+    "yesNo": {
+      "YES": "Yes",
+      "NO": "No"
+    }
+  },
+  "signalState": {
+    "detected": "SIGNAL DETECTED",
+    "current": "Current Signal",
+    "week": "Week",
+    "currentValue": "Current",
+    "previousValue": "Previous",
+    "changeLabel": "Change:"
+  },
+  "mode": {
+    "replay": "◷ REPLAY",
+    "liveSimulation": "● LIVE SIMULATION",
+    "liveError": "● LIVE — ERROR",
+    "livePrefix": "● LIVE — {{status}}",
+    "counterfactual": "◆ COUNTERFACTUAL",
+    "whatIf": "◆ WHAT-IF"
+  },
+  "notebook": {
+    "sections": {
+      "overview": "Overview",
+      "timeline": "Signal Timeline",
+      "evidence": "Evidence Sources",
+      "contradictions": "Contradictions",
+      "context": "Community Context",
+      "notes": "Field Notes",
+      "checklist": "Verification Checklist",
+      "decision": "Decision Workspace",
+      "recommendation": "Final Recommendation",
+      "feedback": "Feedback & Quality"
+    },
+    "header": {
+      "title": "Investigation Notebook",
+      "weekLabel": "Week {{week}}"
+    },
+    "aria": {
+      "nav": "Investigation navigation",
+      "content": "Investigation content",
+      "summary": "Investigation summary",
+      "footer": "Investigation navigation controls"
+    },
+    "nav": {
+      "heading": "Investigation Sections",
+      "statusLine": "Status: {{status}}"
+    },
+    "summary": {
+      "heading": "Summary",
+      "signal": "Signal",
+      "trend": "Trend",
+      "evidence": "Evidence",
+      "priority": "Priority",
+      "safety": "Safety",
+      "progress": "Progress",
+      "checklistCount": "{{checked}} / {{total}} checklist items completed",
+      "safetyBlock": "SAFETY BLOCK — escalation is not available for this signal."
+    },
+    "overview": {
+      "title": "Investigation Overview",
+      "id": "Investigation ID",
+      "village": "Village",
+      "scenario": "Scenario",
+      "currentWeek": "Current Week",
+      "signalCategory": "Signal Category",
+      "trend": "Trend",
+      "evidenceStrength": "Evidence Strength",
+      "priority": "Investigation Priority",
+      "safetyResult": "Safety Result",
+      "supporting": "Supporting:",
+      "conflicting": "Conflicting:",
+      "insufficient": "Insufficient:",
+      "none": "none"
+    },
+    "timeline": {
+      "title": "Signal Timeline",
+      "sourceEvolution": "Source Evolution",
+      "inspectWeek": "Inspect a week:",
+      "backToCurrent": "Back to current",
+      "viewingHistorical": "◷ Viewing historical week {{week}} — read-only replay, nothing changes.",
+      "tableSource": "Source",
+      "tableValue": "Value",
+      "tableReported": "Reported",
+      "notReported": "Not reported",
+      "reported": "Reported",
+      "empty": "No reporting weeks are available yet for this session."
+    },
+    "pipelineCard": {
+      "title": "How This Intelligence Was Produced"
+    },
+    "evidence": {
+      "empty": "No evidence available yet for this session."
+    },
+    "contradictions": {
+      "title": "Contradictions",
+      "none": "No conflicting source relationship detected.",
+      "inspectorTitle": "Contradiction Inspector",
+      "suggestedVerification": "Suggested verification"
+    },
+    "context": {
+      "title": "Community Context",
+      "empty": "No synthetic community context recorded for this scenario.",
+      "badge": "SYNTHETIC SIMULATION CONTEXT",
+      "weekNote": "Week {{week}}: {{note}}"
+    },
+    "fieldNotes": {
+      "notesTitle": "Investigation Notes",
+      "placeholder": "General notes, signal interpretation, data inconsistencies, community observations, verification notes, recommendation notes…",
+      "saving": "Saving…",
+      "savedAuto": "Saved automatically as you type.",
+      "observationsTitle": "Simulated Field Observations",
+      "noObservations": "No simulated field observations recorded.",
+      "weekSource": "Week {{week}} · {{source}}",
+      "badge": "SIMULATED FIELD OBSERVATION",
+      "weekPlaceholder": "Week",
+      "sourcePlaceholder": "Source (e.g. CHW)",
+      "notesPlaceholder": "Observation notes",
+      "add": "Add",
+      "requiredError": "Week, source, and notes are all required.",
+      "saveError": "Unable to save this observation."
+    },
+    "checklist": {
+      "title": "Verification Checklist",
+      "progressLine": "{{checked}} / {{total}} completed — Investigation Progress: {{percent}}%"
+    },
+    "decision": {
+      "evidenceSummaryTitle": "Evidence Summary",
+      "evidence": "Evidence",
+      "safety": "Safety",
+      "dataQuality": "Data Quality",
+      "checklist": "Checklist",
+      "whatIfTitle": "What-If Comparison",
+      "whatIfEmpty": "No hypothetical comparison has been run yet — run one from Simulation Lab.",
+      "evidenceStrength": "Evidence Strength",
+      "original": "Original: {{value}}",
+      "whatIfValue": "What-If: {{value}}",
+      "changedSources": "Changed sources",
+      "none": "none",
+      "workspaceTitle": "Decision Workspace",
+      "systemIntelligenceBadge": "SYSTEM INTELLIGENCE",
+      "safetyBlockTitle": "SAFETY BLOCK",
+      "safetyBlockMessage": "This investigation cannot be finalized while the Safety Gate result is BLOCK. Review the Safety Gate section to see what failed, and resolve it before recording a decision.",
+      "systemSuggested": "System Suggested Next Step:",
+      "suggestionOnly": "— a suggestion only; you choose the final decision.",
+      "officerDecisionBadge": "OFFICER DECISION",
+      "reasonPlaceholder": "Optional reason for this decision…",
+      "recordError": "Unable to record this decision. Please try again.",
+      "recorded": "Recorded:",
+      "recordedBy": "by {{by}}",
+      "recordedOn": "on {{date}}"
+    },
+    "recommendation": {
+      "title": "Final Recommendation",
+      "noDecision": "No decision has been recorded yet — see the Decision Workspace section.",
+      "officerDecision": "Officer decision:",
+      "footer": "Decision support only — this is an evidence-grounded suggestion, never an autonomous action."
+    },
+    "feedback": {
+      "title": "Officer Feedback",
+      "badge": "SIMULATION EVALUATION",
+      "description": "This describes your own experience investigating this signal — not a verdict on whether it was medically correct. It never changes the recorded decision, evidence, or safety result.",
+      "usefulnessQuestion": "How useful was this signal?",
+      "evidenceSufficiencyQuestion": "Evidence sufficiency",
+      "recommendationHelpfulQuestion": "Was the suggested next step helpful?",
+      "additionalVerificationQuestion": "Additional verification required?",
+      "commentLabel": "Comment (optional)",
+      "save": "Save Feedback",
+      "saved": "Feedback saved ✓",
+      "loading": "Loading feedback…"
+    },
+    "liveUpdate": {
+      "banner": "NEW SIGNAL DATA AVAILABLE — Week {{week}} completed. Evidence and safety updated.",
+      "refresh": "Refresh Investigation Context",
+      "dismiss": "Dismiss"
+    },
+    "footer": {
+      "back": "◀ Back to Simulation",
+      "previous": "◀ Previous",
+      "next": "Next Section ▶",
+      "exportReport": "Export Report",
+      "generating": "Generating…",
+      "disclaimer": "Synthetic simulation only — not real surveillance data. The system organizes evidence and suggests verification steps; the Health Officer makes every final decision."
+    },
+    "errors": {
+      "invalidLink": "This investigation link is invalid.",
+      "loading": "Loading investigation…",
+      "openFromLab": "Open this investigation from the Simulation Lab to load it here."
+    }
+  }
+}

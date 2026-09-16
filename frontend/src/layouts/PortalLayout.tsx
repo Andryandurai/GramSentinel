@@ -1,11 +1,13 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
+import { LanguageSelector } from '@/components/LanguageSelector'
 import { SyntheticBadge } from '@/components/ui'
 import { useAuth } from '@/store/auth'
 
 interface NavItem {
   to: string
-  label: string
+  labelKey: string
 }
 
 /**
@@ -22,6 +24,9 @@ export function PortalLayout({
   wide = false,
   headerExtra,
 }: {
+  /** Translation keys (task §29: no literal strings passed at the call
+   *  site), resolved via `t()` here so every `PortalLayout` consumer stays
+   *  a one-line key reference. */
   portal: string
   subtitle: string
   accent: 'care' | 'sentinel'
@@ -37,6 +42,7 @@ export function PortalLayout({
 }) {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const bar = accent === 'care' ? 'bg-care-700' : 'bg-sentinel-700'
   const active =
@@ -51,19 +57,20 @@ export function PortalLayout({
         <div className={`mx-auto ${containerWidth} px-4 py-3 flex items-center gap-4`}>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-semibold tracking-tight">GramSentinel</span>
-              <span className="text-white/40">/</span>
-              <span className="text-sm text-white/90">{portal}</span>
+              <span className="font-semibold tracking-tight">{t('app.name')}</span>
+              <span className="text-white/40">{t('header.portalSeparator')}</span>
+              <span className="text-sm text-white/90">{t(portal)}</span>
             </div>
-            <p className="text-xs text-white/70 truncate">{subtitle}</p>
+            <p className="text-xs text-white/70 truncate">{t(subtitle)}</p>
           </div>
 
-          <div className="ml-auto flex items-center gap-4">
+          <div className="ml-auto flex items-center gap-3">
+            <LanguageSelector tone="dark" />
             {headerExtra}
             <div className="text-right hidden sm:block">
               <div className="text-sm font-medium">{user?.display_name}</div>
               <div className="text-xs text-white/70">
-                {user?.role.replace(/_/g, ' ')}
+                {user ? t(`role.${user.role}`, { defaultValue: user.role.replace(/_/g, ' ') }) : ''}
                 {user?.village_name ? ` · ${user.village_name}` : ''}
                 {user?.district ? ` · ${user.district}` : ''}
               </div>
@@ -75,7 +82,7 @@ export function PortalLayout({
                 navigate('/login')
               }}
             >
-              Sign out
+              {t('header.signOut')}
             </button>
           </div>
         </div>
@@ -95,7 +102,7 @@ export function PortalLayout({
                 }`
               }
             >
-              {item.label}
+              {t(item.labelKey)}
             </NavLink>
           ))}
           <div className="ml-auto hidden md:block py-2">
@@ -112,30 +119,30 @@ export function PortalLayout({
 }
 
 export const WORKER_NAV: NavItem[] = [
-  { to: '/worker/dashboard', label: 'Dashboard' },
-  { to: '/worker/assessment/new', label: 'New assessment' },
-  { to: '/worker/community-report', label: 'Community report' },
-  { to: '/worker/local-signals', label: 'Local signals' },
-  { to: '/worker/work', label: 'Work & Communication' },
-  { to: '/worker/profile', label: 'My profile' },
+  { to: '/worker/dashboard', labelKey: 'nav.dashboard' },
+  { to: '/worker/assessment/new', labelKey: 'nav.newAssessment' },
+  { to: '/worker/community-report', labelKey: 'nav.communityReport' },
+  { to: '/worker/local-signals', labelKey: 'nav.localSignals' },
+  { to: '/worker/work', labelKey: 'nav.work' },
+  { to: '/worker/profile', labelKey: 'nav.profile' },
 ]
 
 export const OFFICER_NAV: NavItem[] = [
-  { to: '/officer/dashboard', label: 'Dashboard' },
-  { to: '/officer/community-data', label: 'Community data' },
-  { to: '/officer/community-reports', label: 'Community reports' },
-  { to: '/officer/history', label: 'Alert history' },
-  { to: '/officer/simulation', label: 'Simulation Lab' },
-  { to: '/officer/team', label: 'Health team' },
-  { to: '/officer/work', label: 'Team Workspace' },
-  { to: '/officer/operational-context', label: 'Operational context' },
-  { to: '/officer/profile', label: 'My profile' },
+  { to: '/officer/dashboard', labelKey: 'nav.dashboard' },
+  { to: '/officer/community-data', labelKey: 'nav.communityData' },
+  { to: '/officer/community-reports', labelKey: 'nav.communityReports' },
+  { to: '/officer/history', labelKey: 'nav.alertHistory' },
+  { to: '/officer/simulation', labelKey: 'nav.simulationLab' },
+  { to: '/officer/team', labelKey: 'nav.healthTeam' },
+  { to: '/officer/work', labelKey: 'nav.teamWorkspace' },
+  { to: '/officer/operational-context', labelKey: 'nav.operationalContext' },
+  { to: '/officer/profile', labelKey: 'nav.profile' },
 ]
 
 //: An administrator keeps their existing access to the officer and worker
 //: portals; these are shortcuts to it, not a replacement for it.
 export const ADMIN_NAV: NavItem[] = [
-  { to: '/admin/dashboard', label: 'Platform overview' },
-  { to: '/officer/dashboard', label: 'Officer portal' },
-  { to: '/worker/dashboard', label: 'Worker portal' },
+  { to: '/admin/dashboard', labelKey: 'nav.platformOverview' },
+  { to: '/officer/dashboard', labelKey: 'nav.officerPortal' },
+  { to: '/worker/dashboard', labelKey: 'nav.workerPortal' },
 ]

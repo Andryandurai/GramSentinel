@@ -247,6 +247,7 @@ export interface FollowUp {
   assessment: number | null
   due_date: string
   status: 'PENDING' | 'COMPLETED' | 'MISSED'
+  priority: 'NORMAL' | 'HIGH' | 'URGENT'
   /** Derived from the stored due date — what the card sorts and labels by. */
   followup_status: FollowUpState
   followup_status_label: string
@@ -1708,4 +1709,114 @@ export interface FieldOpsMeta {
   departments: Department[]
   officers: Array<{ id: number; name: string }>
   staff: Array<{ id: number; name: string }>
+}
+
+// ---------------------------------------------------------------------------
+// Pregnancy / Maternal Health follow-up
+// ---------------------------------------------------------------------------
+export type PregnancyVisitNumber = 1 | 2 | 3 | 4
+
+export type PicmeRchStatus = 'AVAILABLE' | 'REGISTRATION_PENDING' | 'NOT_AVAILABLE'
+
+export type PregnancyStatus = 'ACTIVE' | 'COMPLETED' | 'TRANSFERRED' | 'CLOSED'
+
+export type PregnancyQuestionType = 'YES_NO' | 'DATE'
+
+export interface PregnancyQuestion {
+  key: string
+  text: string
+  type: PregnancyQuestionType
+  warning_sign: boolean
+}
+
+export interface PregnancyRuleFlag {
+  rule: string
+  label: string
+  detail: string
+  [extra: string]: unknown
+}
+
+export interface PregnancyAiGuidance {
+  visit_summary: string
+  follow_up_status: string
+  next_checkup: string | null
+  warning_signs: string[]
+  suggested_action: string
+  picme_follow_up: string
+  missing_information: string[]
+  requires_human_review: boolean
+  completed_visit_count: number
+}
+
+export interface PregnancyVisitAssessment {
+  id: number
+  visit_number: PregnancyVisitNumber
+  visit_label: string
+  visit_date: string
+  questionnaire_responses: Record<string, string>
+  next_checkup_date: string | null
+  warning_signs: string[]
+  rule_flags: PregnancyRuleFlag[]
+  ai_guidance: PregnancyAiGuidance
+  llm_used: boolean
+  worker_name: string
+  created_at: string
+}
+
+export interface PregnancyVisitStatus {
+  completed_visit_count: number
+  target_visit_count: number
+  next_checkup_date: string | null
+  rule_flags: PregnancyRuleFlag[]
+}
+
+export interface PregnancyProfile {
+  id: number
+  patient: number
+  patient_code: string
+  patient_name: string
+  village: number
+  village_name: string
+  picme_rch_id: string
+  picme_rch_status: PicmeRchStatus
+  lmp: string | null
+  expected_delivery_date: string | null
+  registration_date: string
+  next_checkup_date: string | null
+  assigned_health_worker: number | null
+  assigned_health_worker_name: string
+  status: PregnancyStatus
+  created_at: string
+  updated_at: string
+  visits: PregnancyVisitAssessment[]
+  visit_status: PregnancyVisitStatus
+}
+
+export interface OfficerPregnancyListItem {
+  id: number
+  patient_code: string
+  village_name: string
+  picme_rch_status: PicmeRchStatus
+  visit_status: PregnancyVisitStatus
+  last_visit_date: string | null
+  next_checkup_date: string | null
+  status: PregnancyStatus
+  assigned_health_worker_name: string
+}
+
+export interface WorkerPregnancySummary {
+  active_pregnancies: number
+  due_soon: number
+  overdue: number
+  missing_picme: number
+}
+
+export interface OfficerPregnancySummary {
+  active_pregnancies: number
+  completed_anc_visits: number
+  due_followups: number
+  overdue_followups: number
+  below_visit_target: number
+  picme_registration_pending: number
+  scope: { village_code: string | null; is_district_wide: boolean }
 }

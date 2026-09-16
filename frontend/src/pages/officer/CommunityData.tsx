@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   CartesianGrid,
   Legend,
@@ -55,9 +56,9 @@ const TREND_STYLES: Record<
 }
 
 /** Percentage, "new", or a dash — never NaN, Infinity or undefined. */
-function changeText(row: CommunityDataCategory): string {
+function changeText(row: CommunityDataCategory, newLabel: string): string {
   if (row.direction === 'INSUFFICIENT_DATA') return '—'
-  if (row.is_new_activity) return 'new'
+  if (row.is_new_activity) return newLabel
   if (row.change_pct === null || row.change_pct === undefined) return '—'
   const rounded = Math.round(row.change_pct)
   return `${rounded > 0 ? '+' : ''}${rounded}%`
@@ -78,6 +79,7 @@ function TrendCell({ row }: { row: CommunityDataCategory }) {
 const ALL = 'ALL'
 
 export default function CommunityDataPage() {
+  const { t } = useTranslation('officer')
   const [days, setDays] = useState(14)
   const [severity, setSeverity] = useState(ALL)
   const [category, setCategory] = useState(ALL)
@@ -103,7 +105,7 @@ export default function CommunityDataPage() {
               : 'text-ink-600 hover:bg-ink-50'
           }`}
         >
-          Last {option} days
+          {t('communityData.periodOption', { days: option })}
         </button>
       ))}
     </div>
@@ -113,12 +115,12 @@ export default function CommunityDataPage() {
     <div className="flex flex-wrap items-end gap-4">
       <div>
         <h1 className="text-xl font-semibold tracking-tight">
-          Community health data
+          {t('communityData.title')}
         </h1>
         <p className="text-sm text-ink-600 mt-0.5">
           {data?.scope.is_district_wide
-            ? 'All villages in your district'
-            : (data?.scope.village_name ?? 'Your area')}
+            ? t('shared.scopeAllVillages')
+            : (data?.scope.village_name ?? t('shared.scopeYourArea'))}
         </p>
       </div>
       <div className="ml-auto">{periodSelector}</div>
@@ -129,7 +131,7 @@ export default function CommunityDataPage() {
     return (
       <div className="space-y-6">
         {header}
-        <Loading label="Loading community data…" />
+        <Loading label={t('communityData.loading')} />
       </div>
     )
   }
@@ -154,16 +156,18 @@ export default function CommunityDataPage() {
       <RealWorldCommunityProfile profile={data.scope.real_world_profile} />
 
       <p className="text-sm text-ink-600">
-        Reported {period.current.start} to {period.current.end}, compared with
-        the {period.days} days before it.
+        {t('communityData.reportedRange', {
+          start: period.current.start,
+          end: period.current.end,
+          days: period.days,
+        })}
       </p>
 
       {data.is_empty ? (
-        <Card title="Community health data">
-          <Empty>No community data available for this period.</Empty>
+        <Card title={t('communityData.title')}>
+          <Empty>{t('communityData.empty')}</Empty>
           <p className="text-center text-xs text-ink-400 -mt-3">
-            Try a longer period, or wait for the next community report from
-            your area.
+            {t('communityData.emptyHint')}
           </p>
         </Card>
       ) : (
@@ -177,7 +181,7 @@ export default function CommunityDataPage() {
                   <span className="text-base text-red-600">↑</span>
                 </span>
               }
-              label="Signals increasing"
+              label={t('communityData.stats.increasing')}
               tone={summary.increasing ? 'red' : 'ink'}
             />
             <Stat
@@ -187,7 +191,7 @@ export default function CommunityDataPage() {
                   <span className="text-base text-ink-400">→</span>
                 </span>
               }
-              label="Signals stable"
+              label={t('communityData.stats.stable')}
             />
             <Stat
               value={
@@ -196,34 +200,33 @@ export default function CommunityDataPage() {
                   <span className="text-base text-care-600">↓</span>
                 </span>
               }
-              label="Signals decreasing"
+              label={t('communityData.stats.decreasing')}
               tone="care"
             />
             <Stat
               value={summary.total_current_cases}
-              label="Reported cases this period"
+              label={t('communityData.stats.casesThisPeriod')}
               tone="sentinel"
             />
           </div>
 
           {!period.has_previous_period_data && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              No reports exist for the previous {period.days} days, so trends
-              cannot be calculated for this period yet.
+              {t('communityData.noPreviousPeriodData', { days: period.days })}
             </div>
           )}
 
           {/* The table */}
-          <Card title="Reported community health signals">
+          <Card title={t('communityData.table.title')}>
             <div className="overflow-x-auto -mx-5">
               <table className="w-full min-w-[640px]">
                 <thead>
                   <tr>
-                    <th className="table-head">Health signal</th>
-                    <th className="table-head">Current</th>
-                    <th className="table-head">Previous</th>
-                    <th className="table-head">Change</th>
-                    <th className="table-head">Trend</th>
+                    <th className="table-head">{t('communityData.table.columns.signal')}</th>
+                    <th className="table-head">{t('communityData.table.columns.current')}</th>
+                    <th className="table-head">{t('communityData.table.columns.previous')}</th>
+                    <th className="table-head">{t('communityData.table.columns.change')}</th>
+                    <th className="table-head">{t('communityData.table.columns.trend')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -235,7 +238,7 @@ export default function CommunityDataPage() {
                         </span>
                         {row.described_entries > 0 && (
                           <span className="ml-2 pill bg-ink-100 text-ink-600">
-                            {row.described_entries} noted
+                            {t('communityData.table.noted', { count: row.described_entries })}
                           </span>
                         )}
                       </td>
@@ -249,7 +252,7 @@ export default function CommunityDataPage() {
                         <span
                           className={`font-mono text-sm ${TREND_STYLES[row.direction].text}`}
                         >
-                          {changeText(row)}
+                          {changeText(row, t('communityData.table.new'))}
                         </span>
                       </td>
                       <td className="table-cell">
@@ -267,12 +270,12 @@ export default function CommunityDataPage() {
 
           {/* Chart — the two filters below narrow exactly this card. */}
           <Card
-            title={data.series.title || 'Reported cases over time'}
+            title={data.series.title || t('communityData.chart.titleFallback')}
             action={
               <div className="flex flex-wrap items-end gap-3">
                 <div>
                   <label className="label mb-0.5" htmlFor="severity-filter">
-                    Severity
+                    {t('communityData.chart.severityLabel')}
                   </label>
                   <select
                     id="severity-filter"
@@ -289,7 +292,7 @@ export default function CommunityDataPage() {
                 </div>
                 <div>
                   <label className="label mb-0.5" htmlFor="signal-filter">
-                    Health signal
+                    {t('communityData.chart.signalLabel')}
                   </label>
                   <select
                     id="signal-filter"
@@ -301,7 +304,7 @@ export default function CommunityDataPage() {
                       <option key={option.value} value={option.value}>
                         {option.label}
                         {option.value !== ALL && !option.has_data
-                          ? ' — no reports'
+                          ? t('communityData.chart.noReportsSuffix')
                           : ''}
                       </option>
                     ))}
@@ -315,7 +318,7 @@ export default function CommunityDataPage() {
                       setCategory(ALL)
                     }}
                   >
-                    Clear
+                    {t('communityData.chart.clear')}
                   </button>
                 )}
               </div>
@@ -331,11 +334,11 @@ export default function CommunityDataPage() {
               <>
                 <Empty>
                   {data.series.empty_message ||
-                    'Insufficient data for this selection.'}
+                    t('communityData.chart.emptyFallback')}
                 </Empty>
                 <p className="-mt-3 text-center text-xs text-ink-400">
                   {data.series.empty_hint ||
-                    'Try a wider selection or a longer period.'}
+                    t('communityData.chart.emptyHintFallback')}
                 </p>
               </>
             ) : (
@@ -365,7 +368,7 @@ export default function CommunityDataPage() {
                         border: '1px solid #dde1e9',
                       }}
                       formatter={(value: number, name: string) => [
-                        `${value} reported`,
+                        t('shared.reportedCount', { count: value }),
                         name,
                       ]}
                     />
@@ -403,15 +406,16 @@ export default function CommunityDataPage() {
                         TREND_STYLES.INSUFFICIENT_DATA
                       ).arrow
                     }{' '}
-                    {data.series.trend?.direction_label ?? 'Insufficient data'}
+                    {data.series.trend?.direction_label ?? t('communityData.chart.insufficientData')}
                   </span>
                   <span className="text-xs text-ink-600">
                     {data.series.trend_note}
                   </span>
                   <span className="ml-auto text-xs text-ink-400">
-                    {data.series.total_reported} reported across{' '}
-                    {data.series.weeks_covered} week
-                    {data.series.weeks_covered === 1 ? '' : 's'}
+                    {t('shared.trendSummary', {
+                      total: data.series.total_reported,
+                      count: data.series.weeks_covered,
+                    })}
                   </span>
                 </>
               )}
@@ -420,7 +424,7 @@ export default function CommunityDataPage() {
 
           {/* Workers' own words */}
           {data.recent_observations.length > 0 && (
-            <Card title="Observations from your workers">
+            <Card title={t('communityData.observations.title')}>
               <ul className="space-y-2">
                 {data.recent_observations.map((observation, index) => (
                   <li
@@ -432,11 +436,11 @@ export default function CommunityDataPage() {
                         {observation.label}
                       </span>
                       <span className="text-sm text-ink-600 font-mono">
-                        {observation.case_count} reported
+                        {t('shared.reportedCount', { count: observation.case_count })}
                       </span>
                       {observation.unusual_observation && (
                         <span className="pill bg-amber-100 text-amber-800">
-                          flagged unusual
+                          {t('shared.flaggedUnusual')}
                         </span>
                       )}
                       <span className="ml-auto text-xs text-ink-400 font-mono">

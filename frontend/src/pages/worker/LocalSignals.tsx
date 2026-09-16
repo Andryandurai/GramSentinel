@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Card, Delta, Empty, ErrorNote, Loading } from '@/components/ui'
 import { useAsync } from '@/hooks/useAsync'
@@ -36,6 +37,8 @@ function ReportToOfficerDialog({
   onCancel: () => void
   onSent: () => void
 }) {
+  const { t } = useTranslation('worker')
+  const { t: tc } = useTranslation('common')
   const [note, setNote] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,7 +51,7 @@ function ReportToOfficerDialog({
       await api.post('/local-signal-reports/', { signal: signal.id, note: note.trim() })
       onSent()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send the report.')
+      setError(err instanceof Error ? err.message : t('localSignals.sendError'))
       setSending(false)
     }
   }
@@ -66,65 +69,67 @@ function ReportToOfficerDialog({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="report-to-officer-heading" className="text-base font-semibold text-ink-900">
-          Report to Health Officer
+          {t('localSignals.reportToOfficer')}
         </h2>
-        <p className="mt-1 text-xs text-ink-500">You are reporting this local signal:</p>
+        <p className="mt-1 text-xs text-ink-500">{t('localSignals.confirmTitle')}</p>
 
         <dl className="mt-3 space-y-2 text-sm">
           <div>
-            <dt className="label">Signal</dt>
+            <dt className="label">{t('localSignals.signal')}</dt>
             <dd className="text-ink-800">{categoryLabel}</dd>
           </div>
           <div>
-            <dt className="label">Status</dt>
+            <dt className="label">{t('localSignals.statusLabel')}</dt>
             <dd>
-              <span className="pill bg-amber-100 text-amber-800">above baseline</span>
+              <span className="pill bg-amber-100 text-amber-800">{t('localSignals.aboveBaseline')}</span>
             </dd>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <dt className="label">Source</dt>
+              <dt className="label">{t('localSignals.source')}</dt>
               <dd className="text-ink-800">{signal.source_kind}</dd>
             </div>
             <div>
-              <dt className="label">Reporting week</dt>
+              <dt className="label">{t('localSignals.reportingWeek')}</dt>
               <dd className="font-mono text-xs text-ink-800">{signal.week_label}</dd>
             </div>
             <div>
-              <dt className="label">Baseline</dt>
+              <dt className="label">{t('localSignals.baseline')}</dt>
               <dd className="font-mono text-ink-800">{signal.baseline ?? '—'}</dd>
             </div>
             <div>
-              <dt className="label">Reported</dt>
+              <dt className="label">{t('localSignals.reported')}</dt>
               <dd className="font-mono text-ink-800">
                 {signal.value} {signal.unit}
               </dd>
             </div>
           </div>
           <div>
-            <dt className="label">Change</dt>
+            <dt className="label">{t('localSignals.change')}</dt>
             <dd>
               <Delta value={signal.change_pct} />
             </dd>
           </div>
           <div className="rounded-md bg-ink-50 border border-ink-200 px-3 py-2">
-            <dt className="label">Destination</dt>
+            <dt className="label">{t('localSignals.destination')}</dt>
             <dd className="text-ink-800">
-              Health Officer <span className="text-ink-400">·</span> {villageName}
+              {tc('role.HEALTH_OFFICER')} <span className="text-ink-400">·</span> {villageName}
             </dd>
-            <dd className="mt-0.5 text-xs text-ink-400">Reported by {workerName}</dd>
+            <dd className="mt-0.5 text-xs text-ink-400">
+              {t('localSignals.reportedBy', { workerName })}
+            </dd>
           </div>
         </dl>
 
         <div className="mt-4">
           <label className="label" htmlFor="report-note">
-            Optional note
+            {t('localSignals.optionalNote')}
           </label>
           <textarea
             id="report-note"
             rows={2}
             className="input"
-            placeholder="Anything the officer should know before reviewing this."
+            placeholder={t('localSignals.notePlaceholder')}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             maxLength={1000}
@@ -139,10 +144,10 @@ function ReportToOfficerDialog({
 
         <div className="mt-4 flex gap-2">
           <button className="btn-care flex-1" onClick={send} disabled={sending}>
-            {sending ? 'Sending…' : 'Send Report'}
+            {sending ? t('shared.sending') : t('localSignals.sendReport')}
           </button>
           <button className="btn-ghost" onClick={onCancel} disabled={sending}>
-            Cancel
+            {tc('actions.cancel')}
           </button>
         </div>
       </div>
@@ -151,6 +156,8 @@ function ReportToOfficerDialog({
 }
 
 export default function LocalSignalsPage() {
+  const { t } = useTranslation('worker')
+  const { t: tc } = useTranslation('common')
   const { user } = useAuth()
   const { data, loading, error, reload } = useAsync<LocalSignals>(() =>
     api.get('/local-signals/'),
@@ -160,7 +167,7 @@ export default function LocalSignalsPage() {
   const [reportedIds, setReportedIds] = useState<Set<number>>(new Set())
   const [confirmation, setConfirmation] = useState<string | null>(null)
 
-  if (loading) return <Loading label="Loading local signals…" />
+  if (loading) return <Loading label={tc('states.loading')} />
   if (error) return <ErrorNote message={error} onRetry={reload} />
   if (!data) return null
 
@@ -170,18 +177,18 @@ export default function LocalSignalsPage() {
     if (!reportTarget) return
     setReportedIds((prev) => new Set(prev).add(reportTarget.signal.id))
     setReportTarget(null)
-    setConfirmation('Report sent to the Health Officer.')
+    setConfirmation(t('localSignals.reportSuccess'))
     window.setTimeout(() => setConfirmation(null), 4000)
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Local signals</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{tc('nav.localSignals')}</h1>
         <p className="text-sm text-ink-600 mt-0.5">
           {data.village
             ? `${data.village.name} · ${data.village.cluster}`
-            : 'No village assigned'}
+            : t('shared.noVillageAssigned')}
         </p>
       </div>
 
@@ -207,9 +214,9 @@ export default function LocalSignalsPage() {
         </p>
       </div>
 
-      <Card title={`Reported signals by category (${groups.length})`}>
+      <Card title={t('localSignals.categoryCardTitle', { count: groups.length })}>
         {groups.length === 0 ? (
-          <Empty>No signals recorded for your area yet.</Empty>
+          <Empty>{t('localSignals.noSignalsRecorded')}</Empty>
         ) : (
           <ul className="space-y-2">
             {groups.map((group) => {
@@ -238,12 +245,11 @@ export default function LocalSignalsPage() {
                     </span>
                     {group.is_rising && (
                       <span className="pill bg-amber-100 text-amber-800">
-                        above baseline
+                        {t('localSignals.aboveBaseline')}
                       </span>
                     )}
                     <span className="text-xs text-ink-400">
-                      {group.signals.length} record
-                      {group.signals.length === 1 ? '' : 's'}
+                      {t('localSignals.recordCount', { count: group.signals.length })}
                     </span>
                     <span className="text-ink-400 text-xs">
                       {open ? '▾' : '▸'}
@@ -255,11 +261,11 @@ export default function LocalSignalsPage() {
                       <table className="w-full min-w-[520px]">
                         <thead>
                           <tr>
-                            <th className="table-head">Source</th>
-                            <th className="table-head">Week</th>
-                            <th className="table-head">Baseline</th>
-                            <th className="table-head">Reported</th>
-                            <th className="table-head">Change</th>
+                            <th className="table-head">{t('localSignals.source')}</th>
+                            <th className="table-head">{t('localSignals.week')}</th>
+                            <th className="table-head">{t('localSignals.baseline')}</th>
+                            <th className="table-head">{t('localSignals.reported')}</th>
+                            <th className="table-head">{t('localSignals.change')}</th>
                             <th className="table-head" />
                           </tr>
                         </thead>
@@ -283,7 +289,7 @@ export default function LocalSignalsPage() {
                                     `${signal.value} ${signal.unit}`
                                   ) : (
                                     <span className="text-ink-400 italic">
-                                      not submitted
+                                      {t('localSignals.notSubmitted')}
                                     </span>
                                   )}
                                 </td>
@@ -294,7 +300,7 @@ export default function LocalSignalsPage() {
                                   {rising &&
                                     (reported ? (
                                       <span className="text-xs text-care-700">
-                                        Reported ✓
+                                        {t('localSignals.reportedConfirmation')}
                                       </span>
                                     ) : (
                                       <button
@@ -306,7 +312,7 @@ export default function LocalSignalsPage() {
                                           })
                                         }
                                       >
-                                        Report to Health Officer
+                                        {t('localSignals.reportToOfficer')}
                                       </button>
                                     ))}
                                 </td>
@@ -326,8 +332,10 @@ export default function LocalSignalsPage() {
         <div className="mt-4 border-t border-ink-200 pt-3 space-y-1">
           <p className="text-xs text-ink-600">{data.signal_note}</p>
           <p className="text-xs text-ink-400">
-            {data.scope_note} A source that did not submit is shown as “not
-            submitted” — never as zero.
+            {data.scope_note}{' '}
+            {t('localSignals.notSubmittedExplanation', {
+              notSubmittedLabel: t('localSignals.notSubmitted'),
+            })}
           </p>
         </div>
       </Card>
@@ -336,7 +344,7 @@ export default function LocalSignalsPage() {
         <ReportToOfficerDialog
           target={reportTarget}
           villageName={data.village.name}
-          workerName={user?.display_name ?? 'You'}
+          workerName={user?.display_name ?? t('workCommunication.messages.you')}
           onCancel={() => setReportTarget(null)}
           onSent={handleSent}
         />

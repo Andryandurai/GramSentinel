@@ -404,7 +404,7 @@ def build_investigation_report_pdf(
 
     story.append(Paragraph("OFFICER DECISION", h2))
     if investigation.decision:
-        decided_by = investigation.decided_by.get_full_name() if investigation.decided_by else "—"
+        decided_by = investigation.decided_by.display_name if investigation.decided_by else "—"
         story.append(
             Paragraph(
                 f"{investigation.get_decision_display()} — recorded by {decided_by} "

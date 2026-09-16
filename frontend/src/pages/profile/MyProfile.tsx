@@ -1,4 +1,5 @@
 import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import {
   Avatar,
@@ -31,14 +32,16 @@ interface FormState {
  * responses light, and the upload well inside the server's size limit — which
  * is still enforced server-side regardless of what is sent.
  */
-function readAsResizedDataUrl(file: File): Promise<string> {
+function readAsResizedDataUrl(
+  file: File,
+  errors: { readError: string; readImageError: string },
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onerror = () => reject(new Error('That file could not be read.'))
+    reader.onerror = () => reject(new Error(errors.readError))
     reader.onload = () => {
       const image = new Image()
-      image.onerror = () =>
-        reject(new Error('That file could not be read as an image.'))
+      image.onerror = () => reject(new Error(errors.readImageError))
       image.onload = () => {
         const scale = Math.min(1, MAX_EDGE / Math.max(image.width, image.height))
         const width = Math.max(1, Math.round(image.width * scale))
@@ -67,6 +70,8 @@ function readAsResizedDataUrl(file: File): Promise<string> {
 }
 
 export default function MyProfilePage() {
+  const { t } = useTranslation('officer')
+  const { t: tc } = useTranslation('common')
   const { restore } = useAuth()
   const fileInput = useRef<HTMLInputElement>(null)
   const { data, loading, error, reload } = useAsync<MyProfileResponse>(() =>
@@ -99,7 +104,7 @@ export default function MyProfilePage() {
     setPhotoTouched(false)
   }, [data])
 
-  if (loading && !data) return <Loading label="Loading your profile…" />
+  if (loading && !data) return <Loading label={t('myProfile.loading')} />
   if (error && !data) return <ErrorNote message={error} onRetry={reload} />
   if (!data || !form) return null
 
@@ -118,21 +123,24 @@ export default function MyProfilePage() {
     setSaved('')
 
     if (!limits.accepted_types.includes(file.type)) {
-      setProblem(`Choose a ${limits.accepted_label} image.`)
+      setProblem(t('myProfile.photo.wrongType', { type: limits.accepted_label }))
       return
     }
     if (file.size > limits.max_bytes * 4) {
-      setProblem(`That image is too large. Choose one under ${limits.max_size_label}.`)
+      setProblem(t('myProfile.photo.tooLarge', { size: limits.max_size_label }))
       return
     }
 
     try {
-      const resized = await readAsResizedDataUrl(file)
+      const resized = await readAsResizedDataUrl(file, {
+        readError: t('myProfile.photo.readError'),
+        readImageError: t('myProfile.photo.readImageError'),
+      })
       setPhoto(resized)
       setPhotoTouched(true)
     } catch (err) {
       setProblem(
-        err instanceof Error ? err.message : 'That image could not be read.',
+        err instanceof Error ? err.message : t('myProfile.photo.genericReadError'),
       )
     }
   }
@@ -164,13 +172,13 @@ export default function MyProfilePage() {
         '/auth/profile/',
         payload,
       )
-      setSaved(response.message || 'Your profile has been updated.')
+      setSaved(response.message || t('myProfile.saveSuccess'))
       setPhotoTouched(false)
       // Keeps the name in the portal header in step with the profile.
       void restore()
     } catch (err) {
       setProblem(
-        err instanceof Error ? err.message : 'Your profile could not be saved.',
+        err instanceof Error ? err.message : tc('validation.genericSaveError'),
       )
     } finally {
       setSaving(false)
@@ -180,7 +188,7 @@ export default function MyProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">My profile</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t('myProfile.title')}</h1>
         <p className="text-sm text-ink-600 mt-0.5">
           {profile.role_label}
           {profile.village_name ? ` · ${profile.village_name}` : ''}
@@ -189,7 +197,7 @@ export default function MyProfilePage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3 items-start">
-        <Card title="Photograph">
+        <Card title={t('myProfile.photoCard.title')}>
           <div className="flex flex-col items-center gap-4 text-center">
             <Avatar
               src={photo}
@@ -217,7 +225,7 @@ export default function MyProfilePage() {
                 className="btn-ghost py-1.5"
                 onClick={() => fileInput.current?.click()}
               >
-                {photo ? 'Replace photo' : 'Upload photo'}
+                {photo ? t('myProfile.photoCard.replacePhoto') : t('myProfile.photoCard.uploadPhoto')}
               </button>
               {photo && (
                 <button
@@ -225,32 +233,33 @@ export default function MyProfilePage() {
                   className="btn-ghost py-1.5"
                   onClick={removePhoto}
                 >
-                  Remove
+                  {t('myProfile.photoCard.remove')}
                 </button>
               )}
             </div>
             <p className="text-xs text-ink-400">
-              {limits.accepted_label}, up to {limits.max_size_label}. Larger
-              images are resized before upload.
+              {t('myProfile.photoCard.helper', {
+                acceptedLabel: limits.accepted_label,
+                maxSize: limits.max_size_label,
+              })}
             </p>
             {photoTouched && (
               <p className="text-xs text-amber-700">
-                Preview only — save below to keep this photograph.
+                {t('myProfile.photoCard.previewOnly')}
               </p>
             )}
             <p className="text-xs text-ink-400 border-t border-ink-200 pt-3">
-              Your photograph is visible to the health officer for your area and
-              to your administrator. It is not published anywhere public.
+              {t('myProfile.photoCard.privacyNote')}
             </p>
           </div>
         </Card>
 
-        <Card title="Professional details" className="lg:col-span-2">
+        <Card title={t('myProfile.detailsCard.title')} className="lg:col-span-2">
           <form onSubmit={submit} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="full_name">
-                  Full name
+                  {t('myProfile.fields.fullName')}
                 </label>
                 <input
                   id="full_name"
@@ -261,7 +270,7 @@ export default function MyProfilePage() {
               </div>
               <div>
                 <label className="label" htmlFor="staff_id">
-                  Employee / worker ID
+                  {t('myProfile.fields.employeeId')}
                 </label>
                 <input
                   id="staff_id"
@@ -272,7 +281,7 @@ export default function MyProfilePage() {
               </div>
               <div>
                 <label className="label" htmlFor="phone_number">
-                  Contact number
+                  {t('myProfile.fields.contactNumber')}
                 </label>
                 <input
                   id="phone_number"
@@ -286,7 +295,7 @@ export default function MyProfilePage() {
               </div>
               <div>
                 <label className="label" htmlFor="email">
-                  Work email
+                  {t('myProfile.fields.workEmail')}
                 </label>
                 <input
                   id="email"
@@ -298,7 +307,7 @@ export default function MyProfilePage() {
               </div>
               <div>
                 <label className="label" htmlFor="qualification">
-                  Qualification
+                  {t('myProfile.fields.qualification')}
                 </label>
                 <input
                   id="qualification"
@@ -311,7 +320,7 @@ export default function MyProfilePage() {
               </div>
               <div>
                 <label className="label" htmlFor="experience_years">
-                  Years of experience
+                  {t('myProfile.fields.experienceYears')}
                 </label>
                 <input
                   id="experience_years"
@@ -330,26 +339,26 @@ export default function MyProfilePage() {
             {/* Read-only: assignment and sign-in are administered, not
                 self-selected. */}
             <div className="rounded-md border border-ink-200 bg-ink-50 px-3 py-2">
-              <div className="label mb-1">Assigned by your administrator</div>
+              <div className="label mb-1">{t('myProfile.assignedSection.title')}</div>
               <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-ink-400">Role</dt>
+                  <dt className="text-ink-400">{t('myProfile.assignedSection.role')}</dt>
                   <dd className="text-ink-800">{profile.role_label}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-ink-400">Village / area</dt>
+                  <dt className="text-ink-400">{t('myProfile.assignedSection.villageArea')}</dt>
                   <dd className="text-ink-800">
-                    {profile.village_name ?? 'District-wide'}
+                    {profile.village_name ?? t('shared.districtWide')}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-ink-400">Facility</dt>
+                  <dt className="text-ink-400">{t('myProfile.assignedSection.facility')}</dt>
                   <dd className="text-ink-800">
                     {profile.facility_name ?? '—'}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-ink-400">Username</dt>
+                  <dt className="text-ink-400">{t('myProfile.assignedSection.username')}</dt>
                   <dd className="font-mono text-ink-800">{profile.username}</dd>
                 </div>
               </dl>
@@ -364,12 +373,13 @@ export default function MyProfilePage() {
 
             <div className="flex flex-wrap items-center gap-3">
               <button type="submit" className="btn-care" disabled={saving}>
-                {saving ? 'Saving…' : 'Save profile'}
+                {saving ? tc('actions.saving') : t('myProfile.saveButton')}
               </button>
               {profile.profile_updated_at && (
                 <span className="text-xs text-ink-400">
-                  Last updated{' '}
-                  {new Date(profile.profile_updated_at).toLocaleString()}
+                  {t('myProfile.lastUpdated', {
+                    datetime: new Date(profile.profile_updated_at).toLocaleString(),
+                  })}
                 </span>
               )}
             </div>

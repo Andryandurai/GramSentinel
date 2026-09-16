@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Card, Empty, ErrorNote, Loading, Stat } from '@/components/ui'
 import { useFieldOperationsStore } from '@/store/fieldOperations'
@@ -40,7 +41,8 @@ const PRIORITY_STYLES: Record<FieldOpsPriority, string> = {
   URGENT: 'bg-red-100 text-red-700',
 }
 function PriorityPill({ priority, label }: { priority: FieldOpsPriority; label: string }) {
-  return <span className={`pill ${PRIORITY_STYLES[priority]}`}>{label}</span>
+  const { t: tc } = useTranslation('common')
+  return <span className={`pill ${PRIORITY_STYLES[priority]}`}>{tc(`status.${priority}`, { defaultValue: label })}</span>
 }
 
 const VISIT_STATUS_STYLES: Record<string, string> = {
@@ -66,13 +68,20 @@ const CHECKLIST_STATUS_STYLES: Record<string, string> = {
 }
 
 function StatusPill({ value, label, styles }: { value: string; label: string; styles: Record<string, string> }) {
-  return <span className={`pill ${styles[value] ?? 'bg-ink-100 text-ink-600'}`}>{label}</span>
+  const { t: tc } = useTranslation('common')
+  return (
+    <span className={`pill ${styles[value] ?? 'bg-ink-100 text-ink-600'}`}>
+      {tc(`status.${value}`, { defaultValue: label })}
+    </span>
+  )
 }
 
 // ---------------------------------------------------------------------------
 // Field Visits
 // ---------------------------------------------------------------------------
 function ScheduleVisitForm({ onDone }: { onDone: () => void }) {
+  const { t } = useTranslation('operations')
+  const { t: tc } = useTranslation('common')
   const { meta, loadMeta, createVisit } = useFieldOperationsStore()
   const [form, setForm] = useState({
     visit_date: '', start_time: '', end_time: '', assigned_officer: '', objective: '', priority: 'NORMAL', notes: '',
@@ -103,7 +112,7 @@ function ScheduleVisitForm({ onDone }: { onDone: () => void }) {
       })
       onDone()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to schedule this visit.')
+      setError(err instanceof Error ? err.message : t('visits.scheduleError'))
     } finally {
       setSaving(false)
     }
@@ -113,64 +122,66 @@ function ScheduleVisitForm({ onDone }: { onDone: () => void }) {
     <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-ink-200 p-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="label">Visit date</label>
+          <label className="label">{t('visits.visitDate')}</label>
           <input type="date" className="input w-full" value={form.visit_date} onChange={(e) => setForm({ ...form, visit_date: e.target.value })} />
         </div>
         <div>
-          <label className="label">Assigned officer</label>
+          <label className="label">{t('visits.assignedOfficer')}</label>
           <select className="input w-full" value={form.assigned_officer} onChange={(e) => setForm({ ...form, assigned_officer: e.target.value })}>
-            <option value="">Select officer…</option>
+            <option value="">{t('visits.selectOfficer')}</option>
             {meta?.officers.map((o) => (
               <option key={o.id} value={o.id}>{o.name}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="label">Start time</label>
+          <label className="label">{t('visits.startTime')}</label>
           <input type="time" className="input w-full" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
         </div>
         <div>
-          <label className="label">End time</label>
+          <label className="label">{t('visits.endTime')}</label>
           <input type="time" className="input w-full" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
         </div>
         <div>
-          <label className="label">Priority</label>
+          <label className="label">{t('visits.priority')}</label>
           <select className="input w-full" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
             {meta?.priorities.map((p) => (
-              <option key={p.value} value={p.value}>{p.label}</option>
+              <option key={p.value} value={p.value}>{tc(`status.${p.value}`, { defaultValue: p.label })}</option>
             ))}
           </select>
         </div>
       </div>
       <div>
-        <label className="label">Visit objective</label>
+        <label className="label">{t('visits.visitObjectiveLabel')}</label>
         <input
           className="input w-full mb-1.5"
           list="visit-objective-templates"
-          placeholder="Select a template or type a custom objective…"
+          placeholder={t('visits.objectivePlaceholder')}
           value={form.objective}
           onChange={(e) => setForm({ ...form, objective: e.target.value })}
         />
         <datalist id="visit-objective-templates">
-          {meta?.visit_objective_templates.map((t) => <option key={t} value={t} />)}
+          {meta?.visit_objective_templates.map((template) => <option key={template} value={template} />)}
         </datalist>
       </div>
       <div>
-        <label className="label">Notes (optional)</label>
+        <label className="label">{t('visits.notes')}</label>
         <textarea className="input w-full" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
       </div>
       {error && <p className="text-xs text-red-700">{error}</p>}
       <div className="flex gap-2">
         <button type="submit" className="btn-sentinel" disabled={saving}>
-          {saving ? 'Scheduling…' : 'Schedule Visit'}
+          {saving ? t('visits.scheduling') : t('visits.submit')}
         </button>
-        <button type="button" className="btn-ghost" onClick={onDone}>Cancel</button>
+        <button type="button" className="btn-ghost" onClick={onDone}>{tc('actions.cancel')}</button>
       </div>
     </form>
   )
 }
 
 function VisitOutcomeForm({ visit, onDone }: { visit: FieldVisit; onDone: () => void }) {
+  const { t } = useTranslation('operations')
+  const { t: tc } = useTranslation('common')
   const { completeVisit } = useFieldOperationsStore()
   const [form, setForm] = useState({ outcome_summary: '', observations: '', issues_identified: '', follow_up_required: false })
   const [saving, setSaving] = useState(false)
@@ -188,22 +199,24 @@ function VisitOutcomeForm({ visit, onDone }: { visit: FieldVisit; onDone: () => 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-2 rounded-md border border-ink-100 bg-ink-50 p-3">
-      <div className="text-sm font-medium text-ink-700">Visit Outcome</div>
-      <textarea className="input w-full" rows={2} placeholder="Outcome summary" value={form.outcome_summary} onChange={(e) => setForm({ ...form, outcome_summary: e.target.value })} />
-      <textarea className="input w-full" rows={2} placeholder="Observations" value={form.observations} onChange={(e) => setForm({ ...form, observations: e.target.value })} />
-      <textarea className="input w-full" rows={2} placeholder="Issues identified" value={form.issues_identified} onChange={(e) => setForm({ ...form, issues_identified: e.target.value })} />
+      <div className="text-sm font-medium text-ink-700">{t('visits.visitOutcome')}</div>
+      <textarea className="input w-full" rows={2} placeholder={t('visits.outcomeSummary')} value={form.outcome_summary} onChange={(e) => setForm({ ...form, outcome_summary: e.target.value })} />
+      <textarea className="input w-full" rows={2} placeholder={t('visits.observations')} value={form.observations} onChange={(e) => setForm({ ...form, observations: e.target.value })} />
+      <textarea className="input w-full" rows={2} placeholder={t('visits.issuesIdentified')} value={form.issues_identified} onChange={(e) => setForm({ ...form, issues_identified: e.target.value })} />
       <label className="flex items-center gap-1.5 text-xs text-ink-600">
         <input type="checkbox" checked={form.follow_up_required} onChange={(e) => setForm({ ...form, follow_up_required: e.target.checked })} />
-        Follow-up required
+        {t('visits.followUpRequired')}
       </label>
       <button type="submit" className="btn-care py-1.5 text-xs" disabled={saving}>
-        {saving ? 'Saving…' : 'Complete Visit'}
+        {saving ? tc('actions.saving') : t('visits.completeVisit')}
       </button>
     </form>
   )
 }
 
 function VisitDetail({ visit, onOpenActionPlan }: { visit: FieldVisit; onOpenActionPlan: (prefill: ActionPlanPrefill) => void }) {
+  const { t } = useTranslation('operations')
+  const { t: tc } = useTranslation('common')
   const { startVisit, cancelVisit, clearSelectedVisit } = useFieldOperationsStore()
   const [recordingOutcome, setRecordingOutcome] = useState(false)
 
@@ -226,13 +239,13 @@ function VisitDetail({ visit, onOpenActionPlan }: { visit: FieldVisit; onOpenAct
 
       {visit.status === 'SCHEDULED' && (
         <div className="mt-3 flex gap-2">
-          <button className="btn-sentinel py-1.5 text-xs" onClick={() => void startVisit(visit.id)}>Start Visit</button>
-          <button className="btn-ghost py-1.5 text-xs" onClick={() => void cancelVisit(visit.id)}>Cancel Visit</button>
+          <button className="btn-sentinel py-1.5 text-xs" onClick={() => void startVisit(visit.id)}>{t('visits.startVisit')}</button>
+          <button className="btn-ghost py-1.5 text-xs" onClick={() => void cancelVisit(visit.id)}>{t('visits.cancelVisit')}</button>
         </div>
       )}
 
       {visit.status === 'IN_PROGRESS' && !recordingOutcome && (
-        <button className="btn-care mt-3 py-1.5 text-xs" onClick={() => setRecordingOutcome(true)}>Record Outcome &amp; Complete</button>
+        <button className="btn-care mt-3 py-1.5 text-xs" onClick={() => setRecordingOutcome(true)}>{t('visits.recordOutcomeComplete')}</button>
       )}
       {visit.status === 'IN_PROGRESS' && recordingOutcome && (
         <div className="mt-3">
@@ -242,10 +255,10 @@ function VisitDetail({ visit, onOpenActionPlan }: { visit: FieldVisit; onOpenAct
 
       {visit.status === 'COMPLETED' && (
         <div className="mt-3 space-y-1 rounded-md border border-ink-100 bg-white p-3 text-sm">
-          <div className="label">Visit Outcome</div>
-          <p><span className="font-medium">Summary: </span>{visit.outcome_summary || '—'}</p>
-          <p><span className="font-medium">Observations: </span>{visit.observations || '—'}</p>
-          <p><span className="font-medium">Issues identified: </span>{visit.issues_identified || 'None'}</p>
+          <div className="label">{t('visits.visitOutcome')}</div>
+          <p><span className="font-medium">{t('visits.summaryLabel')} </span>{visit.outcome_summary || '—'}</p>
+          <p><span className="font-medium">{t('visits.observationsLabel')} </span>{visit.observations || '—'}</p>
+          <p><span className="font-medium">{t('visits.issuesIdentifiedLabel')} </span>{visit.issues_identified || t('visits.none')}</p>
           {visit.issues_identified && (
             <button
               className="btn-sentinel mt-2 py-1.5 text-xs"
@@ -259,17 +272,19 @@ function VisitDetail({ visit, onOpenActionPlan }: { visit: FieldVisit; onOpenAct
                 })
               }
             >
-              Create Action Plan
+              {t('actionPlans.create')}
             </button>
           )}
         </div>
       )}
-      <button className="btn-ghost mt-3 py-1 text-xs" onClick={clearSelectedVisit}>Close</button>
+      <button className="btn-ghost mt-3 py-1 text-xs" onClick={clearSelectedVisit}>{tc('actions.close')}</button>
     </div>
   )
 }
 
 function FieldVisitsSection({ onOpenActionPlan }: { onOpenActionPlan: (prefill: ActionPlanPrefill) => void }) {
+  const { t } = useTranslation('operations')
+  const { t: tc } = useTranslation('common')
   const { summary, visits, visitsLoading, visitsError, loadVisits, selectedVisit, selectVisit } = useFieldOperationsStore()
   const [showForm, setShowForm] = useState(false)
   const [statusFilter, setStatusFilter] = useState('')
@@ -283,16 +298,16 @@ function FieldVisitsSection({ onOpenActionPlan }: { onOpenActionPlan: (prefill: 
     <div className="space-y-4">
       {summary && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat value={summary.field_visits.upcoming} label="Upcoming Visits" tone="sentinel" />
-          <Stat value={summary.field_visits.pending} label="Pending Visits" />
-          <Stat value={summary.field_visits.completed} label="Completed Visits" tone="care" />
-          <Stat value={summary.field_visits.overdue} label="Overdue Visits" tone={summary.field_visits.overdue > 0 ? 'amber' : 'ink'} />
+          <Stat value={summary.field_visits.upcoming} label={t('upcomingVisits')} tone="sentinel" />
+          <Stat value={summary.field_visits.pending} label={t('visits.pendingVisits')} />
+          <Stat value={summary.field_visits.completed} label={t('visits.completedVisits')} tone="care" />
+          <Stat value={summary.field_visits.overdue} label={t('visits.overdueVisitsStat')} tone={summary.field_visits.overdue > 0 ? 'amber' : 'ink'} />
         </div>
       )}
 
       <Card
-        title="Field Visits"
-        action={!showForm && <button className="btn-sentinel py-1.5 text-xs" onClick={() => setShowForm(true)}>+ Schedule Field Visit</button>}
+        title={t('visits.title')}
+        action={!showForm && <button className="btn-sentinel py-1.5 text-xs" onClick={() => setShowForm(true)}>+ {t('visits.schedule')}</button>}
       >
         {showForm && (
           <div className="mb-4">
@@ -313,42 +328,42 @@ function FieldVisitsSection({ onOpenActionPlan }: { onOpenActionPlan: (prefill: 
               className={`pill ${statusFilter === value ? 'bg-sentinel-700 text-white' : 'bg-ink-100 text-ink-600'}`}
               onClick={() => setStatusFilter(value)}
             >
-              {value || 'All'}
+              {value ? tc(`status.${value}`) : t('visits.allStatuses')}
             </button>
           ))}
         </div>
 
         {visitsLoading ? (
-          <Loading label="Loading visits…" />
+          <Loading label={t('visits.loading')} />
         ) : visitsError ? (
           <ErrorNote message={visitsError} onRetry={() => loadVisits()} />
         ) : visits.length === 0 ? (
-          <Empty>No field visits scheduled.</Empty>
+          <Empty>{t('visits.noVisits')}</Empty>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="text-left text-xs text-ink-500">
-                  <th className="py-1.5 pr-3">Date</th>
-                  <th className="py-1.5 pr-3">Village</th>
-                  <th className="py-1.5 pr-3">Officer</th>
-                  <th className="py-1.5 pr-3">Objective</th>
-                  <th className="py-1.5 pr-3">Priority</th>
-                  <th className="py-1.5 pr-3">Status</th>
+                  <th className="py-1.5 pr-3">{t('visits.date')}</th>
+                  <th className="py-1.5 pr-3">{t('visits.village')}</th>
+                  <th className="py-1.5 pr-3">{t('visits.officer')}</th>
+                  <th className="py-1.5 pr-3">{t('visits.objective')}</th>
+                  <th className="py-1.5 pr-3">{t('visits.priority')}</th>
+                  <th className="py-1.5 pr-3">{t('visits.status')}</th>
                   <th className="py-1.5" />
                 </tr>
               </thead>
               <tbody>
                 {visits.map((visit) => (
                   <tr key={visit.id} className="border-t border-ink-100">
-                    <td className="py-2 pr-3">{visit.visit_date}{visit.is_overdue && <span className="ml-1 text-[10px] text-red-600">OVERDUE</span>}</td>
+                    <td className="py-2 pr-3">{visit.visit_date}{visit.is_overdue && <span className="ml-1 text-[10px] text-red-600">{tc('status.OVERDUE')}</span>}</td>
                     <td className="py-2 pr-3">{visit.village_name}</td>
                     <td className="py-2 pr-3">{visit.assigned_officer_name}</td>
                     <td className="py-2 pr-3">{visit.objective}</td>
                     <td className="py-2 pr-3"><PriorityPill priority={visit.priority} label={visit.priority_label} /></td>
                     <td className="py-2 pr-3"><StatusPill value={visit.status} label={visit.status_label} styles={VISIT_STATUS_STYLES} /></td>
                     <td className="py-2">
-                      <button className="btn-ghost py-1 text-xs" onClick={() => void selectVisit(visit.id)}>View</button>
+                      <button className="btn-ghost py-1 text-xs" onClick={() => void selectVisit(visit.id)}>{tc('actions.view')}</button>
                     </td>
                   </tr>
                 ))}
@@ -365,6 +380,7 @@ function FieldVisitsSection({ onOpenActionPlan }: { onOpenActionPlan: (prefill: 
 // Inspections
 // ---------------------------------------------------------------------------
 function StartInspectionForm({ onDone }: { onDone: (inspectionId: number) => void }) {
+  const { t } = useTranslation('operations')
   const { meta, loadMeta, createInspection } = useFieldOperationsStore()
   const [inspectionType, setInspectionType] = useState<InspectionType | ''>('')
   const [saving, setSaving] = useState(false)
@@ -388,7 +404,7 @@ function StartInspectionForm({ onDone }: { onDone: (inspectionId: number) => voi
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-ink-200 p-4">
-      <label className="label">Inspection type</label>
+      <label className="label">{t('inspections.type')}</label>
       <div className="grid gap-2 sm:grid-cols-2">
         {meta?.inspection_types.map((type) => (
           <label key={type.value} className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer ${inspectionType === type.value ? 'border-sentinel-500 bg-sentinel-50' : 'border-ink-200'}`}>
@@ -398,13 +414,15 @@ function StartInspectionForm({ onDone }: { onDone: (inspectionId: number) => voi
         ))}
       </div>
       <button type="submit" className="btn-sentinel" disabled={!inspectionType || saving}>
-        {saving ? 'Starting…' : 'Start Inspection'}
+        {saving ? t('inspections.starting') : t('inspections.start')}
       </button>
     </form>
   )
 }
 
 function ChecklistItemRow({ inspection, item }: { inspection: Inspection; item: Inspection['responses'][number] }) {
+  const { t } = useTranslation('operations')
+  const { t: tc } = useTranslation('common')
   const { updateChecklistItem } = useFieldOperationsStore()
   const [remarks, setRemarks] = useState(item.remarks)
   const [saving, setSaving] = useState<ChecklistItemStatus | null>(null)
@@ -417,7 +435,7 @@ function ChecklistItemRow({ inspection, item }: { inspection: Inspection; item: 
     try {
       await updateChecklistItem(inspection.id, item.id, value, remarks)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to save this item.')
+      setError(err instanceof Error ? err.message : t('inspections.itemSaveError'))
     } finally {
       setSaving(null)
     }
@@ -433,7 +451,7 @@ function ChecklistItemRow({ inspection, item }: { inspection: Inspection; item: 
         <div className="mt-2 space-y-1.5">
           <input
             className="input w-full text-xs"
-            placeholder="Remarks (required for Failed / Needs Action)"
+            placeholder={t('inspections.remarksPlaceholder')}
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
           />
@@ -445,7 +463,7 @@ function ChecklistItemRow({ inspection, item }: { inspection: Inspection; item: 
                 disabled={saving !== null}
                 onClick={() => void mark(value)}
               >
-                {saving === value ? 'Saving…' : value.replace('_', ' ')}
+                {saving === value ? tc('actions.saving') : tc(`status.${value}`)}
               </button>
             ))}
           </div>
@@ -458,6 +476,8 @@ function ChecklistItemRow({ inspection, item }: { inspection: Inspection; item: 
 }
 
 function InspectionDetail({ inspection, onOpenActionPlan }: { inspection: Inspection; onOpenActionPlan: (prefill: ActionPlanPrefill) => void }) {
+  const { t } = useTranslation('operations')
+  const { t: tc } = useTranslation('common')
   const { startInspection, completeInspection, uploadInspectionAttachment, clearSelectedInspection } = useFieldOperationsStore()
   const [summaryRemarks, setSummaryRemarks] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -482,7 +502,7 @@ function InspectionDetail({ inspection, onOpenActionPlan }: { inspection: Inspec
       </div>
 
       {inspection.status === 'DRAFT' && (
-        <button className="btn-sentinel mt-3 py-1.5 text-xs" onClick={() => void startInspection(inspection.id)}>Begin Checklist</button>
+        <button className="btn-sentinel mt-3 py-1.5 text-xs" onClick={() => void startInspection(inspection.id)}>{t('inspections.beginChecklist')}</button>
       )}
 
       {inspection.status !== 'DRAFT' && (
@@ -494,16 +514,16 @@ function InspectionDetail({ inspection, onOpenActionPlan }: { inspection: Inspec
           </ul>
 
           <div className="mt-3 grid grid-cols-2 gap-2 rounded-md border border-ink-100 bg-white p-3 text-xs sm:grid-cols-4">
-            <div>Total: <span className="font-semibold">{inspection.summary.total}</span></div>
-            <div>Passed: <span className="font-semibold text-care-700">{inspection.summary.passed}</span></div>
-            <div>Failed: <span className="font-semibold text-red-700">{inspection.summary.failed}</span></div>
-            <div>Needs action: <span className="font-semibold text-amber-700">{inspection.summary.needs_action}</span></div>
+            <div>{t('inspections.total')}: <span className="font-semibold">{inspection.summary.total}</span></div>
+            <div>{tc('status.PASSED')}: <span className="font-semibold text-care-700">{inspection.summary.passed}</span></div>
+            <div>{tc('status.FAILED')}: <span className="font-semibold text-red-700">{inspection.summary.failed}</span></div>
+            <div>{tc('status.NEEDS_ACTION')}: <span className="font-semibold text-amber-700">{inspection.summary.needs_action}</span></div>
           </div>
 
           <div className="mt-3">
-            <div className="label">Supporting documents</div>
+            <div className="label">{t('inspections.supportingDocuments')}</div>
             {inspection.attachments.length === 0 && inspection.status !== 'COMPLETED' && (
-              <p className="text-xs text-ink-400">No documents attached yet.</p>
+              <p className="text-xs text-ink-400">{t('inspections.noDocuments')}</p>
             )}
             <ul className="text-xs text-ink-600">
               {inspection.attachments.map((a) => (
@@ -522,15 +542,15 @@ function InspectionDetail({ inspection, onOpenActionPlan }: { inspection: Inspec
             {inspection.status !== 'COMPLETED' && (
               <div className="mt-1.5 flex items-center gap-2">
                 <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="text-xs" />
-                <button className="btn-ghost py-1 text-xs" disabled={!file} onClick={() => void handleUpload()}>Upload</button>
+                <button className="btn-ghost py-1 text-xs" disabled={!file} onClick={() => void handleUpload()}>{t('inspections.upload')}</button>
               </div>
             )}
           </div>
 
           {inspection.status === 'IN_PROGRESS' && (
             <div className="mt-3 space-y-1.5">
-              <textarea className="input w-full text-sm" rows={2} placeholder="Inspection summary remarks" value={summaryRemarks} onChange={(e) => setSummaryRemarks(e.target.value)} />
-              <button className="btn-care py-1.5 text-xs" onClick={() => void completeInspection(inspection.id, summaryRemarks)}>Complete Inspection</button>
+              <textarea className="input w-full text-sm" rows={2} placeholder={t('inspections.summaryRemarksPlaceholder')} value={summaryRemarks} onChange={(e) => setSummaryRemarks(e.target.value)} />
+              <button className="btn-care py-1.5 text-xs" onClick={() => void completeInspection(inspection.id, summaryRemarks)}>{t('inspections.complete')}</button>
             </div>
           )}
 
@@ -539,7 +559,7 @@ function InspectionDetail({ inspection, onOpenActionPlan }: { inspection: Inspec
               {inspection.summary_remarks && <p className="mt-2 text-sm text-ink-700">{inspection.summary_remarks}</p>}
               {actionableItems.length > 0 && (
                 <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3">
-                  <div className="mb-1.5 text-xs font-medium text-amber-800">Items needing follow-up</div>
+                  <div className="mb-1.5 text-xs font-medium text-amber-800">{t('inspections.itemsNeedingFollowUp')}</div>
                   <ul className="space-y-1.5">
                     {actionableItems.map((item) => (
                       <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -557,7 +577,7 @@ function InspectionDetail({ inspection, onOpenActionPlan }: { inspection: Inspec
                             })
                           }
                         >
-                          Create Action Plan
+                          {t('actionPlans.create')}
                         </button>
                       </li>
                     ))}
@@ -568,12 +588,14 @@ function InspectionDetail({ inspection, onOpenActionPlan }: { inspection: Inspec
           )}
         </>
       )}
-      <button className="btn-ghost mt-3 py-1 text-xs" onClick={clearSelectedInspection}>Close</button>
+      <button className="btn-ghost mt-3 py-1 text-xs" onClick={clearSelectedInspection}>{tc('actions.close')}</button>
     </div>
   )
 }
 
 function InspectionsSection({ onOpenActionPlan }: { onOpenActionPlan: (prefill: ActionPlanPrefill) => void }) {
+  const { t } = useTranslation('operations')
+  const { t: tc } = useTranslation('common')
   const { summary, inspections, inspectionsLoading, inspectionsError, loadInspections, selectedInspection, selectInspection } =
     useFieldOperationsStore()
   const [showForm, setShowForm] = useState(false)
@@ -587,17 +609,17 @@ function InspectionsSection({ onOpenActionPlan }: { onOpenActionPlan: (prefill: 
     <div className="space-y-4">
       {summary && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          <Stat value={summary.inspections.draft} label="Draft" />
-          <Stat value={summary.inspections.in_progress} label="In Progress" tone="amber" />
-          <Stat value={summary.inspections.completed} label="Completed" tone="care" />
-          <Stat value={summary.inspections.needs_action_items} label="Needs Action" tone="amber" />
-          <Stat value={summary.inspections.failed_items} label="Failed Items" tone="red" />
+          <Stat value={summary.inspections.draft} label={tc('status.DRAFT')} />
+          <Stat value={summary.inspections.in_progress} label={tc('status.IN_PROGRESS')} tone="amber" />
+          <Stat value={summary.inspections.completed} label={tc('status.COMPLETED')} tone="care" />
+          <Stat value={summary.inspections.needs_action_items} label={tc('status.NEEDS_ACTION')} tone="amber" />
+          <Stat value={summary.inspections.failed_items} label={t('inspections.failedItems')} tone="red" />
         </div>
       )}
 
       <Card
-        title="Inspections"
-        action={!showForm && <button className="btn-sentinel py-1.5 text-xs" onClick={() => setShowForm(true)}>+ Start Inspection</button>}
+        title={t('inspections.title')}
+        action={!showForm && <button className="btn-sentinel py-1.5 text-xs" onClick={() => setShowForm(true)}>+ {t('inspections.start')}</button>}
       >
         {showForm && (
           <div className="mb-4">
@@ -612,11 +634,11 @@ function InspectionsSection({ onOpenActionPlan }: { onOpenActionPlan: (prefill: 
         )}
 
         {inspectionsLoading ? (
-          <Loading label="Loading inspections…" />
+          <Loading label={t('inspections.loading')} />
         ) : inspectionsError ? (
           <ErrorNote message={inspectionsError} onRetry={() => loadInspections()} />
         ) : inspections.length === 0 ? (
-          <Empty>No inspections have been recorded.</Empty>
+          <Empty>{t('inspections.noInspections')}</Empty>
         ) : (
           <div className="space-y-2">
             {inspections.map((inspection) => (
@@ -627,7 +649,7 @@ function InspectionsSection({ onOpenActionPlan }: { onOpenActionPlan: (prefill: 
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusPill value={inspection.status} label={inspection.status_label} styles={INSPECTION_STATUS_STYLES} />
-                  <button className="btn-ghost py-1 text-xs" onClick={() => void selectInspection(inspection.id)}>View</button>
+                  <button className="btn-ghost py-1 text-xs" onClick={() => void selectInspection(inspection.id)}>{tc('actions.view')}</button>
                 </div>
               </div>
             ))}
@@ -652,6 +674,8 @@ interface ActionPlanPrefill {
 }
 
 function ActionPlanForm({ prefill, onDone, onCancel }: { prefill: ActionPlanPrefill | null; onDone: () => void; onCancel: () => void }) {
+  const { t } = useTranslation('operations')
+  const { t: tc } = useTranslation('common')
   const { meta, loadMeta, createActionPlan } = useFieldOperationsStore()
   const [form, setForm] = useState({
     title: prefill?.title ?? '', problem_finding: prefill?.problem_finding ?? '',
@@ -689,7 +713,7 @@ function ActionPlanForm({ prefill, onDone, onCancel }: { prefill: ActionPlanPref
       })
       onDone()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to create this action plan.')
+      setError(err instanceof Error ? err.message : t('actionPlans.createError'))
     } finally {
       setSaving(false)
     }
@@ -699,55 +723,57 @@ function ActionPlanForm({ prefill, onDone, onCancel }: { prefill: ActionPlanPref
     <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-ink-200 p-4">
       {prefill && (
         <p className="rounded-md border border-sentinel-200 bg-sentinel-50 px-3 py-2 text-xs text-sentinel-800">
-          Linked to {prefill.source_type === 'FIELD_VISIT' ? 'a field visit' : 'an inspection finding'}. Confirm the details below to create this action plan.
+          {t('actionPlans.linkedNote', {
+            source: t(prefill.source_type === 'FIELD_VISIT' ? 'actionPlans.sourceFieldVisit' : 'actionPlans.sourceInspection'),
+          })}
         </p>
       )}
       <div>
-        <label className="label">Action title</label>
+        <label className="label">{t('actionPlans.actionTitle')}</label>
         <input className="input w-full" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
       </div>
       <div>
-        <label className="label">Problem / Finding</label>
+        <label className="label">{t('actionPlans.problemFinding')}</label>
         <textarea className="input w-full" rows={2} value={form.problem_finding} onChange={(e) => setForm({ ...form, problem_finding: e.target.value })} />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="label">Responsible department</label>
+          <label className="label">{t('actionPlans.responsibleDepartment')}</label>
           <select className="input w-full" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
-            <option value="">Select department…</option>
+            <option value="">{t('actionPlans.selectDepartment')}</option>
             {meta?.departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="label">Responsible person (optional)</label>
+          <label className="label">{t('actionPlans.responsiblePerson')}</label>
           <select className="input w-full" value={form.responsible_officer} onChange={(e) => setForm({ ...form, responsible_officer: e.target.value })}>
-            <option value="">Unassigned</option>
+            <option value="">{t('actionPlans.unassigned')}</option>
             {meta?.staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="label">Deadline</label>
+          <label className="label">{t('actionPlans.deadline')}</label>
           <input type="date" className="input w-full" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
         </div>
         <div>
-          <label className="label">Priority</label>
+          <label className="label">{t('actionPlans.priority')}</label>
           <select className="input w-full" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
-            {meta?.priorities.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+            {meta?.priorities.map((p) => <option key={p.value} value={p.value}>{tc(`status.${p.value}`, { defaultValue: p.label })}</option>)}
           </select>
         </div>
       </div>
       <div>
-        <label className="label">Required resources</label>
-        <textarea className="input w-full" rows={2} placeholder="e.g. Cleaning materials and sanitation staff." value={form.required_resources} onChange={(e) => setForm({ ...form, required_resources: e.target.value })} />
+        <label className="label">{t('actionPlans.requiredResources')}</label>
+        <textarea className="input w-full" rows={2} placeholder={t('actionPlans.requiredResourcesPlaceholder')} value={form.required_resources} onChange={(e) => setForm({ ...form, required_resources: e.target.value })} />
       </div>
       <div>
-        <label className="label">Notes (optional)</label>
+        <label className="label">{t('actionPlans.notes')}</label>
         <textarea className="input w-full" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
       </div>
       {error && <p className="text-xs text-red-700">{error}</p>}
       <div className="flex gap-2">
-        <button type="submit" className="btn-sentinel" disabled={saving}>{saving ? 'Creating…' : 'Create Action Plan'}</button>
-        <button type="button" className="btn-ghost" onClick={onCancel}>Cancel</button>
+        <button type="submit" className="btn-sentinel" disabled={saving}>{saving ? t('actionPlans.creating') : t('actionPlans.create')}</button>
+        <button type="button" className="btn-ghost" onClick={onCancel}>{tc('actions.cancel')}</button>
       </div>
     </form>
   )
@@ -763,6 +789,8 @@ function ProgressBar({ value }: { value: number }) {
 }
 
 function ActionPlanCard({ plan }: { plan: ActionPlan }) {
+  const { t } = useTranslation('operations')
+  const { t: tc } = useTranslation('common')
   const { updateActionPlanProgress } = useFieldOperationsStore()
   const [expanded, setExpanded] = useState(false)
   const [progress, setProgress] = useState(plan.progress_percentage)
@@ -783,8 +811,8 @@ function ActionPlanCard({ plan }: { plan: ActionPlan }) {
     <div className="rounded-lg border border-ink-200 p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <div className="font-medium text-ink-800">{plan.title}{plan.is_overdue && <span className="ml-2 text-[10px] text-red-600">OVERDUE</span>}</div>
-          <div className="text-xs text-ink-500">{plan.village_name} · {plan.department_name} · Due {plan.deadline}</div>
+          <div className="font-medium text-ink-800">{plan.title}{plan.is_overdue && <span className="ml-2 text-[10px] text-red-600">{tc('status.OVERDUE')}</span>}</div>
+          <div className="text-xs text-ink-500">{plan.village_name} · {plan.department_name} · {t('actionPlans.due')} {plan.deadline}</div>
         </div>
         <div className="flex items-center gap-1.5">
           <PriorityPill priority={plan.priority} label={plan.priority_label} />
@@ -792,11 +820,11 @@ function ActionPlanCard({ plan }: { plan: ActionPlan }) {
         </div>
       </div>
       <p className="mt-2 text-sm text-ink-700">{plan.problem_finding}</p>
-      {plan.required_resources && <p className="mt-1 text-xs text-ink-500">Resources: {plan.required_resources}</p>}
+      {plan.required_resources && <p className="mt-1 text-xs text-ink-500">{t('actionPlans.resourcesLabel')} {plan.required_resources}</p>}
 
       <div className="mt-3">
         <div className="mb-1 flex items-center justify-between text-xs text-ink-500">
-          <span>Progress</span>
+          <span>{t('actionPlans.progress')}</span>
           <span className="font-medium text-ink-700">{plan.progress_percentage}%</span>
         </div>
         <ProgressBar value={plan.progress_percentage} />
@@ -810,20 +838,20 @@ function ActionPlanCard({ plan }: { plan: ActionPlan }) {
             className="flex-1"
           />
           <span className="w-10 text-right text-xs font-medium">{progress}%</span>
-          <input className="input flex-1 text-xs" placeholder="Update note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
+          <input className="input flex-1 text-xs" placeholder={t('actionPlans.updateNotePlaceholder')} value={note} onChange={(e) => setNote(e.target.value)} />
           <button className="btn-sentinel py-1 text-xs" disabled={saving} onClick={() => void handleUpdate()}>
-            {saving ? 'Saving…' : 'Update Progress'}
+            {saving ? tc('actions.saving') : t('actionPlans.updateProgress')}
           </button>
         </div>
       )}
 
       <button className="btn-ghost mt-2 py-1 text-xs" onClick={() => setExpanded(!expanded)}>
-        {expanded ? 'Hide progress history' : 'View progress history'}
+        {expanded ? t('actionPlans.hideProgressHistory') : t('actionPlans.viewProgressHistory')}
       </button>
       {expanded && (
         <ol className="mt-2 space-y-1 border-t border-ink-100 pt-2 text-xs text-ink-600">
           {plan.progress_updates.length === 0 ? (
-            <li className="text-ink-400">No updates yet.</li>
+            <li className="text-ink-400">{t('actionPlans.noUpdates')}</li>
           ) : (
             plan.progress_updates.map((u, i) => (
               <li key={i}>
@@ -839,6 +867,8 @@ function ActionPlanCard({ plan }: { plan: ActionPlan }) {
 }
 
 function ActionPlansSection({ prefill, onPrefillConsumed }: { prefill: ActionPlanPrefill | null; onPrefillConsumed: () => void }) {
+  const { t } = useTranslation('operations')
+  const { t: tc } = useTranslation('common')
   const { summary, actionPlans, actionPlansLoading, actionPlansError, loadActionPlans } = useFieldOperationsStore()
   const [showForm, setShowForm] = useState(false)
 
@@ -855,17 +885,17 @@ function ActionPlansSection({ prefill, onPrefillConsumed }: { prefill: ActionPla
     <div className="space-y-4">
       {summary && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          <Stat value={summary.action_plans.open} label="Open" />
-          <Stat value={summary.action_plans.in_progress} label="In Progress" tone="amber" />
-          <Stat value={summary.action_plans.due_soon} label="Due Soon" tone="amber" />
-          <Stat value={summary.action_plans.overdue} label="Overdue" tone="red" />
-          <Stat value={summary.action_plans.completed} label="Completed" tone="care" />
+          <Stat value={summary.action_plans.open} label={t('actionPlans.openStat')} />
+          <Stat value={summary.action_plans.in_progress} label={tc('status.IN_PROGRESS')} tone="amber" />
+          <Stat value={summary.action_plans.due_soon} label={t('actionPlans.dueSoon')} tone="amber" />
+          <Stat value={summary.action_plans.overdue} label={tc('status.OVERDUE')} tone="red" />
+          <Stat value={summary.action_plans.completed} label={tc('status.COMPLETED')} tone="care" />
         </div>
       )}
 
       <Card
-        title="Action Plans"
-        action={!showForm && <button className="btn-sentinel py-1.5 text-xs" onClick={() => setShowForm(true)}>+ Create Action Plan</button>}
+        title={t('actionPlans.title')}
+        action={!showForm && <button className="btn-sentinel py-1.5 text-xs" onClick={() => setShowForm(true)}>+ {t('actionPlans.create')}</button>}
       >
         {showForm && (
           <div className="mb-4">
@@ -878,11 +908,11 @@ function ActionPlansSection({ prefill, onPrefillConsumed }: { prefill: ActionPla
         )}
 
         {actionPlansLoading ? (
-          <Loading label="Loading action plans…" />
+          <Loading label={t('actionPlans.loading')} />
         ) : actionPlansError ? (
           <ErrorNote message={actionPlansError} onRetry={() => loadActionPlans()} />
         ) : actionPlans.length === 0 ? (
-          <Empty>No open action plans.</Empty>
+          <Empty>{t('actionPlans.noPlans')}</Empty>
         ) : (
           <div className="space-y-3">
             {actionPlans.map((plan) => <ActionPlanCard key={plan.id} plan={plan} />)}
@@ -899,6 +929,7 @@ function ActionPlansSection({ prefill, onPrefillConsumed }: { prefill: ActionPla
 type Section = 'visits' | 'inspections' | 'actions'
 
 export function FieldOperationsSection() {
+  const { t } = useTranslation('operations')
   const { summary, loadSummary } = useFieldOperationsStore()
   const [section, setSection] = useState<Section>('visits')
   const [actionPlanPrefill, setActionPlanPrefill] = useState<ActionPlanPrefill | null>(null)
@@ -914,27 +945,27 @@ export function FieldOperationsSection() {
   }
 
   const tabs: Array<{ id: Section; label: string }> = [
-    { id: 'visits', label: 'Field Visits' },
-    { id: 'inspections', label: 'Inspections' },
-    { id: 'actions', label: 'Action Plans' },
+    { id: 'visits', label: t('visits.title') },
+    { id: 'inspections', label: t('inspections.title') },
+    { id: 'actions', label: t('actionPlans.title') },
   ]
 
   return (
     <section className="overflow-hidden rounded-xl border border-ink-200 bg-white">
       <div className="border-b border-ink-200 bg-gradient-to-r from-sentinel-50 to-white px-5 py-4">
-        <h2 className="text-lg font-semibold text-ink-900">Field Operations</h2>
+        <h2 className="text-lg font-semibold text-ink-900">{t('title')}</h2>
         <p className="text-sm text-ink-600 mt-0.5">
-          Plan village visits, conduct inspections, and track corrective actions.
+          {t('subtitle')}
         </p>
       </div>
 
       <div className="space-y-4 p-5">
         {summary && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat value={summary.field_visits.upcoming} label="Upcoming Visits" tone="sentinel" />
-            <Stat value={summary.inspections.draft + summary.inspections.in_progress} label="Pending Inspections" tone="amber" />
-            <Stat value={summary.action_plans.open + summary.action_plans.in_progress} label="Open Action Plans" />
-            <Stat value={summary.action_plans.overdue} label="Overdue Actions" tone={summary.action_plans.overdue > 0 ? 'red' : 'ink'} />
+            <Stat value={summary.field_visits.upcoming} label={t('upcomingVisits')} tone="sentinel" />
+            <Stat value={summary.inspections.draft + summary.inspections.in_progress} label={t('pendingInspections')} tone="amber" />
+            <Stat value={summary.action_plans.open + summary.action_plans.in_progress} label={t('openActionPlans')} />
+            <Stat value={summary.action_plans.overdue} label={t('overdueActions')} tone={summary.action_plans.overdue > 0 ? 'red' : 'ink'} />
           </div>
         )}
 
