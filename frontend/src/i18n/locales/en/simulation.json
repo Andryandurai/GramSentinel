@@ -1,4 +1,13 @@
 {
+  "agentRunStatus": {
+    "NOT_STARTED": "Not started",
+    "WAITING": "Waiting",
+    "PROCESSING": "Processing",
+    "COMPLETE": "Complete",
+    "FAILED": "Failed",
+    "READY_FOR_DECISION": "Ready for decision",
+    "DECISION_RECORDED": "Decision recorded"
+  },
   "page": {
     "subtitle": "GramSentinel Intelligence Simulator — synthetic demonstration scenarios. Does not touch any real operational data.",
     "loadingScenarios": "Loading simulation scenarios…",

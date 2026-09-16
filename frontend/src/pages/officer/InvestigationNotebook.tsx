@@ -97,6 +97,7 @@ function gatePillClass(gate: string | null): string {
 function SectionNav() {
   const { investigationSection, setInvestigationSection, investigation } = useSimulationStore()
   const { t } = useTranslation('simulation')
+  const { t: tc } = useTranslation('common')
 
   return (
     <nav aria-label={t('notebook.nav.heading')} className="space-y-1">
@@ -123,7 +124,13 @@ function SectionNav() {
       </ul>
       {investigation && (
         <p className="mt-3 border-t border-ink-200 pt-2 text-[11px] text-ink-400">
-          {t('notebook.nav.statusLine', { status: investigation.status_display })}
+          {t('notebook.nav.statusLine', {
+            status: tc(`status.${investigation.status}`, {
+              defaultValue: t(`agentRunStatus.${investigation.status}`, {
+                defaultValue: investigation.status_display,
+              }),
+            }),
+          })}
         </p>
       )}
     </nav>
@@ -172,7 +179,13 @@ function InvestigationSummaryPanel() {
         </div>
         <div className="flex items-center justify-between">
           <dt className="text-ink-500">{t('notebook.summary.priority')}</dt>
-          <dd className="font-medium text-ink-800">{overview.investigation_priority || '—'}</dd>
+          <dd className="font-medium text-ink-800">
+            {overview.investigation_priority
+              ? tc(`status.${overview.investigation_priority}`, {
+                  defaultValue: overview.investigation_priority,
+                })
+              : '—'}
+          </dd>
         </div>
         <div className="flex items-center justify-between">
           <dt className="text-ink-500">{t('notebook.summary.safety')}</dt>
@@ -260,7 +273,13 @@ function OverviewSection() {
           </div>
           <div className="flex justify-between">
             <dt className="text-ink-500">{t('notebook.overview.priority')}</dt>
-            <dd>{overview.investigation_priority || '—'}</dd>
+            <dd>
+              {overview.investigation_priority
+                ? tc(`status.${overview.investigation_priority}`, {
+                    defaultValue: overview.investigation_priority,
+                  })
+                : '—'}
+            </dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-ink-500">{t('notebook.overview.safetyResult')}</dt>
@@ -802,7 +821,12 @@ function DecisionSection() {
 
         {investigation.decision.value && (
           <p className="mt-4 rounded-md border border-care-200 bg-care-50 px-3 py-2 text-xs text-care-800">
-            {t('notebook.decision.recorded')} <strong>{investigation.decision.value_display}</strong>{' '}
+            {t('notebook.decision.recorded')}{' '}
+            <strong>
+              {t(`decision.${investigation.decision.value}`, {
+                defaultValue: investigation.decision.value_display,
+              })}
+            </strong>{' '}
             {t('notebook.decision.recordedBy', { by: investigation.decision.decided_by ?? '—' })}
             {investigation.decision.decided_at &&
               ` ${t('notebook.decision.recordedOn', {
@@ -827,7 +851,9 @@ function RecommendationSection() {
       {investigation.decision.value ? (
         <p className="mt-3 text-sm text-ink-800">
           <span className="font-medium">{t('notebook.recommendation.officerDecision')}</span>{' '}
-          {investigation.decision.value_display}
+          {t(`decision.${investigation.decision.value}`, {
+            defaultValue: investigation.decision.value_display,
+          })}
           {investigation.decision.reason && ` — ${investigation.decision.reason}`}
         </p>
       ) : (

@@ -196,6 +196,10 @@ class PregnancyProfileEvent(models.Model):
         NEXT_CHECKUP_CHANGED = "NEXT_CHECKUP_CHANGED", "Next check-up date changed"
         STATUS_CHANGED = "STATUS_CHANGED", "Pregnancy status changed"
         FOLLOWUP_TASK_CREATED = "FOLLOWUP_TASK_CREATED", "Health worker follow-up requested"
+        COMMUNITY_REPORT_SUBMITTED = (
+            "COMMUNITY_REPORT_SUBMITTED",
+            "Pregnancy community report submitted",
+        )
 
     pregnancy_profile = models.ForeignKey(
         PregnancyProfile, on_delete=models.CASCADE, related_name="events"
@@ -213,3 +217,59 @@ class PregnancyProfileEvent(models.Model):
 
     def __str__(self) -> str:
         return f"{self.event_type} — profile #{self.pregnancy_profile_id}"
+
+
+class PregnancyCommunityReport(models.Model):
+    """Pregnancy-specific detail for a `community.CommunityReport` whose
+    `report_type` is `PREGNANCY` (Pregnancy Reporting in Community Report).
+
+    Lives here, not in `community/models.py`, on purpose: that module's own
+    docstring declares a schema-level privacy boundary — nothing there has a
+    foreign key to `patients.Patient` or a patient-linked profile. This app
+    already legitimately holds that FK (`PregnancyProfile.patient`), so the
+    `OneToOneField` back to `CommunityReport` is what lets a pregnancy report
+    reference the real record without adding a patient-linked FK to the
+    community layer itself.
+
+    Every snapshot field here is derived server-side from the linked
+    `PregnancyProfile`/its visits at submission time (see
+    `pregnancy.services.create_pregnancy_community_report`) — never typed in
+    by the worker a second time, and never a live join an officer's read
+    could see drift from what was true when the report was filed.
+    """
+
+    community_report = models.OneToOneField(
+        "community.CommunityReport",
+        on_delete=models.CASCADE,
+        related_name="pregnancy_detail",
+    )
+    pregnancy_profile = models.ForeignKey(
+        PregnancyProfile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="community_reports",
+    )
+
+    completed_visit_count = models.PositiveSmallIntegerField(default=0)
+    last_checkup_date = models.DateField(null=True, blank=True)
+    next_checkup_date = models.DateField(null=True, blank=True)
+    follow_up_required = models.BooleanField(
+        default=False,
+        help_text=(
+            "Derived from pregnancy.rules.evaluate_profile_rules at "
+            "submission time (FOLLOW_UP_OVERDUE / URGENT_CLINICAL_REVIEW) — "
+            "never a worker's own free-text judgement."
+        ),
+    )
+
+    reason = models.TextField(help_text="Why this report is being raised.")
+    remarks = models.TextField(blank=True, default="")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Pregnancy community report — community report #{self.community_report_id}"

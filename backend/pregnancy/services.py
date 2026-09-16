@@ -14,21 +14,34 @@ from rest_framework.exceptions import APIException
 
 from assessments.models import FollowUp
 from agents.pregnancy.orchestrator import run_pregnancy_guidance
+from patients.models import Patient
 
 from .models import (
+    PregnancyCommunityReport,
     PregnancyProfile,
     PregnancyProfileEvent,
     PregnancyStatus,
     PregnancyVisitAssessment,
 )
 from .questionnaire import valid_question_keys
-from .rules import evaluate_profile_rules, warning_signs_in_responses
+from .rules import (
+    FOLLOW_UP_OVERDUE,
+    URGENT_CLINICAL_REVIEW,
+    evaluate_profile_rules,
+    warning_signs_in_responses,
+)
 
 
 class PregnancyProfileAlreadyActive(APIException):
     status_code = 409
     default_detail = "This patient already has an active pregnancy profile."
     default_code = "pregnancy_profile_already_active"
+
+
+class PregnancyNotApplicableForPatient(APIException):
+    status_code = 400
+    default_detail = "Pregnancy assessment is not available for this patient."
+    default_code = "pregnancy_not_applicable_for_patient"
 
 
 def completed_visit_count(profile: PregnancyProfile) -> int:
@@ -68,6 +81,13 @@ def visit_history_status(profile: PregnancyProfile) -> dict:
 def create_pregnancy_profile(
     *, patient, village, created_by
 ) -> PregnancyProfile:
+    # Authoritative gender source is the stored Patient record — never a
+    # client-supplied value — and this is the one place a PregnancyProfile
+    # is ever created, so this is the single enforcement point a crafted
+    # API request cannot route around.
+    if patient.sex == Patient.Sex.MALE:
+        raise PregnancyNotApplicableForPatient()
+
     # Two independent checks, same "never rely on one guard alone" shape
     # `simulation.permissions`/`simulation.services` use for village scope:
     # the DB constraint (`unique_active_pregnancy_per_patient`) is the real
@@ -239,3 +259,75 @@ def request_followup(
         detail={"followup_id": followup.id, "due_date": due_date.isoformat(), "priority": priority},
     )
     return followup
+
+
+def _current_iso_week() -> tuple[str, dt.date, dt.date]:
+    """Same Monday-start ISO week shape the worker's General community
+    report form already computes on the frontend (`CommunityReport.tsx`'s
+    `currentWeek()`), reproduced server-side so a Pregnancy report never
+    needs the client to supply — or duplicate — that calculation."""
+
+    today = timezone.localdate()
+    monday = today - dt.timedelta(days=today.weekday())
+    sunday = monday + dt.timedelta(days=6)
+    iso_year, iso_week, _ = monday.isocalendar()
+    return f"{iso_year}-W{iso_week:02d}", monday, sunday
+
+
+@transaction.atomic
+def create_pregnancy_community_report(
+    *, profile: PregnancyProfile, worker, reason: str, remarks: str
+):
+    """The Pregnancy report option inside Community Report (Health Worker ->
+    Health Officer). Reuses `community.CommunityReport` itself — same
+    submission table, same acknowledged_at lifecycle the officer's Community
+    Reports list already relies on (task: "do not create a separate status
+    system") — tagged `report_type=PREGNANCY` so the officer can tell it
+    apart from a General weekly report without reading free text. Every
+    clinical-shaped field is read off `profile`/its visits here, server-side
+    — never re-typed by the worker and never able to disagree with the
+    Pregnancy Assessment record it summarises.
+    """
+
+    from community.models import CommunityReport, CommunityReportType
+
+    completed = completed_visit_count(profile)
+    last = latest_visit(profile)
+    flags = evaluate_profile_rules(
+        status=profile.status,
+        next_checkup_date=profile.next_checkup_date,
+        lmp=profile.lmp,
+        picme_rch_status=profile.picme_rch_status,
+        completed_visit_count=completed,
+        latest_warning_signs=(last.warning_signs if last else []),
+    )
+    follow_up_required = any(
+        f["rule"] in {FOLLOW_UP_OVERDUE, URGENT_CLINICAL_REVIEW} for f in flags
+    )
+
+    week_label, period_start, period_end = _current_iso_week()
+    community_report = CommunityReport.objects.create(
+        worker=worker,
+        village=profile.village,
+        report_type=CommunityReportType.PREGNANCY,
+        week_label=week_label,
+        period_start=period_start,
+        period_end=period_end,
+    )
+    detail = PregnancyCommunityReport.objects.create(
+        community_report=community_report,
+        pregnancy_profile=profile,
+        completed_visit_count=completed,
+        last_checkup_date=last.visit_date if last else None,
+        next_checkup_date=profile.next_checkup_date,
+        follow_up_required=follow_up_required,
+        reason=reason,
+        remarks=remarks,
+    )
+    PregnancyProfileEvent.objects.create(
+        pregnancy_profile=profile,
+        event_type=PregnancyProfileEvent.EventType.COMMUNITY_REPORT_SUBMITTED,
+        actor=worker,
+        detail={"community_report_id": community_report.id, "reason": reason},
+    )
+    return community_report, detail

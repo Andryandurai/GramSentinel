@@ -47,6 +47,14 @@ SIGNATURES: dict[str, tuple[tuple[bytes, ...], str]] = {
 
 ACCEPTED_LABEL = "PDF, DOC/DOCX, XLS/XLSX, PNG or JPG"
 
+#: Types a browser can render directly, so the download endpoint serves
+#: them with Content-Disposition: inline (opens a preview instead of a
+#: forced Save As). Office document types cannot be rendered by the
+#: browser itself either way, so they keep the "attachment" disposition.
+INLINE_VIEWABLE_MIME_TYPES = frozenset(
+    {"application/pdf", "image/png", "image/jpeg"}
+)
+
 _DATA_URI = re.compile(
     r"^data:(?P<mime>[a-z0-9.+/-]+);base64,(?P<payload>[A-Za-z0-9+/=\s]+)$",
     re.IGNORECASE,

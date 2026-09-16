@@ -41,7 +41,9 @@ function ProfileCard({ profile }: { profile: StaffProfile }) {
           <div className="text-sm font-semibold text-ink-800">
             {profile.display_name}
           </div>
-          <div className="text-xs text-ink-600">{profile.role_label}</div>
+          <div className="text-xs text-ink-600">
+            {t(`common:role.${profile.role}`, { defaultValue: profile.role_label })}
+          </div>
           <div className="text-xs text-ink-400">
             {profile.village_name ?? t('shared.districtWide')}
             {profile.village_label ? ` · ${profile.village_label}` : ''}

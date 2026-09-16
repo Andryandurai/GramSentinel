@@ -90,10 +90,7 @@ export default function PatientDetail() {
                 className="rounded-md border border-ink-200 px-3 py-2"
               >
                 <div className="flex flex-wrap items-center gap-3">
-                  <FollowUpPill
-                    status={followup.followup_status}
-                    label={followup.followup_status_label}
-                  />
+                  <FollowUpPill status={followup.followup_status} />
                   <span className="font-mono text-sm text-ink-800">
                     {followup.due_date || '—'}
                   </span>

@@ -65,13 +65,16 @@ function changeText(row: CommunityDataCategory, newLabel: string): string {
 }
 
 function TrendCell({ row }: { row: CommunityDataCategory }) {
+  const { t: tc } = useTranslation('common')
   const style = TREND_STYLES[row.direction]
   return (
     <span className={`inline-flex items-center gap-1.5 ${style.text}`}>
       <span className="text-base leading-none" aria-hidden="true">
         {style.arrow}
       </span>
-      <span className="text-sm">{row.direction_label}</span>
+      <span className="text-sm">
+        {tc(`trend.${row.direction}`, { defaultValue: row.direction_label })}
+      </span>
     </span>
   )
 }
@@ -80,6 +83,7 @@ const ALL = 'ALL'
 
 export default function CommunityDataPage() {
   const { t } = useTranslation('officer')
+  const { t: tc } = useTranslation('common')
   const [days, setDays] = useState(14)
   const [severity, setSeverity] = useState(ALL)
   const [category, setCategory] = useState(ALL)
@@ -234,7 +238,7 @@ export default function CommunityDataPage() {
                     <tr key={row.category} className="hover:bg-ink-50">
                       <td className="table-cell">
                         <span className="font-medium text-ink-800">
-                          {row.label}
+                          {tc(`category.${row.category}`, { defaultValue: row.label })}
                         </span>
                         {row.described_entries > 0 && (
                           <span className="ml-2 pill bg-ink-100 text-ink-600">
@@ -285,7 +289,9 @@ export default function CommunityDataPage() {
                   >
                     {(data.filters?.severity.options ?? []).map((option) => (
                       <option key={option.value} value={option.value}>
-                        {option.label}
+                        {option.value === 'ALL'
+                          ? t('communityData.chart.allSeverities')
+                          : tc(`status.${option.value}`, { defaultValue: option.label })}
                       </option>
                     ))}
                   </select>
@@ -302,7 +308,9 @@ export default function CommunityDataPage() {
                   >
                     {(data.filters?.category.options ?? []).map((option) => (
                       <option key={option.value} value={option.value}>
-                        {option.label}
+                        {option.value === ALL
+                          ? t('communityData.chart.allCases')
+                          : tc(`category.${option.value}`, { defaultValue: option.label })}
                         {option.value !== ALL && !option.has_data
                           ? t('communityData.chart.noReportsSuffix')
                           : ''}
@@ -406,7 +414,11 @@ export default function CommunityDataPage() {
                         TREND_STYLES.INSUFFICIENT_DATA
                       ).arrow
                     }{' '}
-                    {data.series.trend?.direction_label ?? t('communityData.chart.insufficientData')}
+                    {data.series.trend
+                      ? tc(`trend.${data.series.trend.direction}`, {
+                          defaultValue: data.series.trend.direction_label,
+                        })
+                      : t('communityData.chart.insufficientData')}
                   </span>
                   <span className="text-xs text-ink-600">
                     {data.series.trend_note}
@@ -433,7 +445,7 @@ export default function CommunityDataPage() {
                   >
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="text-sm font-medium">
-                        {observation.label}
+                        {tc(`category.${observation.category}`, { defaultValue: observation.label })}
                       </span>
                       <span className="text-sm text-ink-600 font-mono">
                         {t('shared.reportedCount', { count: observation.case_count })}

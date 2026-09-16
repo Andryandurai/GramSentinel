@@ -33,6 +33,7 @@ from users.scoping import scope_queryset, scoped_village_id
 from .models import (
     CommunityReport,
     CommunityReportEntry,
+    CommunityReportType,
     CommunitySignal,
     DataSource,
     LocalSignalReport,
@@ -182,6 +183,12 @@ class CommunityReportListCreateView(generics.ListCreateAPIView):
             village=village,
             week_label=serializer.validated_data["week_label"],
             worker=request.user,
+            # Explicit in the lookup, not just the default — otherwise this
+            # would also match (and silently overwrite into GENERAL) a
+            # PREGNANCY report already filed by this worker for the same
+            # village/week, since those three fields alone are no longer
+            # unique across report types.
+            report_type=CommunityReportType.GENERAL,
             defaults={
                 **{
                     k: v

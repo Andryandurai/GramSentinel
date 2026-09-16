@@ -29,6 +29,8 @@ from .rules import (
 )
 from .serializers import (
     OfficerPregnancyListItemSerializer,
+    PregnancyCommunityReportDetailSerializer,
+    PregnancyCommunityReportInputSerializer,
     PregnancyProfileSerializer,
     PregnancyProfileUpdateSerializer,
     RequestFollowUpInputSerializer,
@@ -192,6 +194,48 @@ class PregnancyVisitCreateView(APIView):
                     "ai_guidance": visit.ai_guidance,
                     "llm_used": visit.llm_used,
                 },
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class PregnancyCommunityReportCreateView(APIView):
+    """POST /api/pregnancy/community-reports/ — the Pregnancy option inside
+    Community Report. The worker only names which pregnancy and why; the
+    village-scoped resolution and every derived field come from
+    `pregnancy.services.create_pregnancy_community_report`. Submits into the
+    same `community.CommunityReport` table and lifecycle the General report
+    already uses — an officer sees it on the same Community Reports list,
+    just tagged `report_type=PREGNANCY`.
+    """
+
+    permission_classes = (IsWorker,)
+
+    def post(self, request):
+        serializer = PregnancyCommunityReportInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        queryset = _worker_profile_queryset()
+        if request.user.village_id:
+            queryset = queryset.filter(village_id=request.user.village_id)
+        profile = generics.get_object_or_404(queryset, pk=data["pregnancy_profile"])
+
+        community_report, detail = services.create_pregnancy_community_report(
+            profile=profile,
+            worker=request.user,
+            reason=data["reason"],
+            remarks=data["remarks"],
+        )
+
+        return Response(
+            {
+                "id": community_report.id,
+                "report_type": community_report.report_type,
+                "village_name": community_report.village.name,
+                "week_label": community_report.week_label,
+                "submitted_at": community_report.submitted_at,
+                "pregnancy_detail": PregnancyCommunityReportDetailSerializer(detail).data,
             },
             status=status.HTTP_201_CREATED,
         )

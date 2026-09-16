@@ -6,7 +6,7 @@ import { useAsync } from '@/hooks/useAsync'
 import { ApiError, api } from '@/services/api'
 import { useAuth } from '@/store/auth'
 import { useOfflineSync } from '@/store/offlineSync'
-import type { SymptomSummary } from '@/types'
+import type { PregnancyCommunityReportDetail, PregnancyProfile, SymptomSummary } from '@/types'
 
 interface CategoryOption {
   value: string
@@ -35,6 +35,16 @@ interface ReportResponse {
   pipeline: PipelineOutcome[]
   described_observations: number
   officer_note: string
+}
+
+type ReportType = 'GENERAL' | 'PREGNANCY'
+
+interface PregnancyReportResponse {
+  id: number
+  village_name: string
+  week_label: string
+  submitted_at: string
+  pregnancy_detail: PregnancyCommunityReportDetail
 }
 
 interface EntryRow {
@@ -82,6 +92,9 @@ export default function CommunityReportPage() {
   const categories = useAsync<{ categories: CategoryOption[]; note: string }>(
     () => api.get('/report-categories/'),
   )
+  const pregnancyProfiles = useAsync<PregnancyProfile[]>(() =>
+    api.get('/pregnancy/profiles/'),
+  )
 
   // Arriving from the dashboard's Community Symptom Summary. The counts are
   // filled in for review — nothing is submitted until the worker submits it.
@@ -110,6 +123,14 @@ export default function CommunityReportPage() {
   const [savedOffline, setSavedOffline] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const [reportType, setReportType] = useState<ReportType>('GENERAL')
+  const [pregnancyProfileId, setPregnancyProfileId] = useState('')
+  const [pregnancyReason, setPregnancyReason] = useState('')
+  const [pregnancyRemarks, setPregnancyRemarks] = useState('')
+  const [pregnancyResult, setPregnancyResult] = useState<PregnancyReportResponse | null>(null)
+  const [pregnancyError, setPregnancyError] = useState<string | null>(null)
+  const [pregnancyBusy, setPregnancyBusy] = useState(false)
 
   const { status: connectivity, reports: queuedReports, init, retry } = useOfflineSync()
   useEffect(() => {
@@ -204,6 +225,38 @@ export default function CommunityReportPage() {
       }
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function submitPregnancyReport(event: FormEvent) {
+    event.preventDefault()
+    if (!pregnancyProfileId) {
+      setPregnancyError('Choose which pregnancy this report is about.')
+      return
+    }
+    if (!pregnancyReason.trim()) {
+      setPregnancyError('Describe the reason for this report.')
+      return
+    }
+
+    setPregnancyBusy(true)
+    setPregnancyError(null)
+    try {
+      const response = await api.post<PregnancyReportResponse>(
+        '/pregnancy/community-reports/',
+        {
+          pregnancy_profile: Number(pregnancyProfileId),
+          reason: pregnancyReason.trim(),
+          remarks: pregnancyRemarks.trim(),
+        },
+      )
+      setPregnancyResult(response)
+      setPregnancyReason('')
+      setPregnancyRemarks('')
+    } catch (err) {
+      setPregnancyError(err instanceof Error ? err.message : 'Could not submit.')
+    } finally {
+      setPregnancyBusy(false)
     }
   }
 
@@ -309,6 +362,164 @@ export default function CommunityReportPage() {
         </div>
       )}
 
+      <Card title="Report type">
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Report type">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={reportType === 'GENERAL'}
+            className={`pill px-4 py-2 ${
+              reportType === 'GENERAL'
+                ? 'bg-care-600 text-white'
+                : 'bg-ink-100 text-ink-600'
+            }`}
+            onClick={() => setReportType('GENERAL')}
+          >
+            General community health
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={reportType === 'PREGNANCY'}
+            className={`pill px-4 py-2 ${
+              reportType === 'PREGNANCY'
+                ? 'bg-care-600 text-white'
+                : 'bg-ink-100 text-ink-600'
+            }`}
+            onClick={() => setReportType('PREGNANCY')}
+          >
+            Pregnancy
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-ink-500">
+          Pregnancy follow-up concerns for a patient already tracked in
+          Pregnancy Assessment go here — this is separate from the
+          questionnaire-based Pregnancy Assessment itself.
+        </p>
+      </Card>
+
+      {reportType === 'PREGNANCY' ? (
+        <div className={`grid gap-6 ${pregnancyResult ? 'lg:grid-cols-2' : ''}`}>
+          <Card title="Pregnancy report">
+            {pregnancyProfiles.loading ? (
+              <Loading label="Loading pregnancies…" />
+            ) : (pregnancyProfiles.data ?? []).length === 0 ? (
+              <p className="text-sm text-ink-600">
+                No pregnancies are currently tracked for your village. Start a
+                Pregnancy Assessment for a patient first.
+              </p>
+            ) : (
+              <form onSubmit={submitPregnancyReport} className="space-y-5">
+                <div>
+                  <label className="label" htmlFor="pregnancy-profile">
+                    Which pregnancy is this about?
+                  </label>
+                  <select
+                    id="pregnancy-profile"
+                    className="input"
+                    value={pregnancyProfileId}
+                    onChange={(e) => setPregnancyProfileId(e.target.value)}
+                  >
+                    <option value="">Select…</option>
+                    {(pregnancyProfiles.data ?? []).map((profile) => (
+                      <option key={profile.id} value={profile.id}>
+                        {profile.patient_code} — {profile.status}
+                        {profile.next_checkup_date
+                          ? ` · next check-up ${profile.next_checkup_date}`
+                          : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="pregnancy-reason">
+                    Reason for reporting
+                  </label>
+                  <textarea
+                    id="pregnancy-reason"
+                    rows={3}
+                    className="input"
+                    placeholder="Why is this being flagged to the Health Officer?"
+                    value={pregnancyReason}
+                    onChange={(e) => setPregnancyReason(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="pregnancy-remarks">
+                    Remarks (optional)
+                  </label>
+                  <textarea
+                    id="pregnancy-remarks"
+                    rows={2}
+                    className="input"
+                    value={pregnancyRemarks}
+                    onChange={(e) => setPregnancyRemarks(e.target.value)}
+                  />
+                </div>
+
+                {pregnancyError && <ErrorNote message={pregnancyError} />}
+
+                <button
+                  type="submit"
+                  className="btn-care w-full"
+                  disabled={pregnancyBusy}
+                >
+                  {pregnancyBusy ? 'Submitting…' : 'Submit report'}
+                </button>
+              </form>
+            )}
+          </Card>
+
+          {pregnancyResult && (
+            <Card title="Report submitted">
+              <div className="space-y-3">
+                <div className="rounded-md border border-care-200 bg-care-50 px-3 py-2">
+                  <div className="text-sm font-medium text-care-700">
+                    Pregnancy report submitted
+                  </div>
+                  <p className="text-xs text-care-700 mt-1">
+                    {pregnancyResult.village_name} · {pregnancyResult.week_label}
+                  </p>
+                </div>
+                <dl className="rounded-md border border-ink-200 bg-white px-3 py-2 space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-ink-500">Visits completed</dt>
+                    <dd className="font-medium">
+                      {pregnancyResult.pregnancy_detail.completed_visit_count}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-ink-500">Last check-up</dt>
+                    <dd className="font-medium">
+                      {pregnancyResult.pregnancy_detail.last_checkup_date ?? '—'}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-ink-500">Next check-up</dt>
+                    <dd className="font-medium">
+                      {pregnancyResult.pregnancy_detail.next_checkup_date ?? '—'}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-ink-500">Follow-up required</dt>
+                    <dd className="font-medium">
+                      {pregnancyResult.pregnancy_detail.follow_up_required ? 'Yes' : 'No'}
+                    </dd>
+                  </div>
+                </dl>
+                <button
+                  className="btn-ghost w-full"
+                  onClick={() => setPregnancyResult(null)}
+                >
+                  Submit another report
+                </button>
+              </div>
+            </Card>
+          )}
+        </div>
+      ) : (
       <div className={`grid gap-6 ${result ? 'lg:grid-cols-2' : ''}`}>
         <Card title="Reported health signals this week">
           <form onSubmit={submit} className="space-y-5">
@@ -559,6 +770,7 @@ export default function CommunityReportPage() {
           </Card>
         )}
       </div>
+      )}
     </div>
   )
 }

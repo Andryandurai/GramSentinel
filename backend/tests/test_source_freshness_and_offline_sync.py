@@ -116,6 +116,34 @@ def test_missing_source_correctly_classified(village):
     assert school["last_updated_at"] is None
 
 
+def test_relative_time_seconds_present_and_consistent_with_relative_time(village):
+    """Localization bug fix: the frontend must never render the backend's
+    English `relative_time` sentence directly — it needs the raw elapsed
+    seconds to build its own localized string. `relative_time_seconds`
+    must be present, non-negative, and roughly consistent with the age
+    actually recorded (never a value that would silently disagree with
+    `status`, which is derived from the same delta)."""
+
+    source = _make_source(village, SourceKind.CHW)
+    _signal_at(source, village, age=dt.timedelta(hours=11))
+
+    cards = build_source_freshness(village)
+    chw = next(c for c in cards if c["source_kind"] == SourceKind.CHW)
+    assert chw["relative_time_seconds"] is not None
+    assert chw["relative_time_seconds"] >= 0
+    # Within a small tolerance of the requested 11-hour age.
+    assert abs(chw["relative_time_seconds"] - 11 * 3600) < 60
+
+
+def test_relative_time_seconds_is_null_when_never_reported(village):
+    """Missing data is never coerced into a fabricated elapsed time
+    (mirrors Safety Engine R8's own "missing is never treated as zero")."""
+
+    cards = build_source_freshness(village)
+    school = next(c for c in cards if c["source_kind"] == SourceKind.SCHOOL)
+    assert school["relative_time_seconds"] is None
+
+
 # ===========================================================================
 # Missing vs zero semantics
 # ===========================================================================

@@ -31,6 +31,7 @@ function formatWhen(value: string): string {
  */
 export default function OfficerCommunityReports() {
   const { t } = useTranslation('officer')
+  const { t: tc } = useTranslation('common')
   const { data, loading, error, reload } = useAsync<Payload>(() =>
     api.get('/officer/community-reports/'),
   )
@@ -79,7 +80,9 @@ export default function OfficerCommunityReports() {
                   {!report.acknowledged && (
                     <span className="pill bg-amber-600 text-white">{t('shared.newReportBadge')}</span>
                   )}
-                  <span className="text-sm font-semibold">{report.label}</span>
+                  <span className="text-sm font-semibold">
+                    {tc(`category.${report.category}`, { defaultValue: report.label })}
+                  </span>
                   <span className="pill bg-amber-100 text-amber-800">
                     {t('communityReports.highSignalCard.aboveBaseline')}
                   </span>
@@ -97,7 +100,9 @@ export default function OfficerCommunityReports() {
                 <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 rounded-md border border-ink-200 bg-white px-3 py-2 text-sm">
                   <span className="text-ink-600">
                     {t('communityReports.highSignalCard.fields.source')}{' '}
-                    <span className="font-medium text-ink-800">{report.source_label}</span>
+                    <span className="font-medium text-ink-800">
+                      {tc(`sources.${report.source_kind}`, { defaultValue: report.source_label })}
+                    </span>
                   </span>
                   <span className="text-ink-600">
                     {t('communityReports.highSignalCard.fields.baseline')}{' '}
@@ -152,6 +157,15 @@ export default function OfficerCommunityReports() {
                   <span className="text-sm font-semibold">
                     {report.village_name}
                   </span>
+                  {report.report_type === 'PREGNANCY' ? (
+                    <span className="pill bg-purple-100 text-purple-800">
+                      {t('communityReports.reportType.pregnancy')}
+                    </span>
+                  ) : (
+                    <span className="pill bg-ink-100 text-ink-600">
+                      {t('communityReports.reportType.general')}
+                    </span>
+                  )}
                   {report.unusual_observation && (
                     <span className="pill bg-amber-100 text-amber-800">
                       {t('shared.flaggedUnusual')}
@@ -165,37 +179,104 @@ export default function OfficerCommunityReports() {
                 <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-600">
                   <span>{t('shared.reportedBy', { name: report.worker_name })}</span>
                   <span>{formatWhen(report.submitted_at)}</span>
-                  <span>
-                    {t('communityReports.submittedCard.totalCases', {
-                      count: report.total_cases,
-                    })}
-                  </span>
+                  {report.report_type !== 'PREGNANCY' && (
+                    <span>
+                      {t('communityReports.submittedCard.totalCases', {
+                        count: report.total_cases,
+                      })}
+                    </span>
+                  )}
                 </div>
 
-                <ul className="mt-3 space-y-2">
-                  {report.entries.map((entry) => (
-                    <li
-                      key={`${report.id}-${entry.category}-${entry.label}`}
-                      className="rounded-md border border-ink-200 bg-white px-3 py-2"
-                    >
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-sm font-medium">
-                          {entry.label}
-                        </span>
-                        <span className="text-sm text-ink-600 font-mono">
-                          {t('shared.reportedCount', { count: entry.case_count })}
-                        </span>
+                {report.report_type === 'PREGNANCY' && report.pregnancy_detail ? (
+                  <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-md border border-purple-200 bg-purple-50/40 px-3 py-2 text-sm">
+                    <div className="col-span-2 flex justify-between">
+                      <dt className="text-ink-500">
+                        {t('communityReports.pregnancy.patientCode')}
+                      </dt>
+                      <dd className="font-mono font-medium text-ink-800">
+                        {report.pregnancy_detail.patient_code || '—'}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-ink-500">
+                        {t('communityReports.pregnancy.visitsCompleted')}
+                      </dt>
+                      <dd className="font-medium text-ink-800">
+                        {report.pregnancy_detail.completed_visit_count}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-ink-500">
+                        {t('communityReports.pregnancy.followUpRequired')}
+                      </dt>
+                      <dd className="font-medium text-ink-800">
+                        {report.pregnancy_detail.follow_up_required
+                          ? t('shared.yes')
+                          : t('shared.no')}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-ink-500">
+                        {t('communityReports.pregnancy.lastCheckup')}
+                      </dt>
+                      <dd className="font-medium text-ink-800">
+                        {report.pregnancy_detail.last_checkup_date ?? '—'}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-ink-500">
+                        {t('communityReports.pregnancy.nextCheckup')}
+                      </dt>
+                      <dd className="font-medium text-ink-800">
+                        {report.pregnancy_detail.next_checkup_date ?? '—'}
+                      </dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="text-xs font-medium text-ink-400">
+                        {t('communityReports.pregnancy.reason')}
+                      </dt>
+                      <dd className="mt-0.5 text-ink-800">
+                        {report.pregnancy_detail.reason}
+                      </dd>
+                    </div>
+                    {report.pregnancy_detail.remarks && (
+                      <div className="col-span-2">
+                        <dt className="text-xs font-medium text-ink-400">
+                          {t('shared.workerNotes')}
+                        </dt>
+                        <dd className="mt-0.5 text-ink-800">
+                          {report.pregnancy_detail.remarks}
+                        </dd>
                       </div>
-                      {entry.description && (
-                        <p className="mt-1 text-sm text-ink-800">
-                          “{entry.description}”
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                    )}
+                  </dl>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {report.entries.map((entry) => (
+                      <li
+                        key={`${report.id}-${entry.category}-${entry.label}`}
+                        className="rounded-md border border-ink-200 bg-white px-3 py-2"
+                      >
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-sm font-medium">
+                            {tc(`category.${entry.category}`, { defaultValue: entry.label })}
+                          </span>
+                          <span className="text-sm text-ink-600 font-mono">
+                            {t('shared.reportedCount', { count: entry.case_count })}
+                          </span>
+                        </div>
+                        {entry.description && (
+                          <p className="mt-1 text-sm text-ink-800">
+                            “{entry.description}”
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
-                {report.notes && (
+                {report.report_type !== 'PREGNANCY' && report.notes && (
                   <p className="mt-3 text-sm text-ink-600 border-t border-ink-100 pt-2">
                     <span className="text-xs font-medium text-ink-400">
                       {t('shared.workerNotes')}{' '}

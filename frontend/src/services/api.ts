@@ -110,12 +110,49 @@ async function request<T>(
   return payload as T
 }
 
+/**
+ * Same JWT-attach + one-shot-refresh-on-401 behaviour as `request()`, for an
+ * endpoint whose response is binary rather than JSON (a message attachment,
+ * an exported report) — a plain `<a href>`/`window.open` to an authenticated
+ * API route never carries the Authorization header, since that would be an
+ * ordinary browser navigation, not a fetch. Callers turn the result into an
+ * object URL with `URL.createObjectURL` and revoke it once done.
+ */
+async function requestBlob(path: string, retry = true): Promise<Blob> {
+  const headers = new Headers()
+  const access = tokens.access()
+  if (access) headers.set('Authorization', `Bearer ${access}`)
+
+  let response: Response
+  try {
+    response = await fetch(`${BASE_URL}${path}`, { headers })
+  } catch {
+    throw new ApiError(
+      'Could not reach the GramSentinel server. Is the backend running?',
+      0,
+      null,
+    )
+  }
+
+  if (response.status === 401 && retry && tokens.refresh()) {
+    if (await attemptRefresh()) return requestBlob(path, false)
+    tokens.clear()
+  }
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null)
+    throw new ApiError(describe(payload, response.status), response.status, payload)
+  }
+  return response.blob()
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'POST', body: JSON.stringify(body ?? {}) }),
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body ?? {}) }),
+  getBlob: (path: string) => requestBlob(path),
 }
 
 /**
@@ -142,6 +179,27 @@ export function buildSimulationSocketUrl(sessionId: number): string {
   // deployment). `vite.config.ts` already proxies `/ws` the same way.
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${protocol}//${window.location.host}${path}`
+}
+
+/**
+ * Fetches an authenticated binary resource (a message attachment) and opens
+ * it in a new tab — the one place this project turns an authenticated blob
+ * response into something a person can actually view, reused by every
+ * attachment link instead of duplicated per page. A plain `<a href>` to the
+ * same API path would be an unauthenticated browser navigation and 401;
+ * this goes through `api.getBlob`, which carries the same JWT header (and
+ * refresh-on-401 retry) as every other request. The browser renders
+ * viewable types (PDF, PNG, JPEG — the endpoint marks these
+ * `Content-Disposition: inline`) in that tab and falls back to its own
+ * native download prompt for anything else.
+ */
+export async function openAttachment(path: string): Promise<void> {
+  const blob = await api.getBlob(path)
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank', 'noopener')
+  // Revoked on a delay, not immediately — the new tab needs time to load
+  // the blob: URL before it stops resolving.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 export async function login(username: string, password: string) {

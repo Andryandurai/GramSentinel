@@ -94,10 +94,18 @@ def _card(
     if last_signal is None or last_signal.ingested_at is None:
         return {
             "source_kind": source_kind,
+            # English-only fields, kept only as a fallback for any caller
+            # that hasn't been updated to localize from `source_kind`/
+            # `relative_time_seconds` itself (frontend localization task:
+            # a display *label* for a finite, backend-owned enum is a UI
+            # concern, not persisted user data — the frontend must render
+            # its own translated text keyed by the stable `source_kind`/
+            # `status` values above, never this string directly).
             "source_label": SourceKind(source_kind).label,
             "status": FreshnessStatus.MISSING,
             "last_updated_at": None,
             "relative_time": "No report this period",
+            "relative_time_seconds": None,
             "received": False,
         }
 
@@ -108,6 +116,10 @@ def _card(
         "status": _status_for_age(delta),
         "last_updated_at": last_signal.ingested_at.isoformat(),
         "relative_time": _relative_time(delta),
+        # Raw elapsed seconds — the one value a frontend needs to compute
+        # its own locale-aware "N minutes/hours/days ago" string. Never
+        # negative (see `_relative_time`'s own clamp).
+        "relative_time_seconds": max(0, int(delta.total_seconds())),
         "received": True,
     }
 

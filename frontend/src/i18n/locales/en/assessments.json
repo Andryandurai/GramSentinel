@@ -91,10 +91,67 @@
     "saving": "Saving…",
     "couldNotProcess": "Could not process the assessment.",
     "couldNotSave": "Could not save.",
-    "couldNotRegisterPatient": "Could not register the patient."
+    "couldNotRegisterPatient": "Could not register the patient.",
+    "pregnancyNotAvailableForPatient": "Pregnancy assessment is not available for this patient."
   },
   "triageSupport": {
-    "title": "Triage support"
+    "title": "Triage support",
+    "currentPriority": "Current priority",
+    "priorityLevel": {
+      "ROUTINE": "Low priority",
+      "CONCERNING": "Medium priority",
+      "URGENT": "High priority"
+    },
+    "meaning": {
+      "ROUTINE": "No immediate escalation is suggested based on the information recorded.",
+      "CONCERNING": "Follow-up is recommended based on the information recorded.",
+      "URGENT": "Prompt clinical evaluation is recommended based on the information recorded."
+    },
+    "escalatedBySafetyRule": "Escalated by safety rule",
+    "whatThisMeans": "What this means:",
+    "whyThisPriority": "Why this priority?",
+    "noConcerningFeatures": "No concerning features were recorded.",
+    "whatToDoNext": "What to do next",
+    "referralRecommendation": {
+      "SAME_DAY_FACILITY_REFERRAL": "Arrange prompt professional evaluation today at the nearest PHC or referral facility. Accompany or arrange transport where possible.",
+      "PHC_REFERRAL": "Professional clinical evaluation is recommended. Refer to the PHC and schedule a follow-up visit.",
+      "COMMUNITY_FOLLOW_UP": "Routine care in the community. Advise the household to return if symptoms worsen or new symptoms appear."
+    },
+    "suggestedFollowUp": "Suggested follow-up",
+    "followUpDayCount": "{{count}} day",
+    "followUpDayCount_other": "{{count}} days",
+    "vitalSignCheck": "Vital sign check",
+    "vitalsNotRecorded": "Vital signs not recorded.",
+    "flagged": "flagged",
+    "vitalLabels": {
+      "temperature_c": "Temperature",
+      "pulse_bpm": "Pulse",
+      "respiratory_rate": "Resp. rate",
+      "systolic_bp": "Systolic BP",
+      "diastolic_bp": "Diastolic BP",
+      "spo2": "SpO₂"
+    },
+    "informationToCheck": "Information to check",
+    "vitalsNotRecordedNote": "Vitals not recorded: {{list}}.",
+    "noAdditionalInfo": "No additional information flagged.",
+    "safetyCheck": "Safety check",
+    "ruleBasedSafetyReview": "✓ Rule-based safety review",
+    "humanReviewRequired": "⚠ Human review required",
+    "raisedFrom": "Raised from {{level}} by this safety check — it cannot be lowered by the suggestion above.",
+    "noAutomaticEscalation": "No automatic high-risk escalation triggered. The current priority stands.",
+    "howThisWasProcessed": "How this was processed",
+    "additionalDetailRecorded": "Additional detail recorded",
+    "otherLabel": "Other:",
+    "dayPrefix": "Day {{day}} —"
+  },
+  "agentTrace": {
+    "layer": {
+      "individual": "Individual",
+      "community": "Community",
+      "crossLevel": "Cross-level"
+    },
+    "deterministic": "deterministic",
+    "noSteps": "No processing steps were recorded for this assessment."
   },
   "patientHistory": {
     "title": "Previous Assessments",

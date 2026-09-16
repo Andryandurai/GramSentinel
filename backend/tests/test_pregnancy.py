@@ -133,6 +133,46 @@ def test_completed_pregnancy_allows_a_new_active_profile(worker_a, patient_a):
 
 
 # ---------------------------------------------------------------------------
+# Pregnancy must not be available for a patient whose stored sex is MALE.
+# Enforced server-side in `pregnancy.services.create_pregnancy_profile` —
+# the one place a PregnancyProfile is ever created — using Patient.sex from
+# the database, never a client-supplied value.
+# ---------------------------------------------------------------------------
+@pytest.fixture
+def male_patient(db, village, worker_a) -> Patient:
+    return Patient.objects.create(
+        patient_code="PREG-A-MALE", display_name="Male Patient", age_years=30, sex="M",
+        village=village, created_by=worker_a,
+    )
+
+
+def test_pregnancy_profile_rejected_for_male_patient(worker_a, male_patient):
+    response = api_for(worker_a).post(PROFILES, {"patient": male_patient.id}, format="json")
+    assert response.status_code == 400
+    assert not PregnancyProfile.objects.filter(patient=male_patient).exists()
+
+
+def test_pregnancy_profile_still_works_for_female_patient(worker_a, patient_a):
+    """Regression: the male-only rejection must not touch the existing,
+    already-working female workflow."""
+
+    response = api_for(worker_a).post(PROFILES, {"patient": patient_a.id}, format="json")
+    assert response.status_code == 201
+
+
+def test_pregnancy_rejection_uses_stored_sex_not_client_input(worker_a, male_patient):
+    """The endpoint has no `sex`/`gender` field to accept in the first
+    place — attribution always comes from the stored Patient row, the same
+    'never trust a client-supplied identity field' rule this codebase
+    already applies to worker/village/officer ids elsewhere."""
+
+    response = api_for(worker_a).post(
+        PROFILES, {"patient": male_patient.id, "sex": "F", "gender": "F"}, format="json"
+    )
+    assert response.status_code == 400
+
+
+# ---------------------------------------------------------------------------
 # 7-10. Visit recording — 1 through 4, warning signs, PICME.
 # ---------------------------------------------------------------------------
 def test_record_visits_1_through_4_and_count_completed(worker_a, patient_a):

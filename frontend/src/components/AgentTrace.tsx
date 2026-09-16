@@ -1,10 +1,6 @@
-import type { AgentTraceEntry } from '@/types'
+import { useTranslation } from 'react-i18next'
 
-const LAYER_LABEL: Record<string, string> = {
-  RURALCARE: 'Individual',
-  GRAMSENTINEL: 'Community',
-  CROSS_LEVEL: 'Cross-level',
-}
+import type { AgentTraceEntry } from '@/types'
 
 const LAYER_DOT: Record<string, string> = {
   RURALCARE: 'bg-care-500',
@@ -19,12 +15,24 @@ const LAYER_DOT: Record<string, string> = {
  * come from that agent's own recorded output. What is deliberately *not* here
  * is the raw output payload: a health worker has no use for a JSON dump, and
  * showing one made the screen look like a debug console.
+ *
+ * `entry.purpose`/`.result_summary`/`.display_name` are backend-generated
+ * text (not yet multilingual — a known, documented limitation); only the
+ * static chrome around them (layer name, "deterministic" pill, empty
+ * state) is translated here.
  */
 export function AgentTrace({ trace }: { trace: AgentTraceEntry[] }) {
+  const { t } = useTranslation('assessments')
+  const layerLabel: Record<string, string> = {
+    RURALCARE: t('agentTrace.layer.individual'),
+    GRAMSENTINEL: t('agentTrace.layer.community'),
+    CROSS_LEVEL: t('agentTrace.layer.crossLevel'),
+  }
+
   if (!trace?.length) {
     return (
       <p className="text-sm text-ink-400">
-        No processing steps were recorded for this assessment.
+        {t('agentTrace.noSteps')}
       </p>
     )
   }
@@ -87,11 +95,11 @@ export function AgentTrace({ trace }: { trace: AgentTraceEntry[] }) {
                         LAYER_DOT[entry.layer] ?? 'bg-ink-400'
                       }`}
                     />
-                    {LAYER_LABEL[entry.layer] ?? entry.layer}
+                    {layerLabel[entry.layer] ?? entry.layer}
                   </span>
                   {isSafety && (
                     <span className="pill bg-sentinel-100 text-sentinel-700">
-                      deterministic
+                      {t('agentTrace.deterministic')}
                     </span>
                   )}
                 </div>

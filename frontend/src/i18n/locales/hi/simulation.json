@@ -1,4 +1,13 @@
 {
+  "agentRunStatus": {
+    "NOT_STARTED": "शुरू नहीं हुआ",
+    "WAITING": "प्रतीक्षारत",
+    "PROCESSING": "संसाधित हो रहा है",
+    "COMPLETE": "पूर्ण",
+    "FAILED": "विफल",
+    "READY_FOR_DECISION": "निर्णय के लिए तैयार",
+    "DECISION_RECORDED": "निर्णय दर्ज किया गया"
+  },
   "page": {
     "subtitle": "GramSentinel इंटेलिजेंस सिमुलेटर — सिंथेटिक प्रदर्शन परिदृश्य। यह किसी वास्तविक परिचालन डेटा को नहीं छूता।",
     "loadingScenarios": "सिमुलेशन परिदृश्य लोड हो रहे हैं…",

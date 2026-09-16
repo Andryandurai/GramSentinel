@@ -147,7 +147,9 @@
       "sent": "Sent",
       "subjectPlaceholder": "Subject (optional)",
       "bodyPlaceholder": "Write a message to your Health Officer…",
-      "attachDocument": "Attach document"
+      "attachDocument": "Attach document",
+      "attachmentOpening": "Opening…",
+      "attachmentError": "Could not open the attachment. Try again."
     },
     "approvals": {
       "cardTitle": "Report Approval Tracker",

@@ -66,6 +66,7 @@ function NewLocalSignalReportDialog({
 }) {
   const navigate = useNavigate()
   const { t } = useTranslation('officer')
+  const { t: tc } = useTranslation('common')
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -106,7 +107,9 @@ function NewLocalSignalReportDialog({
             <dl className="rounded-md border border-ink-200 bg-ink-50 px-3 py-2 space-y-1.5">
               <div className="flex justify-between">
                 <dt className="text-ink-500">{t('dashboard.signalDialog.fields.signal')}</dt>
-                <dd className="font-medium text-ink-800">{single.label}</dd>
+                <dd className="font-medium text-ink-800">
+                  {tc(`category.${single.category}`, { defaultValue: single.label })}
+                </dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-500">{t('dashboard.signalDialog.fields.reported')}</dt>
@@ -134,7 +137,7 @@ function NewLocalSignalReportDialog({
                 className="flex items-center justify-between gap-3 rounded-md border border-ink-200 px-3 py-1.5"
               >
                 <span className="text-ink-700 min-w-0 truncate">
-                  {report.label} · {report.village_name}
+                  {tc(`category.${report.category}`, { defaultValue: report.label })} · {report.village_name}
                 </span>
                 <Delta value={report.change_pct} />
               </li>
@@ -163,19 +166,33 @@ function NewLocalSignalReportDialog({
 
 export default function OfficerDashboardPage() {
   const { t } = useTranslation('officer')
+  const { t: tc } = useTranslation('common')
   const { data, loading, error, reload } = useAsync<OfficerDashboard>(() =>
     api.get('/officer/dashboard/'),
   )
-  const [showSignalPopup, setShowSignalPopup] = useState(false)
-  const popupShownRef = useRef(false)
+  // Tracks which report IDs have already been surfaced as a popup during
+  // this page visit (this component instance) — not the unread state
+  // itself, which always comes from the server (`acknowledged_at`). A
+  // single boolean "shown once" flag was tried before this and was the
+  // actual bug: it let exactly one popup fire per mount, so a genuinely
+  // new report arriving after that (e.g. via the manual Refresh button,
+  // which reuses the same mount) was silently swallowed forever, while
+  // leaving and returning to the page (a fresh mount) reset it — the
+  // "sometimes appears, sometimes doesn't" behaviour this replaces.
+  const [popupReports, setPopupReports] = useState<LocalSignalReport[]>([])
+  const shownReportIdsRef = useRef<Set<number>>(new Set())
 
-  // Appears once per visit to this page, not on every manual Refresh —
-  // opening the dashboard is the trigger, not a poll.
   useEffect(() => {
-    if (data && !popupShownRef.current && data.new_local_signal_reports > 0) {
-      setShowSignalPopup(true)
-      popupShownRef.current = true
-    }
+    if (!data) return
+    const unseen = data.recent_local_signal_reports.filter(
+      (report) => !shownReportIdsRef.current.has(report.id),
+    )
+    if (unseen.length === 0) return
+    for (const report of unseen) shownReportIdsRef.current.add(report.id)
+    // Merge with anything already on screen rather than replacing it —
+    // an in-flight dialog for report A must not be clobbered by report B
+    // arriving a moment later; both stay visible.
+    setPopupReports((prev) => [...prev, ...unseen])
   }, [data])
 
   if (loading) return <Loading label={t('dashboard.loading')} />
@@ -237,11 +254,11 @@ export default function OfficerDashboardPage() {
         </Link>
       )}
 
-      {showSignalPopup && (
+      {popupReports.length > 0 && (
         <NewLocalSignalReportDialog
-          reports={data.recent_local_signal_reports}
-          count={data.new_local_signal_reports}
-          onDismiss={() => setShowSignalPopup(false)}
+          reports={popupReports}
+          count={popupReports.length}
+          onDismiss={() => setPopupReports([])}
         />
       )}
 
@@ -367,7 +384,7 @@ export default function OfficerDashboardPage() {
                 }`}
               >
                 {(TREND_CHIP[trend.trend.direction] ?? TREND_CHIP.INSUFFICIENT_DATA).arrow}{' '}
-                {trend.trend.direction_label}
+                {tc(`trend.${trend.trend.direction}`, { defaultValue: trend.trend.direction_label })}
               </span>
               <span className="text-xs text-ink-600">{trend.trend_note}</span>
               <span className="ml-auto text-xs text-ink-400">

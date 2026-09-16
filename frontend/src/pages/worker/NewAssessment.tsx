@@ -358,6 +358,18 @@ export default function NewAssessment() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patient?.id])
 
+  // Pregnancy eligibility (patient.sex !== 'M') must never carry over from a
+  // previously-selected patient — "Change patient" only clears `patient`,
+  // so without this a worker who had `assessmentType` already set to
+  // 'pregnancy' could pick a different (possibly male) patient and land
+  // straight in the Pregnancy flow without ever seeing the type selector
+  // again. Resetting here, the same way `patientDetails` resets above,
+  // closes that gap for every path that changes `patient`, not just one.
+  useEffect(() => {
+    setAssessmentType(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patient?.id])
+
   const set = (key: keyof AssessmentForm, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }))
 
@@ -843,15 +855,30 @@ export default function NewAssessment() {
                       {t('newAssessment.generalAssessmentDescription')}
                     </p>
                   </button>
-                  <button
-                    className="rounded-lg border border-ink-200 p-5 text-left hover:border-care-500 hover:bg-care-50/50 transition-colors"
-                    onClick={() => setAssessmentType('pregnancy')}
-                  >
-                    <div className="text-sm font-semibold text-ink-800">{t('newAssessment.pregnancy')}</div>
-                    <p className="mt-1 text-xs text-ink-600">
-                      {t('newAssessment.pregnancyDescription')}
-                    </p>
-                  </button>
+                  {patient.sex === 'M' ? (
+                    <div
+                      className="rounded-lg border border-ink-200 bg-ink-50 p-5 text-left opacity-60"
+                      aria-disabled="true"
+                      title={t('newAssessment.pregnancyNotAvailableForPatient')}
+                    >
+                      <div className="text-sm font-semibold text-ink-400">
+                        {t('newAssessment.pregnancy')}
+                      </div>
+                      <p className="mt-1 text-xs text-ink-400">
+                        {t('newAssessment.pregnancyNotAvailableForPatient')}
+                      </p>
+                    </div>
+                  ) : (
+                    <button
+                      className="rounded-lg border border-ink-200 p-5 text-left hover:border-care-500 hover:bg-care-50/50 transition-colors"
+                      onClick={() => setAssessmentType('pregnancy')}
+                    >
+                      <div className="text-sm font-semibold text-ink-800">{t('newAssessment.pregnancy')}</div>
+                      <p className="mt-1 text-xs text-ink-600">
+                        {t('newAssessment.pregnancyDescription')}
+                      </p>
+                    </button>
+                  )}
                 </div>
               </Card>
             )}
@@ -1229,7 +1256,7 @@ export default function NewAssessment() {
         </div>
       )}
 
-      {step === 'assessment' && patient && assessmentType === 'pregnancy' && (
+      {step === 'assessment' && patient && assessmentType === 'pregnancy' && patient.sex !== 'M' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <p className="text-sm text-ink-600">

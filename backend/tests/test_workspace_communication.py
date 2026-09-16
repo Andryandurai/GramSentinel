@@ -182,6 +182,74 @@ def test_unauthorized_attachment_access_is_rejected(worker_a, officer_a, officer
     assert denied.status_code == 404
 
 
+# Reverse direction — an officer's own attachment must be just as reachable
+# by the worker on the other end of the same thread.
+def test_officer_to_worker_attachment_is_downloadable_by_worker(worker_a, officer_a):
+    response = api_for(officer_a).post(
+        f"{OFFICER_THREADS}{worker_a.id}/messages/",
+        {"body": "see attached", "attachment": f"data:application/pdf;base64,{PDF_B64}", "attachment_filename": "reply.pdf"},
+        format="json",
+    )
+    assert response.data["has_attachment"] is True
+    message_id = response.data["id"]
+
+    download = api_for(worker_a).get(f"/api/work/messages/{message_id}/attachment/")
+    assert download.status_code == 200
+    assert b"%PDF" in download.content
+
+
+# The frontend fetches this endpoint through the authenticated API client and
+# opens the response as a blob — never a plain <a href> browser navigation —
+# specifically so a PDF/image can preview inline instead of forcing a
+# download every message-attachment click.
+def test_pdf_attachment_is_served_inline_for_browser_preview(worker_a, officer_a):
+    response = api_for(worker_a).post(
+        MESSAGES,
+        {"body": "see attached", "attachment": f"data:application/pdf;base64,{PDF_B64}", "attachment_filename": "note.pdf"},
+        format="json",
+    )
+    message_id = response.data["id"]
+
+    download = api_for(officer_a).get(f"/api/work/messages/{message_id}/attachment/")
+    assert download["Content-Disposition"].startswith("inline;")
+
+
+def test_docx_attachment_still_forces_a_download(worker_a, officer_a):
+    docx_b64 = base64.b64encode(b"PK\x03\x04test").decode()
+    response = api_for(worker_a).post(
+        MESSAGES,
+        {
+            "body": "see attached",
+            "attachment": (
+                "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;"
+                f"base64,{docx_b64}"
+            ),
+            "attachment_filename": "note.docx",
+        },
+        format="json",
+    )
+    message_id = response.data["id"]
+
+    download = api_for(officer_a).get(f"/api/work/messages/{message_id}/attachment/")
+    assert download["Content-Disposition"].startswith("attachment;")
+
+
+# The endpoint must stay protected — no public media exposure. A direct,
+# unauthenticated request (the exact browser-address-bar scenario the bug
+# report showed) must still be refused, just never silently made public.
+def test_unauthenticated_attachment_request_is_rejected(worker_a, officer_a):
+    response = api_for(worker_a).post(
+        MESSAGES,
+        {"body": "see attached", "attachment": f"data:application/pdf;base64,{PDF_B64}", "attachment_filename": "note.pdf"},
+        format="json",
+    )
+    message_id = response.data["id"]
+
+    anonymous = APIClient()
+    denied = anonymous.get(f"/api/work/messages/{message_id}/attachment/")
+    assert denied.status_code == 401
+
+
 def test_a_malformed_attachment_is_rejected_with_a_readable_message(worker_a, officer_a):
     response = api_for(worker_a).post(
         MESSAGES, {"body": "bad file", "attachment": "data:application/pdf;base64,!!!not-base64!!!"}, format="json"

@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from .models import (
     PicmeRchStatus,
+    PregnancyCommunityReport,
     PregnancyProfile,
     PregnancyProfileEvent,
     PregnancyStatus,
@@ -233,3 +234,56 @@ class RequestFollowUpInputSerializer(serializers.Serializer):
     priority = serializers.ChoiceField(choices=("NORMAL", "HIGH", "URGENT"), default="NORMAL")
     due_date = serializers.DateField()
     reason = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class PregnancyCommunityReportInputSerializer(serializers.Serializer):
+    """What the worker submits for the Pregnancy option inside Community
+    Report. Deliberately just an id plus the worker's own words — every
+    clinical-shaped field (visit count, check-up dates, follow-up required)
+    is derived server-side in `pregnancy.services
+    .create_pregnancy_community_report`, never accepted from the client."""
+
+    pregnancy_profile = serializers.IntegerField()
+    reason = serializers.CharField(max_length=2000)
+    remarks = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=2000
+    )
+
+    def validate_reason(self, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError(
+                "Describe the reason for this report."
+            )
+        return cleaned
+
+    def validate_remarks(self, value: str) -> str:
+        return value.strip()
+
+
+class PregnancyCommunityReportDetailSerializer(serializers.ModelSerializer):
+    """The Pregnancy detail attached to a `community.CommunityReport`.
+    Officer-facing and worker-facing alike — `patient_code` only, never a
+    name/phone/location, the same rule `OfficerPregnancyListItemSerializer`
+    already applies to every other officer-facing pregnancy view."""
+
+    patient_code = serializers.CharField(
+        source="pregnancy_profile.patient.patient_code", read_only=True, default=""
+    )
+    pregnancy_status = serializers.CharField(
+        source="pregnancy_profile.status", read_only=True, default=""
+    )
+
+    class Meta:
+        model = PregnancyCommunityReport
+        fields = (
+            "patient_code",
+            "pregnancy_status",
+            "completed_visit_count",
+            "last_checkup_date",
+            "next_checkup_date",
+            "follow_up_required",
+            "reason",
+            "remarks",
+        )
+        read_only_fields = fields

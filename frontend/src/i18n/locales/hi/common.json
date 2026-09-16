@@ -81,6 +81,7 @@
     "success": "सफलता"
   },
   "status": {
+    "NOT_STARTED": "शुरू नहीं हुआ",
     "SCHEDULED": "निर्धारित",
     "IN_PROGRESS": "प्रगति पर",
     "COMPLETED": "पूर्ण",
@@ -118,7 +119,106 @@
     "HIGH": "उच्च",
     "URGENT": "अत्यावश्यक",
     "ROUTINE": "नियमित",
-    "CONCERNING": "चिंताजनक"
+    "CONCERNING": "चिंताजनक",
+    "FRESH": "हाल की",
+    "AGING": "पुराना होता हुआ",
+    "STALE": "पुराना",
+    "LOW": "कम",
+    "MODERATE": "मध्यम",
+    "DOWNGRADE": "डाउनग्रेड"
+  },
+  "trend": {
+    "INCREASING": "बढ़ रहा है",
+    "DECREASING": "घट रहा है",
+    "STABLE": "स्थिर",
+    "INSUFFICIENT_DATA": "अपर्याप्त डेटा"
+  },
+  "time": {
+    "justNow": "अभी-अभी",
+    "minutesAgo": "{{count}} मिनट पहले",
+    "minutesAgo_other": "{{count}} मिनट पहले",
+    "hoursAgo": "{{count}} घंटा पहले",
+    "hoursAgo_other": "{{count}} घंटे पहले",
+    "daysAgo": "{{count}} दिन पहले",
+    "daysAgo_other": "{{count}} दिन पहले",
+    "noReportThisPeriod": "इस अवधि में कोई रिपोर्ट नहीं",
+    "dueToday": "आज देय",
+    "dueTomorrow": "कल देय",
+    "overdueByDays": "{{count}} दिन की देरी",
+    "overdueByDays_other": "{{count}} दिन की देरी",
+    "dueInDays": "{{count}} दिन में देय",
+    "dueInDays_other": "{{count}} दिन में देय",
+    "noFollowUpDateRecorded": "फॉलो-अप तिथि दर्ज नहीं की गई"
+  },
+  "category": {
+    "FEVER": "बुखार / ज्वर संबंधी बीमारी",
+    "RESPIRATORY": "श्वसन संबंधी बीमारी",
+    "DIARRHOEAL": "दस्त / जठरांत्र संबंधी बीमारी",
+    "SKIN": "त्वचा संबंधी स्थितियां / संक्रमण",
+    "EYE": "आंख संबंधी स्थितियां",
+    "VECTOR_BORNE": "वाहक जनित बीमारी के संकेत",
+    "MOSQUITO_BORNE": "मच्छर जनित बीमारी के संकेत",
+    "WATER_BORNE": "जल जनित बीमारी के संकेत",
+    "FOOD_BORNE": "खाद्य जनित बीमारी के संकेत",
+    "ANIMAL_BITE": "पशु / कीट काटने की घटनाएं",
+    "POISONING": "संदिग्ध विषाक्तता",
+    "INJURY": "चोटें / दुर्घटनाएं",
+    "MATERNAL": "मातृ स्वास्थ्य संबंधी चिंताएं",
+    "CHILD_HEALTH": "बाल स्वास्थ्य संबंधी चिंताएं",
+    "MALNUTRITION": "कुपोषण संबंधी चिंताएं",
+    "DEHYDRATION": "निर्जलीकरण",
+    "HEAT_RELATED": "गर्मी संबंधी बीमारी",
+    "MENTAL_HEALTH": "मानसिक स्वास्थ्य संबंधी चिंताएं",
+    "OTHER_COMMUNICABLE": "अन्य संक्रामक बीमारी के संकेत",
+    "OTHER_NON_COMMUNICABLE": "अन्य गैर-संक्रामक स्वास्थ्य चिंताएं",
+    "OTHER": "अन्य स्वास्थ्य चिंता",
+    "ENVIRONMENT": "पर्यावरणीय",
+    "LAB_CONFIRMATION": "प्रयोगशाला पुष्टि"
+  },
+  "sources": {
+    "CHW": "सामुदायिक स्वास्थ्य कार्यकर्ता की रिपोर्ट",
+    "PHC": "PHC / प्राथमिक स्वास्थ्य केंद्र के समेकित रुझान",
+    "PHARMACY": "फार्मेसी श्रेणी के रुझान",
+    "SCHOOL": "स्कूल में अनुपस्थिति",
+    "WEATHER": "मौसम / पर्यावरण",
+    "LAB": "प्रयोगशाला साक्ष्य",
+    "RURALCARE_AGGREGATE": "एकत्रित RuralCare संकेत"
+  },
+  "snapshotFields": {
+    "encounterDate": "मुलाकात की तिथि",
+    "primaryCategory": "प्राथमिक श्रेणी",
+    "triageLevel": "ट्राइएज स्तर",
+    "temperatureC": "तापमान (C)",
+    "pulseBpm": "नाड़ी (bpm)",
+    "bloodSugarMgDl": "रक्त शर्करा (mg/dL)",
+    "reportingWeek": "रिपोर्टिंग सप्ताह",
+    "feverCases": "बुखार के मामले",
+    "respiratoryCases": "श्वसन के मामले",
+    "diarrhoealCases": "दस्त के मामले",
+    "otherCases": "अन्य मामले"
+  },
+  "ui": {
+    "syntheticDemoData": "सिंथेटिक डेमो डेटा",
+    "somethingWentWrong": "कुछ गलत हो गया",
+    "safetyPrefix": "सुरक्षा"
+  },
+  "rag": {
+    "defaultTitle": "प्रासंगिक मार्गदर्शन",
+    "finding": "प्रासंगिक मार्गदर्शन खोजा जा रहा है…",
+    "unavailable": "मार्गदर्शन अस्थायी रूप से अनुपलब्ध है। ऊपर दिया गया मूल्यांकन परिणाम अभी भी उपलब्ध है।",
+    "noGrounding": "इस मूल्यांकन के लिए कोई प्रासंगिक संदर्भ मार्गदर्शन नहीं मिला।",
+    "sourcesCount": "स्रोत ({{count}})",
+    "viewSource": "स्रोत देखें ↗",
+    "authorityShort": {
+      "OFFICIAL": "आधिकारिक",
+      "REFERENCE": "संदर्भ",
+      "INTERNAL": "आंतरिक"
+    },
+    "authorityFull": {
+      "OFFICIAL": "नामित संगठन से आधिकारिक रूप से प्रकाशित मार्गदर्शन",
+      "REFERENCE": "सामान्य संदर्भ सामग्री — शब्दशः आधिकारिक पाठ नहीं",
+      "INTERNAL": "GramSentinel का अपना एप्लिकेशन दस्तावेज़ीकरण"
+    }
   },
   "validation": {
     "required": "यह जानकारी आवश्यक है।",

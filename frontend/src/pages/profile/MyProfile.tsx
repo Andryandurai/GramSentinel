@@ -190,7 +190,7 @@ export default function MyProfilePage() {
       <div>
         <h1 className="text-xl font-semibold tracking-tight">{t('myProfile.title')}</h1>
         <p className="text-sm text-ink-600 mt-0.5">
-          {profile.role_label}
+          {tc(`role.${profile.role}`, { defaultValue: profile.role_label })}
           {profile.village_name ? ` · ${profile.village_name}` : ''}
           {profile.village_label ? ` (${profile.village_label})` : ''}
         </p>
@@ -209,7 +209,7 @@ export default function MyProfilePage() {
               <div className="text-sm font-medium text-ink-800">
                 {profile.display_name}
               </div>
-              <div className="text-xs text-ink-400">{profile.role_label}</div>
+              <div className="text-xs text-ink-400">{tc(`role.${profile.role}`, { defaultValue: profile.role_label })}</div>
             </div>
 
             <input
@@ -343,7 +343,7 @@ export default function MyProfilePage() {
               <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
                 <div className="flex justify-between gap-3">
                   <dt className="text-ink-400">{t('myProfile.assignedSection.role')}</dt>
-                  <dd className="text-ink-800">{profile.role_label}</dd>
+                  <dd className="text-ink-800">{tc(`role.${profile.role}`, { defaultValue: profile.role_label })}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-ink-400">{t('myProfile.assignedSection.villageArea')}</dt>

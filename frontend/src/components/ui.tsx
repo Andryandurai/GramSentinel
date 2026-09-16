@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
+import { formatRelativeTime } from '@/i18n/relativeTime'
 import type {
   FollowUpState,
   FreshnessStatus,
@@ -58,31 +60,36 @@ export function Stat({
 }
 
 export function TriagePill({ level }: { level: TriageLevel }) {
+  const { t } = useTranslation('common')
   const styles: Record<TriageLevel, string> = {
     ROUTINE: 'bg-care-100 text-care-700',
     CONCERNING: 'bg-amber-100 text-amber-800',
     URGENT: 'bg-red-100 text-red-700',
   }
-  return <span className={`pill ${styles[level]}`}>{level}</span>
+  return <span className={`pill ${styles[level]}`}>{t(`status.${level}`, { defaultValue: level })}</span>
 }
 
 export function SeverityPill({ severity }: { severity: Severity }) {
+  const { t } = useTranslation('common')
   const styles: Record<Severity, string> = {
     LOW: 'bg-ink-100 text-ink-600',
     MODERATE: 'bg-amber-100 text-amber-800',
     HIGH: 'bg-red-100 text-red-700',
   }
-  return <span className={`pill ${styles[severity]}`}>{severity}</span>
+  return <span className={`pill ${styles[severity]}`}>{t(`status.${severity}`, { defaultValue: severity })}</span>
 }
 
 export function SafetyPill({ verdict }: { verdict: SafetyVerdict }) {
+  const { t } = useTranslation('common')
   const styles: Record<SafetyVerdict, string> = {
     PASS: 'bg-care-100 text-care-700',
     DOWNGRADE: 'bg-amber-100 text-amber-800',
     BLOCK: 'bg-red-100 text-red-700',
   }
   return (
-    <span className={`pill ${styles[verdict]}`}>SAFETY&nbsp;{verdict}</span>
+    <span className={`pill ${styles[verdict]}`}>
+      {t('ui.safetyPrefix')}&nbsp;{t(`status.${verdict}`, { defaultValue: verdict })}
+    </span>
   )
 }
 
@@ -93,6 +100,7 @@ export function SafetyPill({ verdict }: { verdict: SafetyVerdict }) {
  * pills above communicate one fact each rather than a judgment.
  */
 export function FreshnessPill({ freshness }: { freshness: SourceFreshness }) {
+  const { t } = useTranslation('common')
   const dot: Record<FreshnessStatus, string> = {
     FRESH: 'bg-care-500',
     AGING: 'bg-amber-500',
@@ -116,9 +124,11 @@ export function FreshnessPill({ freshness }: { freshness: SourceFreshness }) {
     >
       <span className={`h-1.5 w-1.5 rounded-full ${dot[freshness.status]}`} aria-hidden="true" />
       <span className="font-medium">
-        {freshness.status.charAt(0) + freshness.status.slice(1).toLowerCase()}
+        {t(`status.${freshness.status}`, { defaultValue: freshness.status })}
       </span>
-      <span className="text-ink-400">· {freshness.relative_time}</span>
+      <span className="text-ink-400">
+        · {formatRelativeTime(freshness.relative_time_seconds, t)}
+      </span>
     </span>
   )
 }
@@ -127,13 +137,8 @@ export function FreshnessPill({ freshness }: { freshness: SourceFreshness }) {
  * Follow-up urgency. Overdue and due-today read clearly without shouting —
  * this sits in a clinical worklist, not a notification centre.
  */
-export function FollowUpPill({
-  status,
-  label,
-}: {
-  status: FollowUpState
-  label?: string
-}) {
+export function FollowUpPill({ status }: { status: FollowUpState }) {
+  const { t } = useTranslation('common')
   const styles: Record<FollowUpState, string> = {
     OVERDUE: 'bg-red-100 text-red-700',
     DUE_TODAY: 'bg-amber-100 text-amber-800',
@@ -142,17 +147,9 @@ export function FollowUpPill({
     MISSED: 'bg-red-50 text-red-700',
     UNSCHEDULED: 'bg-ink-100 text-ink-400',
   }
-  const fallback: Record<FollowUpState, string> = {
-    OVERDUE: 'Overdue',
-    DUE_TODAY: 'Due today',
-    UPCOMING: 'Upcoming',
-    COMPLETED: 'Completed',
-    MISSED: 'Missed',
-    UNSCHEDULED: 'No date',
-  }
   return (
     <span className={`pill ${styles[status] ?? styles.UPCOMING}`}>
-      {label || fallback[status] || 'Upcoming'}
+      {t(`status.${status}`, { defaultValue: status })}
     </span>
   )
 }
@@ -230,11 +227,12 @@ export function Delta({ value }: { value: number | null }) {
   )
 }
 
-export function Loading({ label = 'Loading…' }: { label?: string }) {
+export function Loading({ label }: { label?: string }) {
+  const { t } = useTranslation('common')
   return (
     <div className="flex items-center gap-3 py-10 justify-center text-sm text-ink-600">
       <span className="h-4 w-4 rounded-full border-2 border-ink-200 border-t-care-600 animate-spin" />
-      {label}
+      {label ?? t('states.loading')}
     </div>
   )
 }
@@ -246,13 +244,14 @@ export function ErrorNote({
   message: string
   onRetry?: () => void
 }) {
+  const { t } = useTranslation('common')
   return (
     <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-      <div className="font-medium">Something went wrong</div>
+      <div className="font-medium">{t('ui.somethingWentWrong')}</div>
       <p className="mt-1">{message}</p>
       {onRetry && (
         <button className="btn-ghost mt-3 py-1" onClick={onRetry}>
-          Try again
+          {t('states.tryAgain')}
         </button>
       )}
     </div>
@@ -266,9 +265,10 @@ export function Empty({ children }: { children: ReactNode }) {
 }
 
 export function SyntheticBadge() {
+  const { t } = useTranslation('common')
   return (
     <span className="pill bg-ink-100 text-ink-600 font-medium">
-      SYNTHETIC DEMO DATA
+      {t('ui.syntheticDemoData')}
     </span>
   )
 }

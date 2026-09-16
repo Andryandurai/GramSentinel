@@ -147,7 +147,9 @@
       "sent": "भेजा गया",
       "subjectPlaceholder": "विषय (वैकल्पिक)",
       "bodyPlaceholder": "अपने स्वास्थ्य अधिकारी को संदेश लिखें…",
-      "attachDocument": "दस्तावेज़ संलग्न करें"
+      "attachDocument": "दस्तावेज़ संलग्न करें",
+      "attachmentOpening": "खोला जा रहा है…",
+      "attachmentError": "अटैचमेंट खोला नहीं जा सका। पुनः प्रयास करें।"
     },
     "approvals": {
       "cardTitle": "रिपोर्ट अनुमोदन ट्रैकर",

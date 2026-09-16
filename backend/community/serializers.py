@@ -14,6 +14,7 @@ from core.constants import (
 from .models import (
     CommunityReport,
     CommunityReportEntry,
+    CommunityReportType,
     CommunitySignal,
     DataSource,
     LocalSignalReport,
@@ -29,6 +30,7 @@ class CommunityReportSerializer(serializers.ModelSerializer):
     )
     entries = serializers.SerializerMethodField()
     total_reported_cases = serializers.IntegerField(read_only=True)
+    pregnancy_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = CommunityReport
@@ -37,6 +39,7 @@ class CommunityReportSerializer(serializers.ModelSerializer):
             "village",
             "village_name",
             "worker_name",
+            "report_type",
             "week_label",
             "period_start",
             "period_end",
@@ -48,6 +51,7 @@ class CommunityReportSerializer(serializers.ModelSerializer):
             "notes",
             "entries",
             "total_reported_cases",
+            "pregnancy_detail",
             "submitted_at",
             "client_created_at",
         )
@@ -55,6 +59,18 @@ class CommunityReportSerializer(serializers.ModelSerializer):
 
     def get_entries(self, obj):
         return CommunityReportEntrySerializer(obj.entries.all(), many=True).data
+
+    def get_pregnancy_detail(self, obj):
+        # Local import: `pregnancy` depends on `community` (its detail model
+        # FKs back to `CommunityReport`), so importing at module level here
+        # would be circular. `report_type != PREGNANCY` never even has the
+        # related row, so this also skips a query for the common case.
+        if obj.report_type != CommunityReportType.PREGNANCY:
+            return None
+        from pregnancy.serializers import PregnancyCommunityReportDetailSerializer
+
+        detail = getattr(obj, "pregnancy_detail", None)
+        return PregnancyCommunityReportDetailSerializer(detail).data if detail else None
 
 
 class CommunityReportEntrySerializer(serializers.ModelSerializer):

@@ -14,7 +14,9 @@
     "workerNotes": "Worker notes:",
     "trendSummary": "{{total}} reported across {{count}} week",
     "trendSummary_other": "{{total}} reported across {{count}} weeks",
-    "excludedFromCorroboration": "Excluded from independent corroboration"
+    "excludedFromCorroboration": "Excluded from independent corroboration",
+    "yes": "Yes",
+    "no": "No"
   },
   "alertStatus": {
     "DETECTED": "Detected",
@@ -130,7 +132,9 @@
       "noReportsSuffix": " — no reports",
       "emptyFallback": "Insufficient data for this selection.",
       "emptyHintFallback": "Try a wider selection or a longer period.",
-      "insufficientData": "Insufficient data"
+      "insufficientData": "Insufficient data",
+      "allCases": "All cases",
+      "allSeverities": "All severities"
     },
     "observations": {
       "title": "Observations from your workers"
@@ -155,6 +159,18 @@
       "empty": "No community reports have been submitted for your area.",
       "totalCases": "{{count}} reported case in total",
       "totalCases_other": "{{count}} reported cases in total"
+    },
+    "reportType": {
+      "general": "General",
+      "pregnancy": "Pregnancy"
+    },
+    "pregnancy": {
+      "patientCode": "Patient code",
+      "visitsCompleted": "Visits completed",
+      "followUpRequired": "Follow-up required",
+      "lastCheckup": "Last check-up",
+      "nextCheckup": "Next check-up",
+      "reason": "Reason"
     }
   },
   "alertHistory": {
@@ -300,7 +316,9 @@
       "attachmentFallback": "Attachment",
       "replyPlaceholder": "Reply…",
       "sending": "Sending…",
-      "fileReadError": "Could not read that file."
+      "fileReadError": "Could not read that file.",
+      "attachmentOpening": "Opening…",
+      "attachmentError": "Could not open the attachment. Try again."
     },
     "reports": {
       "title": "Report Approvals",

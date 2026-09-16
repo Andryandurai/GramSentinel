@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { Card, Empty, ErrorNote, Loading } from '@/components/ui'
+import { translateSnapshotField } from '@/i18n/snapshotFields'
+import { openAttachment } from '@/services/api'
 import { useWorkCommunicationStore } from '@/store/workCommunication'
 import type { CorrectableRecord, WorkflowStatus } from '@/types'
 
@@ -61,11 +63,27 @@ function SupervisorCommunicationSection() {
   const [body, setBody] = useState('')
   const [subject, setSubject] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [openingAttachmentId, setOpeningAttachmentId] = useState<number | null>(null)
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
 
   useEffect(() => {
     void loadMyMessages()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function handleOpenAttachment(messageId: number) {
+    setOpeningAttachmentId(messageId)
+    setAttachmentError(null)
+    try {
+      await openAttachment(`/work/messages/${messageId}/attachment/`)
+    } catch (err) {
+      setAttachmentError(
+        err instanceof Error ? err.message : t('workCommunication.messages.attachmentError'),
+      )
+    } finally {
+      setOpeningAttachmentId(null)
+    }
+  }
 
   function handleSearch(event: FormEvent) {
     event.preventDefault()
@@ -120,6 +138,12 @@ function SupervisorCommunicationSection() {
         </button>
       </form>
 
+      {attachmentError && (
+        <div className="mb-3">
+          <ErrorNote message={attachmentError} />
+        </div>
+      )}
+
       {messagesLoading ? (
         <Loading label={t('workCommunication.messages.loading')} />
       ) : messagesError ? (
@@ -146,14 +170,17 @@ function SupervisorCommunicationSection() {
               {message.subject && <div className="mt-1 font-medium text-ink-800">{message.subject}</div>}
               <p className="mt-1 whitespace-pre-line text-ink-800">{message.body}</p>
               {message.has_attachment && (
-                <a
-                  className="mt-2 inline-block text-xs text-sentinel-700 hover:underline"
-                  href={`${import.meta.env.VITE_API_BASE_URL ?? '/api'}/work/messages/${message.id}/attachment/`}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  className="mt-2 inline-block text-xs text-sentinel-700 hover:underline disabled:opacity-50"
+                  onClick={() => void handleOpenAttachment(message.id)}
+                  disabled={openingAttachmentId === message.id}
                 >
-                  📎 {message.attachment_filename || t('workCommunication.messages.attachmentFallback')}
-                </a>
+                  📎{' '}
+                  {openingAttachmentId === message.id
+                    ? t('workCommunication.messages.attachmentOpening')
+                    : message.attachment_filename || t('workCommunication.messages.attachmentFallback')}
+                </button>
               )}
               {!message.is_from_officer && (
                 <div className="mt-1 text-[11px] text-ink-400">
@@ -345,7 +372,7 @@ function RequestCorrectionForm({ onDone }: { onDone: () => void }) {
           <div className="mb-1 font-medium text-ink-500">{t('workCommunication.corrections.currentInformation')}</div>
           {Object.entries(selected.snapshot).map(([field, value]) => (
             <div key={field}>
-              {field}: <span className="font-medium">{value}</span>
+              {translateSnapshotField(field, tc)}: <span className="font-medium">{value}</span>
             </div>
           ))}
         </div>
@@ -375,6 +402,7 @@ function RequestCorrectionForm({ onDone }: { onDone: () => void }) {
 }
 
 function CorrectionHistory({ correctionId }: { correctionId: number }) {
+  const { t: tc } = useTranslation('common')
   const correction = useWorkCommunicationStore((state) => state.corrections.find((c) => c.id === correctionId))
   if (!correction) return null
 
@@ -383,7 +411,9 @@ function CorrectionHistory({ correctionId }: { correctionId: number }) {
       {correction.events.map((event, index) => (
         <li key={index} className="flex items-center gap-2">
           <span className="text-ink-400">{new Date(event.created_at).toLocaleDateString()}</span>
-          <span className="font-medium">{event.to_status_label}</span>
+          <span className="font-medium">
+            {tc(`status.${event.to_status}`, { defaultValue: event.to_status_label })}
+          </span>
           {event.comment && <span className="text-ink-500">— {event.comment}</span>}
         </li>
       ))}

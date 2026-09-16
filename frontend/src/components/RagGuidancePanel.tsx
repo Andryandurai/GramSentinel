@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { useAsync } from '@/hooks/useAsync'
 import type { RagResponse, RagSource } from '@/types'
 
@@ -13,13 +15,18 @@ import type { RagResponse, RagSource } from '@/types'
  * call failed, or the response came back empty), the panel shows one calm,
  * short line and nothing else — the assessment/alert result above it is
  * unaffected either way.
+ *
+ * `source.authority`/`authority_label` describe how authoritative a cited
+ * document genuinely is (task §9/§30: never present reference material as
+ * verbatim official guidance) — `rag.authorityShort`/`authorityFull` below
+ * translate that same true meaning, never inventing a different claim
+ * about the source's authority in another language.
+ *
+ * `answer` itself (the RAG-generated explanation) is not translated here —
+ * it is real generated content the backend currently only produces in
+ * English regardless of the selected UI language (a known limitation, not
+ * addressed by this component).
  */
-
-const AUTHORITY_SHORT: Record<RagSource['authority'], string> = {
-  OFFICIAL: 'Official',
-  REFERENCE: 'Reference',
-  INTERNAL: 'Internal',
-}
 
 function FallbackNote({ title, message }: { title: string; message: string }) {
   return (
@@ -33,7 +40,9 @@ function FallbackNote({ title, message }: { title: string; message: string }) {
 }
 
 function SourceLine({ source }: { source: RagSource }) {
-  const authority = AUTHORITY_SHORT[source.authority] ?? source.authority_label
+  const { t } = useTranslation('common')
+  const authority = t(`rag.authorityShort.${source.authority}`, { defaultValue: source.authority_label })
+  const authorityFull = t(`rag.authorityFull.${source.authority}`, { defaultValue: source.authority_label })
   return (
     <li className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-ink-600">
       <span className="font-medium text-ink-700">{source.title}</span>
@@ -41,7 +50,7 @@ function SourceLine({ source }: { source: RagSource }) {
       <span>{source.organization}</span>
       <span
         className="pill bg-ink-100 text-ink-500"
-        title={source.authority_label}
+        title={authorityFull}
       >
         {authority}
       </span>
@@ -52,7 +61,7 @@ function SourceLine({ source }: { source: RagSource }) {
           rel="noopener noreferrer"
           className="text-sentinel-700 hover:underline"
         >
-          View source ↗
+          {t('rag.viewSource')}
         </a>
       )}
     </li>
@@ -60,7 +69,7 @@ function SourceLine({ source }: { source: RagSource }) {
 }
 
 export function RagGuidancePanel({
-  title = 'Relevant Guidance',
+  title,
   fetcher,
   deps,
 }: {
@@ -68,10 +77,12 @@ export function RagGuidancePanel({
   fetcher: () => Promise<RagResponse>
   deps: unknown[]
 }) {
+  const { t } = useTranslation('common')
+  const resolvedTitle = title ?? t('rag.defaultTitle')
   const { data, loading, error } = useAsync<RagResponse>(fetcher, deps)
 
   if (loading) {
-    return <p className="mt-3 text-xs text-ink-400">Finding relevant guidance…</p>
+    return <p className="mt-3 text-xs text-ink-400">{t('rag.finding')}</p>
   }
 
   // RAG disabled by configuration — no section at all, nothing to explain
@@ -85,21 +96,11 @@ export function RagGuidancePanel({
   // Worker: guidance isn't available right now, and that's fine — the
   // assessment result above stands on its own regardless.
   if (error || !data || data.status === 'unavailable') {
-    return (
-      <FallbackNote
-        title={title}
-        message="Guidance is temporarily unavailable. The assessment result above is still available."
-      />
-    )
+    return <FallbackNote title={resolvedTitle} message={t('rag.unavailable')} />
   }
 
   if (data.status === 'no_grounding') {
-    return (
-      <FallbackNote
-        title={title}
-        message="No relevant reference guidance was found for this assessment."
-      />
-    )
+    return <FallbackNote title={resolvedTitle} message={t('rag.noGrounding')} />
   }
 
   // Grounded: a real explanation was generated. Guard defensively against
@@ -109,25 +110,20 @@ export function RagGuidancePanel({
   const answer = typeof data.answer === 'string' ? data.answer.trim() : ''
   const sources = Array.isArray(data.sources) ? data.sources : []
   if (!answer) {
-    return (
-      <FallbackNote
-        title={title}
-        message="Guidance is temporarily unavailable. The assessment result above is still available."
-      />
-    )
+    return <FallbackNote title={resolvedTitle} message={t('rag.unavailable')} />
   }
 
   return (
     <div className="mt-3 rounded-lg border border-sentinel-200 bg-sentinel-50/40 p-3">
       <div className="text-xs font-semibold uppercase tracking-wide text-sentinel-700">
-        {title}
+        {resolvedTitle}
       </div>
       <p className="mt-1.5 text-sm text-ink-700 leading-relaxed">{answer}</p>
 
       {sources.length > 0 && (
         <details className="mt-2 text-xs">
           <summary className="cursor-pointer select-none font-medium text-sentinel-700">
-            Sources ({sources.length})
+            {t('rag.sourcesCount', { count: sources.length })}
           </summary>
           <ul className="mt-1.5 space-y-1">
             {sources.map((source, index) => (

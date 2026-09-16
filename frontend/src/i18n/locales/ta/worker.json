@@ -147,7 +147,9 @@
       "sent": "அனுப்பப்பட்டது",
       "subjectPlaceholder": "பொருள் (விருப்பத்தேர்வு)",
       "bodyPlaceholder": "உங்கள் சுகாதார அலுவலருக்கு ஒரு செய்தியை எழுதவும்…",
-      "attachDocument": "ஆவணத்தை இணை"
+      "attachDocument": "ஆவணத்தை இணை",
+      "attachmentOpening": "திறக்கிறது…",
+      "attachmentError": "இணைப்பைத் திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
     },
     "approvals": {
       "cardTitle": "அறிக்கை ஒப்புதல் கண்காணிப்பு",

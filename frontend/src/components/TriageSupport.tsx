@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
+
 import { AgentTrace } from '@/components/AgentTrace'
 import type { TriageLevel, TriageSupport as Support } from '@/types'
 
@@ -12,56 +15,37 @@ export interface VitalsInput {
   spo2: string
 }
 
-const PRIORITY: Record<
-  TriageLevel,
-  {
-    label: string
-    icon: string
-    band: string
-    text: string
-    meaning: string
-  }
-> = {
-  ROUTINE: {
-    label: 'Low priority',
-    icon: '🟢',
-    band: 'border-care-300 bg-care-50',
-    text: 'text-care-700',
-    meaning: 'No immediate escalation is suggested based on the information recorded.',
-  },
-  CONCERNING: {
-    label: 'Medium priority',
-    icon: '🟠',
-    band: 'border-amber-300 bg-amber-50',
-    text: 'text-amber-800',
-    meaning: 'Follow-up is recommended based on the information recorded.',
-  },
-  URGENT: {
-    label: 'High priority',
-    icon: '🔴',
-    band: 'border-red-300 bg-red-50',
-    text: 'text-red-700',
-    meaning: 'Prompt clinical evaluation is recommended based on the information recorded.',
-  },
+const PRIORITY_STYLE: Record<TriageLevel, { icon: string; band: string; text: string }> = {
+  ROUTINE: { icon: '🟢', band: 'border-care-300 bg-care-50', text: 'text-care-700' },
+  CONCERNING: { icon: '🟠', band: 'border-amber-300 bg-amber-50', text: 'text-amber-800' },
+  URGENT: { icon: '🔴', band: 'border-red-300 bg-red-50', text: 'text-red-700' },
 }
 
 /** Which recorded-factor sentence (from the real triage result) corresponds
  *  to each vital, so a value can be marked as having influenced the
  *  priority — without introducing any new threshold of our own. Diastolic
- *  blood pressure is never itself scored, so it has no prefix to match. */
+ *  blood pressure is never itself scored, so it has no prefix to match.
+ *  `factorPrefix` matches against `contributing_factors`, which is
+ *  backend-generated English narrative text (not yet multilingual — a
+ *  known, documented limitation) — this match is on the raw English
+ *  sentence regardless of UI language, so it is unaffected by `label`
+ *  being translated below. */
 const VITAL_FIELDS: {
   key: keyof VitalsInput
-  label: string
   unit: string
   factorPrefix: string
 }[] = [
-  { key: 'temperature_c', label: 'Temperature', unit: '°C', factorPrefix: 'recorded temperature ' },
-  { key: 'pulse_bpm', label: 'Pulse', unit: '/min', factorPrefix: 'pulse ' },
-  { key: 'respiratory_rate', label: 'Resp. rate', unit: '/min', factorPrefix: 'respiratory rate ' },
-  { key: 'systolic_bp', label: 'Systolic BP', unit: ' mmHg', factorPrefix: 'systolic blood pressure ' },
-  { key: 'diastolic_bp', label: 'Diastolic BP', unit: ' mmHg', factorPrefix: '' },
-  { key: 'spo2', label: 'SpO₂', unit: '%', factorPrefix: 'oxygen saturation ' },
+  { key: 'temperature_c', unit: '°C', factorPrefix: 'recorded temperature ' },
+  { key: 'pulse_bpm', unit: '/min', factorPrefix: 'pulse ' },
+  { key: 'respiratory_rate', unit: '/min', factorPrefix: 'respiratory rate ' },
+  { key: 'systolic_bp', unit: ' mmHg', factorPrefix: 'systolic blood pressure ' },
+  { key: 'diastolic_bp', unit: ' mmHg', factorPrefix: '' },
+  { key: 'spo2', unit: '%', factorPrefix: 'oxygen saturation ' },
 ]
+
+function vitalFieldLabel(key: keyof VitalsInput, t: TFunction<'assessments'>): string {
+  return t(`triageSupport.vitalLabels.${key}`)
+}
 
 function capitalise(text: string): string {
   return text ? text.charAt(0).toUpperCase() + text.slice(1) : text
@@ -87,41 +71,45 @@ function Section({
 /** The current priority, made as visually unmistakable as possible — a new
  *  worker should not have to interpret what "concerning" means. */
 function PriorityBanner({ support }: { support: Support }) {
-  const level = PRIORITY[support.triage_level]
+  const { t } = useTranslation('assessments')
+  const style = PRIORITY_STYLE[support.triage_level]
   const escalated = support.escalation_forced
 
   return (
-    <div className={`rounded-xl border-2 px-5 py-4 ${level.band}`}>
+    <div className={`rounded-xl border-2 px-5 py-4 ${style.band}`}>
       <div className="text-xs font-semibold uppercase tracking-wide text-ink-500">
-        Current priority
+        {t('triageSupport.currentPriority')}
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
         <span className="text-2xl" aria-hidden="true">
-          {level.icon}
+          {style.icon}
         </span>
-        <span className={`text-2xl font-bold tracking-tight ${level.text}`}>
-          {level.label.toUpperCase()}
+        <span className={`text-2xl font-bold tracking-tight ${style.text}`}>
+          {t(`triageSupport.priorityLevel.${support.triage_level}`).toUpperCase()}
         </span>
         {escalated && (
           <span className="pill border border-red-300 bg-white text-red-700 text-[11px]">
-            Escalated by safety rule
+            {t('triageSupport.escalatedBySafetyRule')}
           </span>
         )}
       </div>
       <p className="mt-2 text-sm text-ink-700">
-        <span className="font-medium text-ink-800">What this means: </span>
-        {level.meaning}
+        <span className="font-medium text-ink-800">{t('triageSupport.whatThisMeans')} </span>
+        {t(`triageSupport.meaning.${support.triage_level}`)}
       </p>
     </div>
   )
 }
 
 /** Every bullet here is one of the system's own recorded factors — nothing
- *  is added, reworded into a diagnosis, or scored again on the frontend. */
+ *  is added, reworded into a diagnosis, or scored again on the frontend.
+ *  `factors` is backend-generated English narrative text (not yet
+ *  multilingual — a known, documented limitation). */
 function WhyThisPriority({ support }: { support: Support }) {
+  const { t } = useTranslation('assessments')
   const factors = support.contributing_factors
   return (
-    <Section title="Why this priority?">
+    <Section title={t('triageSupport.whyThisPriority')}>
       {factors.length > 0 ? (
         <ul className="space-y-1 list-disc pl-4">
           {factors.map((factor) => (
@@ -129,24 +117,28 @@ function WhyThisPriority({ support }: { support: Support }) {
           ))}
         </ul>
       ) : (
-        <p className="text-ink-600">No concerning features were recorded.</p>
+        <p className="text-ink-600">{t('triageSupport.noConcerningFeatures')}</p>
       )}
     </Section>
   )
 }
 
 function WhatToDoNext({ support }: { support: Support }) {
+  const { t } = useTranslation('assessments')
   return (
-    <Section title="What to do next">
-      <p className="font-medium text-ink-900">{support.referral_recommendation}</p>
+    <Section title={t('triageSupport.whatToDoNext')}>
+      <p className="font-medium text-ink-900">
+        {t(`triageSupport.referralRecommendation.${support.referral_pathway}`, {
+          defaultValue: support.referral_recommendation,
+        })}
+      </p>
       {support.followup_interval_days ? (
         <div className="mt-2 flex items-baseline gap-2">
           <span className="text-xs font-medium uppercase tracking-wide text-ink-400">
-            Suggested follow-up
+            {t('triageSupport.suggestedFollowUp')}
           </span>
           <span className="font-medium text-ink-800">
-            {support.followup_interval_days} day
-            {support.followup_interval_days === 1 ? '' : 's'}
+            {t('triageSupport.followUpDayCount', { count: support.followup_interval_days })}
           </span>
         </div>
       ) : null}
@@ -164,6 +156,7 @@ function VitalSignCheck({
   vitals: VitalsInput
   factors: string[]
 }) {
+  const { t } = useTranslation('assessments')
   const rows = VITAL_FIELDS.map((field) => {
     const raw = (vitals[field.key] ?? '').trim()
     return {
@@ -178,12 +171,12 @@ function VitalSignCheck({
   const recorded = rows.filter((row) => row.value !== null)
 
   return (
-    <Section title="Vital sign check">
+    <Section title={t('triageSupport.vitalSignCheck')}>
       {recorded.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
           {recorded.map((row) => (
             <div key={row.key}>
-              <div className="text-xs text-ink-400">{row.label}</div>
+              <div className="text-xs text-ink-400">{vitalFieldLabel(row.key, t)}</div>
               <div
                 className={`font-medium ${row.flagged ? 'text-amber-700' : 'text-ink-800'}`}
               >
@@ -191,7 +184,7 @@ function VitalSignCheck({
                 {row.unit}
                 {row.flagged && (
                   <span className="ml-1.5 pill bg-amber-100 text-amber-800 text-[10px] align-middle">
-                    flagged
+                    {t('triageSupport.flagged')}
                   </span>
                 )}
               </div>
@@ -199,32 +192,33 @@ function VitalSignCheck({
           ))}
         </div>
       ) : (
-        <p className="text-ink-400">Vital signs not recorded.</p>
+        <p className="text-ink-400">{t('triageSupport.vitalsNotRecorded')}</p>
       )}
     </Section>
   )
 }
 
-function vitalLabel(fieldKey: string): string {
-  return VITAL_FIELDS.find((field) => field.key === fieldKey)?.label ?? fieldKey
-}
-
 /** The backend's own "Vitals not recorded: temperature_c, ..." note names
- *  its internal field keys — swapped here for the same plain labels the
- *  Vital Sign Check section uses, built from the same `missing_vitals`
+ *  its internal field keys — swapped here for the same translated labels
+ *  the Vital Sign Check section uses, built from the same `missing_vitals`
  *  list, so nothing here is invented. */
 function InformationToCheck({ support }: { support: Support }) {
+  const { t } = useTranslation('assessments')
   const missingVitals = support.completeness.missing_vitals
   const notes = [
     ...support.completeness.notes.filter(
       (note) => !note.startsWith('Vitals not recorded'),
     ),
     ...(missingVitals.length > 0
-      ? [`Vitals not recorded: ${missingVitals.map(vitalLabel).join(', ')}.`]
+      ? [
+          t('triageSupport.vitalsNotRecordedNote', {
+            list: missingVitals.map((key) => vitalFieldLabel(key as keyof VitalsInput, t)).join(', '),
+          }),
+        ]
       : []),
   ]
   return (
-    <Section title="Information to check">
+    <Section title={t('triageSupport.informationToCheck')}>
       {notes.length > 0 ? (
         <ul className="space-y-1">
           {notes.map((note) => (
@@ -237,7 +231,7 @@ function InformationToCheck({ support }: { support: Support }) {
       ) : (
         <p className="flex items-center gap-1.5 text-care-700">
           <span aria-hidden="true">✓</span>
-          No additional information flagged.
+          {t('triageSupport.noAdditionalInfo')}
         </p>
       )}
     </Section>
@@ -246,8 +240,11 @@ function InformationToCheck({ support }: { support: Support }) {
 
 /** Rule-based and separate from the recommendation above it — the point a
  *  new worker most needs to take away is that this check can raise the
- *  priority but nothing here decided it on its own. */
+ *  priority but nothing here decided it on its own. `flag.label`/
+ *  `.rationale` are backend-generated red-flag text (not yet multilingual
+ *  — a known, documented limitation). */
 function SafetyCheck({ support }: { support: Support }) {
+  const { t } = useTranslation('assessments')
   const flags = support.red_flags
   const hasFlags = flags.length > 0
 
@@ -263,17 +260,17 @@ function SafetyCheck({ support }: { support: Support }) {
             hasFlags ? 'text-red-700' : 'text-ink-500'
           }`}
         >
-          Safety check
+          {t('triageSupport.safetyCheck')}
         </span>
         <span className="pill bg-white text-ink-600 border border-ink-200">
-          ✓ Rule-based safety review
+          {t('triageSupport.ruleBasedSafetyReview')}
         </span>
       </div>
 
       {hasFlags ? (
         <>
           <p className="mt-1.5 text-sm font-medium text-red-800">
-            ⚠ Human review required
+            {t('triageSupport.humanReviewRequired')}
           </p>
           <ul className="mt-1.5 space-y-1">
             {flags.map((flag) => (
@@ -284,16 +281,17 @@ function SafetyCheck({ support }: { support: Support }) {
           </ul>
           {support.escalation_forced && (
             <p className="mt-1.5 text-xs text-red-700">
-              Raised from{' '}
-              {PRIORITY[support.model_triage_level]?.label.toLowerCase() ??
-                support.model_triage_level.toLowerCase()}{' '}
-              by this safety check — it cannot be lowered by the suggestion above.
+              {t('triageSupport.raisedFrom', {
+                level: t(`triageSupport.priorityLevel.${support.model_triage_level}`, {
+                  defaultValue: support.model_triage_level,
+                }).toLowerCase(),
+              })}
             </p>
           )}
         </>
       ) : (
         <p className="mt-1.5 text-sm text-ink-700">
-          No automatic high-risk escalation triggered. The current priority stands.
+          {t('triageSupport.noAutomaticEscalation')}
         </p>
       )}
     </div>
@@ -305,10 +303,11 @@ function SafetyCheck({ support }: { support: Support }) {
  *  already renders each agent's own name, purpose and result in plain
  *  language, so nothing here duplicates that work. */
 function HowThisWasProcessed({ support }: { support: Support }) {
+  const { t } = useTranslation('assessments')
   return (
     <details className="group rounded-lg border border-ink-200">
       <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-500">
-        How this was processed
+        {t('triageSupport.howThisWasProcessed')}
         <span
           className="text-ink-400 transition-transform group-open:rotate-90"
           aria-hidden="true"
@@ -330,6 +329,7 @@ export function TriageSupportPanel({
   support: Support
   vitals: VitalsInput
 }) {
+  const { t } = useTranslation('assessments')
   const supplementary = support.supplementary_context
 
   return (
@@ -346,11 +346,11 @@ export function TriageSupportPanel({
       {supplementary?.has_supplementary_detail && (
         <div className="rounded-md border border-ink-200 bg-white px-3 py-2">
           <div className="text-xs font-medium text-ink-600">
-            Additional detail recorded
+            {t('triageSupport.additionalDetailRecorded')}
           </div>
           {supplementary.other_symptom_text && (
             <p className="mt-1.5 text-sm text-ink-800">
-              <span className="text-xs font-medium text-ink-500">Other: </span>
+              <span className="text-xs font-medium text-ink-500">{t('triageSupport.otherLabel')} </span>
               {supplementary.other_symptom_text}
             </p>
           )}
@@ -359,7 +359,7 @@ export function TriageSupportPanel({
               {supplementary.symptom_timeline.map((entry) => (
                 <li key={entry.day} className="text-sm text-ink-800">
                   <span className="text-xs font-medium text-ink-500">
-                    Day {entry.day} —{' '}
+                    {t('triageSupport.dayPrefix', { day: entry.day })}{' '}
                   </span>
                   {entry.detail}
                 </li>

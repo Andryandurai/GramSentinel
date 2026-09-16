@@ -14,7 +14,9 @@
     "workerNotes": "कार्यकर्ता की टिप्पणियाँ:",
     "trendSummary": "{{count}} सप्ताह में कुल {{total}} रिपोर्ट किए गए",
     "trendSummary_other": "{{count}} सप्ताहों में कुल {{total}} रिपोर्ट किए गए",
-    "excludedFromCorroboration": "स्वतंत्र पुष्टि से बाहर रखा गया"
+    "excludedFromCorroboration": "स्वतंत्र पुष्टि से बाहर रखा गया",
+    "yes": "हाँ",
+    "no": "नहीं"
   },
   "alertStatus": {
     "DETECTED": "पहचाना गया",
@@ -130,7 +132,9 @@
       "noReportsSuffix": " — कोई रिपोर्ट नहीं",
       "emptyFallback": "इस चयन के लिए अपर्याप्त डेटा है।",
       "emptyHintFallback": "व्यापक चयन या लंबी अवधि आज़माएं।",
-      "insufficientData": "अपर्याप्त डेटा"
+      "insufficientData": "अपर्याप्त डेटा",
+      "allCases": "सभी मामले",
+      "allSeverities": "सभी गंभीरता स्तर"
     },
     "observations": {
       "title": "आपके कार्यकर्ताओं की टिप्पणियां"
@@ -155,6 +159,18 @@
       "empty": "आपके क्षेत्र के लिए कोई सामुदायिक रिपोर्ट सबमिट नहीं की गई है।",
       "totalCases": "कुल {{count}} मामला रिपोर्ट किया गया",
       "totalCases_other": "कुल {{count}} मामले रिपोर्ट किए गए"
+    },
+    "reportType": {
+      "general": "सामान्य",
+      "pregnancy": "गर्भावस्था"
+    },
+    "pregnancy": {
+      "patientCode": "मरीज़ कोड",
+      "visitsCompleted": "पूर्ण विज़िट",
+      "followUpRequired": "फॉलो-अप आवश्यक",
+      "lastCheckup": "पिछली जांच",
+      "nextCheckup": "अगली जांच",
+      "reason": "कारण"
     }
   },
   "alertHistory": {
@@ -300,7 +316,9 @@
       "attachmentFallback": "संलग्नक",
       "replyPlaceholder": "उत्तर दें…",
       "sending": "भेजा जा रहा है…",
-      "fileReadError": "वह फ़ाइल पढ़ी नहीं जा सकी।"
+      "fileReadError": "वह फ़ाइल पढ़ी नहीं जा सकी।",
+      "attachmentOpening": "खोला जा रहा है…",
+      "attachmentError": "अटैचमेंट खोला नहीं जा सका। पुनः प्रयास करें।"
     },
     "reports": {
       "title": "रिपोर्ट अनुमोदन",

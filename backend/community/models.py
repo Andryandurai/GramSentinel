@@ -7,9 +7,26 @@ tables only ever hold counts tied to a village/facility and a time window.
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from core.constants import DataQuality, SignalCategory, SourceKind
+
+
+class CommunityReportType(models.TextChoices):
+    """What kind of report this is — set explicitly by the worker at
+    submission time, never inferred from free text (Pregnancy Reporting in
+    Community Report, task requirement: the officer must be able to tell a
+    Pregnancy report apart without reading `notes`).
+
+    GENERAL is the original, unchanged weekly category-count report. A
+    PREGNANCY report is a lighter-weight, ad-hoc flag about one pregnancy
+    already tracked in the `pregnancy` app — its own detail row lives there,
+    not here, to preserve this module's "no patient FK" boundary below.
+    """
+
+    GENERAL = "GENERAL", "General community health"
+    PREGNANCY = "PREGNANCY", "Pregnancy follow-up"
 
 
 class DataSource(models.Model):
@@ -75,6 +92,11 @@ class CommunityReport(models.Model):
     village = models.ForeignKey(
         "core.Village", on_delete=models.PROTECT, related_name="community_reports"
     )
+    report_type = models.CharField(
+        max_length=16,
+        choices=CommunityReportType.choices,
+        default=CommunityReportType.GENERAL,
+    )
     week_label = models.CharField(max_length=16, help_text="e.g. 2026-W32")
     period_start = models.DateField()
     period_end = models.DateField()
@@ -129,7 +151,20 @@ class CommunityReport(models.Model):
 
     class Meta:
         ordering = ["-period_start"]
-        unique_together = [("village", "week_label", "worker")]
+        constraints = [
+            # Only GENERAL reports are the one-per-worker-per-village-per-week
+            # weekly submission. A PREGNANCY report is an ad-hoc flag — a
+            # worker may need to raise more than one in the same week (two
+            # different pregnancies, or a follow-up correction), so it is
+            # deliberately exempt, the same "condition=Q(...)" shape already
+            # used for `pregnancy.PregnancyProfile`'s one-active-per-patient
+            # constraint.
+            models.UniqueConstraint(
+                fields=["village", "week_label", "worker"],
+                condition=Q(report_type=CommunityReportType.GENERAL),
+                name="unique_general_report_per_worker_week",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"CHW report {self.village.code} {self.week_label}"

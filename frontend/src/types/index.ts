@@ -447,10 +447,15 @@ export type FreshnessStatus = 'FRESH' | 'AGING' | 'STALE' | 'MISSING'
 
 export interface SourceFreshness {
   source_kind: string
+  /** English-only backend label — kept for backward compatibility. Never
+   *  rendered directly; use `t(\`sources.${source_kind.toLowerCase()}\`)`. */
   source_label: string
   status: FreshnessStatus
   last_updated_at: string | null
+  /** English-only backend sentence — kept for backward compatibility.
+   *  Never rendered directly; use `formatRelativeTime(relative_time_seconds, t)`. */
   relative_time: string
+  relative_time_seconds: number | null
   received: boolean
 }
 
@@ -918,12 +923,26 @@ export interface CommunityReportEntry {
   notes?: string
 }
 
+export type CommunityReportType = 'GENERAL' | 'PREGNANCY'
+
+export interface PregnancyCommunityReportDetail {
+  patient_code: string
+  pregnancy_status: string
+  completed_visit_count: number
+  last_checkup_date: string | null
+  next_checkup_date: string | null
+  follow_up_required: boolean
+  reason: string
+  remarks: string
+}
+
 export interface OfficerCommunityReport {
   id: number
   village_name: string
   village_code: string
   cluster: string
   worker_name: string
+  report_type: CommunityReportType
   week_label: string
   period_start: string
   period_end: string
@@ -933,6 +952,7 @@ export interface OfficerCommunityReport {
   acknowledged: boolean
   total_cases: number
   entries: CommunityReportEntry[]
+  pregnancy_detail: PregnancyCommunityReportDetail | null
 }
 
 // --- GramSentinel Intelligence Simulator (Phase 2 — read-only) -------------

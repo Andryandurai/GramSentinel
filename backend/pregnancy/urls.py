@@ -4,6 +4,7 @@ from .views import (
     OfficerPregnancyListView,
     OfficerPregnancySummaryView,
     OfficerRequestFollowUpView,
+    PregnancyCommunityReportCreateView,
     PregnancyProfileDetailView,
     PregnancyProfileListCreateView,
     PregnancyQuestionsView,
@@ -14,6 +15,11 @@ from .views import (
 urlpatterns = [
     path("pregnancy/questions/<int:visit_number>/", PregnancyQuestionsView.as_view(), name="pregnancy-questions"),
     path("pregnancy/profiles/", PregnancyProfileListCreateView.as_view(), name="pregnancy-profile-list"),
+    path(
+        "pregnancy/community-reports/",
+        PregnancyCommunityReportCreateView.as_view(),
+        name="pregnancy-community-report-create",
+    ),
     path("pregnancy/profiles/<int:pk>/", PregnancyProfileDetailView.as_view(), name="pregnancy-profile-detail"),
     path("pregnancy/profiles/<int:pk>/visits/", PregnancyVisitCreateView.as_view(), name="pregnancy-visit-create"),
     path("pregnancy/worker/summary/", WorkerPregnancySummaryView.as_view(), name="pregnancy-worker-summary"),

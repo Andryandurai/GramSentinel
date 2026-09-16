@@ -25,6 +25,7 @@ from users.permissions import IsHealthOfficer, IsWorker, IsWorkerOrOfficer
 from users.scoping import scope_queryset, scoped_village_id
 
 from . import services
+from .attachments import INLINE_VIEWABLE_MIME_TYPES
 from .models import (
     CorrectionEvent,
     CorrectionRequest,
@@ -284,7 +285,8 @@ class MessageAttachmentView(APIView):
         raw = base64.b64decode(payload)
         response = HttpResponse(raw, content_type=message.attachment_mime or "application/octet-stream")
         filename = message.attachment_filename or "attachment"
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        disposition = "inline" if message.attachment_mime in INLINE_VIEWABLE_MIME_TYPES else "attachment"
+        response["Content-Disposition"] = f'{disposition}; filename="{filename}"'
         return response
 
 

@@ -81,6 +81,7 @@
     "success": "Success"
   },
   "status": {
+    "NOT_STARTED": "Not started",
     "SCHEDULED": "Scheduled",
     "IN_PROGRESS": "In progress",
     "COMPLETED": "Completed",
@@ -118,7 +119,106 @@
     "HIGH": "High",
     "URGENT": "Urgent",
     "ROUTINE": "Routine",
-    "CONCERNING": "Concerning"
+    "CONCERNING": "Concerning",
+    "FRESH": "Fresh",
+    "AGING": "Aging",
+    "STALE": "Stale",
+    "LOW": "Low",
+    "MODERATE": "Moderate",
+    "DOWNGRADE": "Downgrade"
+  },
+  "trend": {
+    "INCREASING": "Increasing",
+    "DECREASING": "Decreasing",
+    "STABLE": "Stable",
+    "INSUFFICIENT_DATA": "Insufficient data"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} minute ago",
+    "minutesAgo_other": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hour ago",
+    "hoursAgo_other": "{{count}} hours ago",
+    "daysAgo": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago",
+    "noReportThisPeriod": "No report this period",
+    "dueToday": "Due today",
+    "dueTomorrow": "Due tomorrow",
+    "overdueByDays": "Overdue by {{count}} day",
+    "overdueByDays_other": "Overdue by {{count}} days",
+    "dueInDays": "Due in {{count}} day",
+    "dueInDays_other": "Due in {{count}} days",
+    "noFollowUpDateRecorded": "No follow-up date recorded"
+  },
+  "category": {
+    "FEVER": "Fever / febrile illness",
+    "RESPIRATORY": "Respiratory illness",
+    "DIARRHOEAL": "Diarrhoeal / gastrointestinal illness",
+    "SKIN": "Skin conditions / infections",
+    "EYE": "Eye-related conditions",
+    "VECTOR_BORNE": "Vector-borne illness indicators",
+    "MOSQUITO_BORNE": "Mosquito-borne illness indicators",
+    "WATER_BORNE": "Water-borne illness indicators",
+    "FOOD_BORNE": "Food-borne illness indicators",
+    "ANIMAL_BITE": "Animal / insect bite incidents",
+    "POISONING": "Suspected poisoning",
+    "INJURY": "Injuries / accidents",
+    "MATERNAL": "Maternal health concerns",
+    "CHILD_HEALTH": "Child health concerns",
+    "MALNUTRITION": "Malnutrition-related concerns",
+    "DEHYDRATION": "Dehydration",
+    "HEAT_RELATED": "Heat-related illness",
+    "MENTAL_HEALTH": "Mental health concerns",
+    "OTHER_COMMUNICABLE": "Other communicable illness indicators",
+    "OTHER_NON_COMMUNICABLE": "Other non-communicable health concerns",
+    "OTHER": "Other health concern",
+    "ENVIRONMENT": "Environmental",
+    "LAB_CONFIRMATION": "Laboratory confirmation"
+  },
+  "sources": {
+    "CHW": "Community Health Worker reports",
+    "PHC": "PHC aggregate trends",
+    "PHARMACY": "Pharmacy category trends",
+    "SCHOOL": "School absenteeism",
+    "WEATHER": "Weather / environment",
+    "LAB": "Laboratory evidence",
+    "RURALCARE_AGGREGATE": "Aggregated RuralCare signal"
+  },
+  "snapshotFields": {
+    "encounterDate": "Encounter date",
+    "primaryCategory": "Primary category",
+    "triageLevel": "Triage level",
+    "temperatureC": "Temperature (C)",
+    "pulseBpm": "Pulse (bpm)",
+    "bloodSugarMgDl": "Blood sugar (mg/dL)",
+    "reportingWeek": "Reporting week",
+    "feverCases": "Fever cases",
+    "respiratoryCases": "Respiratory cases",
+    "diarrhoealCases": "Diarrhoeal cases",
+    "otherCases": "Other cases"
+  },
+  "ui": {
+    "syntheticDemoData": "SYNTHETIC DEMO DATA",
+    "somethingWentWrong": "Something went wrong",
+    "safetyPrefix": "SAFETY"
+  },
+  "rag": {
+    "defaultTitle": "Relevant Guidance",
+    "finding": "Finding relevant guidance…",
+    "unavailable": "Guidance is temporarily unavailable. The assessment result above is still available.",
+    "noGrounding": "No relevant reference guidance was found for this assessment.",
+    "sourcesCount": "Sources ({{count}})",
+    "viewSource": "View source ↗",
+    "authorityShort": {
+      "OFFICIAL": "Official",
+      "REFERENCE": "Reference",
+      "INTERNAL": "Internal"
+    },
+    "authorityFull": {
+      "OFFICIAL": "Official published guidance from the named organization",
+      "REFERENCE": "General reference material — not verbatim official text",
+      "INTERNAL": "GramSentinel's own application documentation"
+    }
   },
   "validation": {
     "required": "This field is required.",

@@ -420,10 +420,7 @@ export default function WorkerDashboardPage() {
                         {followup.due_description}
                       </span>
                     </span>
-                    <FollowUpPill
-                      status={followup.followup_status}
-                      label={followup.followup_status_label}
-                    />
+                    <FollowUpPill status={followup.followup_status} />
                   </Link>
                   {followup.notes && (
                     <p className="mt-1 pl-8 text-xs text-ink-600">

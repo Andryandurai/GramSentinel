@@ -20,10 +20,12 @@ from community.freshness import build_source_freshness
 from community.models import (
     CommunityReport,
     CommunityReportEntry,
+    CommunityReportType,
     CommunitySignal,
     LocalSignalReport,
 )
 from community.serializers import LocalSignalReportSerializer
+from pregnancy.serializers import PregnancyCommunityReportDetailSerializer
 from core.constants import (
     DATA_NOTICE,
     MEDICAL_DISCLAIMER,
@@ -76,9 +78,13 @@ class OfficerDashboardView(APIView):
 
         # Community reports from this officer's area, newest first.
         reports = scope_queryset(
-            CommunityReport.objects.select_related("village", "worker").prefetch_related(
-                "entries"
-            ),
+            CommunityReport.objects.select_related(
+                "village",
+                "worker",
+                "pregnancy_detail",
+                "pregnancy_detail__pregnancy_profile",
+                "pregnancy_detail__pregnancy_profile__patient",
+            ).prefetch_related("entries"),
             request.user,
         ).order_by("-submitted_at")
         unread_reports = reports.filter(acknowledged_at__isnull=True).count()
@@ -142,11 +148,13 @@ class OfficerDashboardView(APIView):
                         "worker_name": (
                             report.worker.display_name if report.worker else "—"
                         ),
+                        "report_type": report.report_type,
                         "week_label": report.week_label,
                         "submitted_at": report.submitted_at,
                         "unusual_observation": report.unusual_observation,
                         "acknowledged": report.acknowledged_at is not None,
                         "total_cases": sum(e.case_count for e in report.entries.all()),
+                        "pregnancy_detail": _pregnancy_detail_payload(report),
                         "categories": [
                             {
                                 "category": entry.category,
@@ -864,6 +872,18 @@ class OfficerCommunityDataView(APIView):
         ]
 
 
+def _pregnancy_detail_payload(report: CommunityReport) -> dict | None:
+    """Officer-facing Pregnancy detail for one `CommunityReport`, or None
+    for a General report — how the officer tells the two apart without
+    reading `notes` (patient_code only, same privacy rule every other
+    officer-facing pregnancy view already applies)."""
+
+    if report.report_type != CommunityReportType.PREGNANCY:
+        return None
+    detail = getattr(report, "pregnancy_detail", None)
+    return PregnancyCommunityReportDetailSerializer(detail).data if detail else None
+
+
 class OfficerCommunityReportsView(APIView):
     """Community reports submitted by workers in this officer's area — plus,
     separately, workers' high-local-signal reports (see LocalSignalReport).
@@ -883,7 +903,13 @@ class OfficerCommunityReportsView(APIView):
     def get(self, request):
         reports = (
             scope_queryset(
-                CommunityReport.objects.select_related("village", "worker"),
+                CommunityReport.objects.select_related(
+                    "village",
+                    "worker",
+                    "pregnancy_detail",
+                    "pregnancy_detail__pregnancy_profile",
+                    "pregnancy_detail__pregnancy_profile__patient",
+                ),
                 request.user,
             )
             .prefetch_related("entries")
@@ -897,6 +923,7 @@ class OfficerCommunityReportsView(APIView):
                 "village_code": report.village.code,
                 "cluster": report.village.cluster,
                 "worker_name": report.worker.display_name if report.worker else "—",
+                "report_type": report.report_type,
                 "week_label": report.week_label,
                 "period_start": report.period_start,
                 "period_end": report.period_end,
@@ -916,6 +943,7 @@ class OfficerCommunityReportsView(APIView):
                     for entry in report.entries.all()
                     if entry.case_count > 0 or entry.description
                 ],
+                "pregnancy_detail": _pregnancy_detail_payload(report),
             }
             for report in reports[:60]
         ]

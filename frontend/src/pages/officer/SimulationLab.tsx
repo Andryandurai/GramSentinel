@@ -378,7 +378,7 @@ function AgentStageCard({
         <span className="text-sm font-medium text-ink-800">{label}</span>
         <div className="flex items-center gap-1.5">
           <span className={`pill ${statusPillClass}`}>
-            {run.status_display}
+            {t(`agentRunStatus.${run.status}`, { defaultValue: run.status_display })}
           </span>
           {run.duration_ms != null && (
             <span className="text-[11px] text-ink-400">
@@ -2371,6 +2371,7 @@ function SimulationAdvanceControls() {
 function SessionInfoSummary() {
   const { activeSession, currentWeek, currentValues } = useSimulationStore()
   const { t } = useTranslation('simulation')
+  const { t: tc } = useTranslation('common')
   if (!activeSession || currentValues === null) return null
 
   return (
@@ -2385,7 +2386,9 @@ function SessionInfoSummary() {
         </div>
         <div className="flex items-center justify-between">
           <dt className="text-ink-500">{t('session.status')}</dt>
-          <dd className="font-medium text-ink-800">{activeSession.status_display}</dd>
+          <dd className="font-medium text-ink-800">
+            {tc(`status.${activeSession.status}`, { defaultValue: activeSession.status_display })}
+          </dd>
         </div>
         <div className="flex items-center justify-between">
           <dt className="text-ink-500">{t('session.week')}</dt>
@@ -2537,8 +2540,17 @@ function InvestigationPriorityHint() {
 function InvestigationStatusHint() {
   const { investigation, activeSession } = useSimulationStore()
   const { t } = useTranslation('simulation')
+  const { t: tc } = useTranslation('common')
   if (investigation && investigation.overview.session_id === activeSession?.session_id) {
-    return <p className="text-sm text-ink-800">{investigation.status_display}</p>
+    return (
+      <p className="text-sm text-ink-800">
+        {tc(`status.${investigation.status}`, {
+          defaultValue: t(`agentRunStatus.${investigation.status}`, {
+            defaultValue: investigation.status_display,
+          }),
+        })}
+      </p>
+    )
   }
   return <p className="text-xs text-ink-500">{t('investigationHint.notOpened')}</p>
 }
@@ -2854,6 +2866,7 @@ function ModeIndicator() {
 function SessionRunnerPanel() {
   const { activeSession, currentValues, disconnectLive } = useSimulationStore()
   const { t } = useTranslation('simulation')
+  const { t: tc } = useTranslation('common')
 
   // Belt-and-braces cleanup: `resetSession()`/mode switches already call
   // `disconnectLive()` themselves, but navigating away from Simulation Lab
@@ -2872,7 +2885,8 @@ function SessionRunnerPanel() {
         <div>
           <p className="text-sm font-semibold text-ink-800">{activeSession.scenario_name}</p>
           <p className="text-xs text-ink-500">
-            {activeSession.village_name} · {activeSession.status_display}
+            {activeSession.village_name} ·{' '}
+            {tc(`status.${activeSession.status}`, { defaultValue: activeSession.status_display })}
           </p>
         </div>
         <div className="flex items-center gap-2">

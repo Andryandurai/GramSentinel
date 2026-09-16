@@ -14,7 +14,9 @@
     "workerNotes": "பணியாளர் குறிப்புகள்:",
     "trendSummary": "{{count}} வாரத்தில் மொத்தம் {{total}} அறிக்கையிடப்பட்டது",
     "trendSummary_other": "{{count}} வாரங்களில் மொத்தம் {{total}} அறிக்கையிடப்பட்டது",
-    "excludedFromCorroboration": "சுயேச்சையான உறுதிப்படுத்தலில் இருந்து விலக்கப்பட்டது"
+    "excludedFromCorroboration": "சுயேச்சையான உறுதிப்படுத்தலில் இருந்து விலக்கப்பட்டது",
+    "yes": "ஆம்",
+    "no": "இல்லை"
   },
   "alertStatus": {
     "DETECTED": "கண்டறியப்பட்டது",
@@ -130,7 +132,9 @@
       "noReportsSuffix": " — அறிக்கைகள் இல்லை",
       "emptyFallback": "இந்தத் தேர்வுக்கு போதுமான தரவு இல்லை.",
       "emptyHintFallback": "பரந்த தேர்வை அல்லது நீண்ட காலகட்டத்தை முயற்சிக்கவும்.",
-      "insufficientData": "போதுமான தரவு இல்லை"
+      "insufficientData": "போதுமான தரவு இல்லை",
+      "allCases": "அனைத்து வழக்குகள்",
+      "allSeverities": "அனைத்து தீவிரங்கள்"
     },
     "observations": {
       "title": "உங்கள் பணியாளர்களின் அவதானிப்புகள்"
@@ -155,6 +159,18 @@
       "empty": "உங்கள் பகுதிக்கு சமூக அறிக்கைகள் எதுவும் சமர்ப்பிக்கப்படவில்லை.",
       "totalCases": "மொத்தம் {{count}} வழக்கு அறிக்கையிடப்பட்டது",
       "totalCases_other": "மொத்தம் {{count}} வழக்குகள் அறிக்கையிடப்பட்டன"
+    },
+    "reportType": {
+      "general": "பொது",
+      "pregnancy": "கர்ப்பம்"
+    },
+    "pregnancy": {
+      "patientCode": "நோயாளி குறியீடு",
+      "visitsCompleted": "முடிக்கப்பட்ட வருகைகள்",
+      "followUpRequired": "பின்தொடர்தல் தேவை",
+      "lastCheckup": "கடைசி பரிசோதனை",
+      "nextCheckup": "அடுத்த பரிசோதனை",
+      "reason": "காரணம்"
     }
   },
   "alertHistory": {
@@ -300,7 +316,9 @@
       "attachmentFallback": "இணைப்பு",
       "replyPlaceholder": "பதில்…",
       "sending": "அனுப்புகிறது…",
-      "fileReadError": "அந்த கோப்பை படிக்க முடியவில்லை."
+      "fileReadError": "அந்த கோப்பை படிக்க முடியவில்லை.",
+      "attachmentOpening": "திறக்கிறது…",
+      "attachmentError": "இணைப்பைத் திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
     },
     "reports": {
       "title": "அறிக்கை ஒப்புதல்கள்",

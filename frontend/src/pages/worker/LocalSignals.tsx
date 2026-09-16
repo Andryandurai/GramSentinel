@@ -87,7 +87,9 @@ function ReportToOfficerDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <dt className="label">{t('localSignals.source')}</dt>
-              <dd className="text-ink-800">{signal.source_kind}</dd>
+              <dd className="text-ink-800">
+                {tc(`sources.${signal.source_kind}`, { defaultValue: signal.source_kind })}
+              </dd>
             </div>
             <div>
               <dt className="label">{t('localSignals.reportingWeek')}</dt>
@@ -241,7 +243,7 @@ export default function LocalSignalsPage() {
                       }`}
                     />
                     <span className="text-sm font-medium flex-1 min-w-0">
-                      {group.label}
+                      {tc(`category.${group.category}`, { defaultValue: group.label })}
                     </span>
                     {group.is_rising && (
                       <span className="pill bg-amber-100 text-amber-800">
@@ -276,7 +278,7 @@ export default function LocalSignalsPage() {
                             return (
                               <tr key={signal.id}>
                                 <td className="table-cell font-medium">
-                                  {signal.source_kind}
+                                  {tc(`sources.${signal.source_kind}`, { defaultValue: signal.source_kind })}
                                 </td>
                                 <td className="table-cell font-mono text-xs">
                                   {signal.week_label}
@@ -308,7 +310,9 @@ export default function LocalSignalsPage() {
                                         onClick={() =>
                                           setReportTarget({
                                             signal,
-                                            categoryLabel: group.label,
+                                            categoryLabel: tc(`category.${group.category}`, {
+                                              defaultValue: group.label,
+                                            }),
                                           })
                                         }
                                       >
